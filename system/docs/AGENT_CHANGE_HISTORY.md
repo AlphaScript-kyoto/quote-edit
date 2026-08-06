@@ -113,6 +113,9 @@ Rewrite this file (fix pure-`?` corruption). Japanese developer spec to v1.3. Gi
 - Bump APP_VERSION to 1.3.2; field release note; portable ZIP packaging.
 - Includes: IPS plan folders, warranty columns, super_light 50GB only, 弊社特別割引 PDF label, developer spec v1.3.
 
+### 2026-08-06 - Display name for 機種変更
+Folder path and PDF heading show **機種変更** (omit trailing 「・移動機物品販売」). Master key and price lookup unchanged. ver stays 1.3.2.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

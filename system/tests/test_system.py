@@ -580,6 +580,49 @@ class QuoteSystemTest(unittest.TestCase):
             "iPhone17(256GB)_5GB.pdf",
         )
 
+        kishu_request = deepcopy(self.request)
+        kishu_request["sales_type"] = "機種変更・移動機物品販売"
+        kishu_quote = build_quote(
+            kishu_request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(kishu_quote["sales_type"], "機種変更・移動機物品販売")
+        kishu_relative = _quote_relative_path(
+            device,
+            {**variant, "sales_type": kishu_request["sales_type"]},
+            kishu_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(kishu_relative.parts[2], "機種変更")
+        self.assertNotIn("移動機物品販売", str(kishu_relative))
+
+    def test_kishu_henko_pdf_heading_short(self):
+        import pdfplumber
+        from tempfile import TemporaryDirectory
+        from quote_system.pdf_renderer import render_quote
+
+        request = deepcopy(self.request)
+        request["sales_type"] = "機種変更・移動機物品販売"
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        company = {
+            "name": "Test Co",
+            "department": "TM事業本部",
+            "registration_number": "G1901279",
+            "postal_address": "本社",
+            "phone": "000-0000-0000",
+            "fax": "",
+            "logo_file": "assets/company_logo.png",
+        }
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "kishu.pdf"
+            render_quote(quote, company, output)
+            with pdfplumber.open(output) as pdf:
+                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        self.assertIn("機種変更お見積り", text)
+        self.assertNotIn("移動機物品販売", text)
+
     def test_special_initial_fee_mode(self):
         request = deepcopy(self.request)
         request["initial_fee_mode"] = "special_3000"

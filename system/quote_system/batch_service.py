@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable
 
 from .config import DATA_DIR, OUTPUT_DIR, UPDATE_DIR, load_json, save_json
 from .pdf_renderer import render_quote
-from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf
+from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf, sales_type_display_name
 from .quote_service import build_quote, is_device_data_plan_allowed, is_plan_data_plan_allowed
 
 STATE_PATH = DATA_DIR / "app_state.json"
@@ -603,7 +603,7 @@ def _generate_for_devices(
             quote_id,
             str(device.get("category") or ""),
             device["model"],
-            variant["sales_type"],
+            sales_type_display_name(variant["sales_type"]),
             quote["plan_name"],
             variant["data_plan"],
             "あり" if variant["ouchi_discount_applied"] else "なし",
@@ -617,7 +617,7 @@ def _generate_for_devices(
             progress(
                 index + 1,
                 total,
-                f"{device['model']} / {variant['sales_type']} / "
+                f"{device['model']} / {sales_type_display_name(variant['sales_type'])} / "
                 f"{variant['data_plan']} / {ouchi_key}",
             )
 
@@ -949,7 +949,7 @@ def _quote_relative_path(
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),
-        _safe_name(variant["sales_type"]),
+        _safe_name(sales_type_display_name(variant["sales_type"])),
         _safe_name(ouchi_key),
         plan_folder,
         _fee_folder_name(quote),

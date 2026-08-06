@@ -16,6 +16,17 @@ SALES_COLUMNS = {
     "機種変更・移動機物品販売": 16,
 }
 
+# マスター／PDF 列の正式名はそのまま。出力フォルダ・見積PDFの見出しだけ短くする。
+_SALES_TYPE_DISPLAY = {
+    "機種変更・移動機物品販売": "機種変更",
+}
+
+
+def sales_type_display_name(sales_type: str) -> str:
+    """販売区分の表示名（フォルダ名・PDF表題用）。データ照合キーは変更しない。"""
+    key = str(sales_type or "").strip()
+    return _SALES_TYPE_DISPLAY.get(key, key)
+
 
 def normalize_model_name(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value or "").lower()

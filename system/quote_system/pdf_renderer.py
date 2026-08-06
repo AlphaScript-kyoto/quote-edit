@@ -18,6 +18,7 @@ from reportlab.platypus import Image as ReportLabImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from .config import RESOURCE_ROOT
+from .price_pdf_parser import sales_type_display_name
 
 
 FONT_REGULAR_PATH = Path(r"C:\Windows\Fonts\BIZ-UDGothicR.ttc")
@@ -234,7 +235,7 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0.5),
     ]))
-    sales_type = str(quote.get("sales_type") or "").strip()
+    sales_type = sales_type_display_name(str(quote.get("sales_type") or ""))
     quote_heading = f"{sales_type}お見積り" if sales_type else "お見積り"
     title_block = Table(
         [
