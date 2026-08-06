@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently 1.3.1 until next release bump) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.2**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -108,6 +108,10 @@ Display **弊社特別割引** for super/hyper light rows (internal names unchan
 
 ### 2026-08-06 - Docs repair + history scrub
 Rewrite this file (fix pure-`?` corruption). Japanese developer spec to v1.3. Git history rewrite removes phone/address blobs (approved).
+
+### 2026-08-06 - Release ver.1.3.2
+- Bump APP_VERSION to 1.3.2; field release note; portable ZIP packaging.
+- Includes: IPS plan folders, warranty columns, super_light 50GB only, 弊社特別割引 PDF label, developer spec v1.3.
 
 ## Release checklist
 1. APP_VERSION

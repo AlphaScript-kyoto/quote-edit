@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| バージョン | **`quote_system.config.APP_VERSION` を正**（執筆時点 ver.1.3.1） |
+| バージョン | **`quote_system.config.APP_VERSION` を正**（執筆時点 ver.1.3.2） |
 | 現場向け操作 | ひとつ上の `README.txt` |
 | **引き継ぎ仕様書（日本語・詳細）** | [`docs/開発者向け仕様書_v1.3.md`](docs/開発者向け仕様書_v1.3.md) |
 | **AI向け仕様（英語）** | [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md)／[`AGENTS.md`](../AGENTS.md)／[`docs/AGENT_CHANGE_HISTORY.md`](docs/AGENT_CHANGE_HISTORY.md) |

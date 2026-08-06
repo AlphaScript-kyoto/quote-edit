@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.3.1)
+# AI Context - Infinity Quote Batch App (ver.1.3.2)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.3.md`  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.1"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.2"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -154,7 +154,8 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
-| 1.3.1 | PDF layout polish; upfront IPS folders (JP names); running warranty columns; super_light 50GB only; subscr. filename without tier; PDF light discounts as 弊社特別割引; company.json gitignored; developer spec v1.3 |
+| 1.3.2 | Upfront IPS plan folders (JP names); running warranty columns 24/36; super_light 50GB only; subscr. filename without tier; PDF extra light discount label `弊社特別割引`; developer spec v1.3; field package ZIP |
+| 1.3.1 | PDF layout polish; company.json gitignored; UTF-8 BOM field texts; release-note encoding incident |
 | 1.3 | Default `special_3000`; optional standard fee via `include_standard_initial_fee` (legacy `include_special_initial_fee` mapped in checkpoints); 「除外する機種」; IPS upfront default off; info (i) → alphascript homepage; masters 20260731; force-all wording |
 | 1.2 | Field options/notes packaging refresh (mostly superseded by 1.3 defaults) |
 | 1.1 | Fixed output root; exclusions (+ individual dropdown); ouchi skips 5GB; dual human/AI docs; `.cursor` documented |
