@@ -1,0 +1,36 @@
+{
+  "logo_file": "assets/company_logo.png",
+  "departments": [
+    "TM????",
+    "RT???",
+    "CRM???",
+    "AQ???"
+  ],
+  "name": "???????????",
+  "department": "TM????",
+  "registration_number": "G1901279",
+  "postal_address": "?????? company.json ????",
+  "phone": "",
+  "fax": "",
+  "department_contacts": {
+    "TM????": {
+      "phone": "",
+      "fax": ""
+    },
+    "RT???": {
+      "phone": "",
+      "fax": "",
+      "postal_address": "??????4F??????"
+    },
+    "CRM???": {
+      "phone": "",
+      "fax": ""
+    },
+    "AQ???": {
+      "phone": "",
+      "fax": "",
+      "postal_address": ""
+    }
+  },
+  "_comment": "Copy to company.json for local/EXE use. Real phones and addresses MUST stay out of git."
+}

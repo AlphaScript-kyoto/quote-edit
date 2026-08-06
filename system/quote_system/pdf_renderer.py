@@ -118,14 +118,15 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         logo = ReportLabImage(str(logo_path), width=48 * mm, height=18.9 * mm)
         company_rows.append([logo])
     phone, fax, address = _resolve_department_header(company)
+    tel_line = f"TEL：{phone}" if phone else "TEL："
+    if fax:
+        tel_line = f"{tel_line}　FAX：{fax}"
     contact_lines = [
         company["department"],
         f"届出番号：{company['registration_number']}",
         address,
-        f"TEL：{phone}" if phone else "TEL：",
+        tel_line,
     ]
-    if fax:
-        contact_lines.append(f"FAX：{fax}")
     company_rows.append([
         Paragraph("<br/>".join(escape(line) for line in contact_lines), right)
     ])
@@ -137,20 +138,25 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0.5),
     ]))
+    sales_type = str(quote.get("sales_type") or "").strip()
+    quote_heading = f"{sales_type}お見積り" if sales_type else "お見積り"
     title_block = Table(
-        [[Paragraph(escape(display_model), model_title)], [Paragraph("お見積り", quote_label)]],
+        [
+            [Paragraph(escape(display_model), model_title)],
+            [Paragraph(escape(quote_heading), quote_label)],
+        ],
         colWidths=[105 * mm],
     )
     title_block.setStyle(TableStyle([
-        ("BOX", (0, 0), (-1, -1), 1.1, colors.black),
-        ("LEFTPADDING", (0, 0), (-1, -1), 1.6 * mm),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 1.6 * mm),
-        ("TOPPADDING", (0, 0), (-1, 0), 1.0 * mm),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, 0), 0.4 * mm),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 0.2 * mm),
-        ("TOPPADDING", (0, 1), (-1, 1), 0.1 * mm),
-        ("BOTTOMPADDING", (0, 1), (-1, 1), 1.0 * mm),
+        ("TOPPADDING", (0, 1), (-1, 1), 0.2 * mm),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), 0.6 * mm),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
+    doc.title = f"{display_model} {quote_heading}"
     header = Table(
         [[
             title_block,
@@ -170,41 +176,45 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     ips = quote["services"]["ips"]
     support = quote["services"]["support"]
     ips_display_mode = quote.get("ips_display_mode", "lump")
-    initial_fee_mode = quote.get("initial_fee_mode", "standard")
+    initial_fee_mode = quote.get("initial_fee_mode", "special_3000")
     show_ips_lump_in_initial = bool(
         ips and ips["billing_type"] == "upfront" and ips_display_mode != "monthly_as_running"
     )
-    initial_rows = [
-        ["初期導入費用／台", "金額", "備考"],
-    ]
+    initial_item_rows: list[list[Any]] = []
     if initial_fee_mode == "special_3000":
-        initial_rows.append([
+        initial_item_rows.append([
             "事務手数料", yen(0), "特別特典により免除",
         ])
-        initial_rows.append([
+        initial_item_rows.append([
             "初期費用",
             yen(int(quote.get("special_initial_fee_tax_in") or 3300)),
             "税込／クレジットカードまたは振込",
         ])
     else:
-        initial_rows.append([
+        initial_item_rows.append([
             "事務手数料", yen(quote["initial_fee_tax_in"]), "税込",
         ])
     if show_ips_lump_in_initial:
-        initial_rows.append([
+        initial_item_rows.append([
             "修理保証サービス",
             yen(int(ips["upfront_total_tax_in"])),
             f"税込／契約時一括／保証{ips['period_months']}か月",
         ])
-    if show_ips_lump_in_initial or initial_fee_mode in {"special_3000", "standard"}:
+    initial_rows = [["No.", "初期導入費用／台", "金額", "備考"]]
+    initial_rows.extend(_with_row_numbers(initial_item_rows))
+    has_initial_total = show_ips_lump_in_initial or initial_fee_mode in {
+        "special_3000", "standard",
+    }
+    if has_initial_total:
         initial_rows.append([
-            "初期費用合計",
-            yen(int(quote["initial_total_tax_in"])),
-            "税込",
+            "", "初期費用合計", yen(int(quote["initial_total_tax_in"])), "税込",
         ])
-    initial = Table(initial_rows, colWidths=[70 * mm, 34 * mm, 85 * mm])
+    initial = Table(initial_rows, colWidths=[10 * mm, 60 * mm, 34 * mm, 85 * mm])
     initial.setStyle(_section_table_style())
-    if show_ips_lump_in_initial or initial_fee_mode in {"special_3000", "standard"}:
+    initial.setStyle(TableStyle([
+        ("ALIGN", (0, 1), (0, -1), "CENTER"),
+    ]))
+    if has_initial_total:
         initial.setStyle(TableStyle([
             ("BACKGROUND", (0, -1), (-1, -1), YELLOW),
             ("FONT", (0, -1), (-1, -1), FONT_BOLD, 8.4),
@@ -215,32 +225,32 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     periods = quote["periods"]
     display_periods = _display_periods(periods)
     period_count = len(display_periods)
-    plan_rows = [
-        ["月額内訳", "税区分"] + [period["label"] for period in display_periods],
+    plan_item_rows: list[list[Any]] = [
         ["基本プラン（音声）", "税抜"] + [yen(components["basic_voice_tax_ex"])] * period_count,
         ["定額オプション＋", "税抜"] + [yen(components["call_option_tax_ex"])] * period_count,
-        [f"データプラン {quote['data_plan']}（法人）", "税抜"] + [yen(components["data_before_tax_ex"])] * period_count,
+        [f"データプラン {quote['data_plan']}（法人）", "税抜"]
+        + [yen(components["data_before_tax_ex"])] * period_count,
         ["Bizパッケージ＋ 特別割引", "税抜"]
         + [yen(components["biz_package_discount_tax_ex"])] * period_count,
     ]
-    discount_rows = [len(plan_rows) - 1]
+    discount_item_indexes = [len(plan_item_rows) - 1]
     if components["additional_discount_tax_ex"]:
-        plan_rows.append(
+        plan_item_rows.append(
             [components["additional_discount_name"], "税抜"]
             + [yen(components["additional_discount_tax_ex"])] * period_count
         )
-        discount_rows.append(len(plan_rows) - 1)
+        discount_item_indexes.append(len(plan_item_rows) - 1)
     if components["ouchi_discount_tax_ex"]:
-        plan_rows.append(
+        plan_item_rows.append(
             ["おうち割 光セット", "税抜"]
             + [yen(components["ouchi_discount_tax_ex"])] * period_count
         )
-        discount_rows.append(len(plan_rows) - 1)
-    subtotal_row = len(plan_rows)
-    plan_rows.extend([
-            ["通信料金小計", "税抜"] + [yen(components["communication_tax_ex"])] * period_count,
-        ["機種代金（48分割）", "非課税"] + [yen(period["device_payment"]) for period in display_periods],
-    ])
+        discount_item_indexes.append(len(plan_item_rows) - 1)
+    plan_item_rows.append(
+        ["機種代金（48分割）", "非課税"]
+        + [yen(period["device_payment"]) for period in display_periods]
+    )
+
     ips_tax_in_monthly = _ips_monthly_tax_in(ips)
     support_tax_ex_monthly = int(support["monthly_fee_tax_ex"]) if support else 0
     ips_in_running_total = (
@@ -251,60 +261,76 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         )
         else 0
     )
-    if ips and ips["billing_type"] == "subscription":
-        plan_rows.append(
+    # IPS一括（lump）は初期費用表に載せ、月額内訳の修理保証行には出さない
+    show_ips_monthly = bool(
+        ips and (
+            ips["billing_type"] == "subscription"
+            or ips_display_mode == "monthly_as_running"
+        )
+    )
+    if show_ips_monthly:
+        plan_item_rows.append(
             ["修理保証サービス", "税込"] + [yen(ips_tax_in_monthly)] * period_count
         )
-    elif ips and ips_display_mode == "monthly_as_running":
-        plan_rows.append(
-            ["修理保証サービス", "税込"] + [yen(ips_tax_in_monthly)] * period_count
-        )
-    # IPS一括表記（lump）は初期費用表に一括額を出すため、月額換算行は出さない
     if support:
-        plan_rows.append(
-            [support["name"], "税抜"] + [yen(support_tax_ex_monthly)] * period_count
+        plan_item_rows.append(
+            ["安心保証サービス", "税抜"] + [yen(support_tax_ex_monthly)] * period_count
         )
-    plan_rows.append(
+    # 弊社サービス（修理保証・安心保証）の直後、月額合計の直前
+    plan_item_rows.append(
         ["ユニバーサルサービス料", "税抜"]
         + [yen(components["universal_fee_tax_ex"])] * period_count
     )
+
+    plan_rows: list[list[Any]] = [
+        ["No.", "月額内訳", "税区分"] + [period["label"] for period in display_periods],
+    ]
+    plan_rows.extend(_with_row_numbers(plan_item_rows))
     actual_total_row = len(plan_rows)
-    # 月額合計は税抜料金＋非課税機種代金＋IPS税込（参考）を合算
+    # 月額合計＝基本〜機種代金＋修理保証（月額表示時）＋安心保証＋ユニバーサル
     plan_rows.append(
-        ["月額合計（参考）", ""]
+        ["", "月額合計（参考）", ""]
         + [
-            yen(_mixed_monthly_total(period, components, ips_in_running_total, support_tax_ex_monthly))
+            yen(
+                _mixed_monthly_total(
+                    period, components, ips_in_running_total, support_tax_ex_monthly
+                )
+            )
             for period in display_periods
         ]
     )
 
     monthly = Table(
         plan_rows,
-        colWidths=[67 * mm, 16 * mm] + [(106 / period_count) * mm] * period_count,
+        colWidths=[10 * mm, 57 * mm, 16 * mm] + [(106 / period_count) * mm] * period_count,
         repeatRows=1,
     )
+    # 金額列は No.(0) / 品名(1) / 税区分(2) の次から
+    amount_first_col = 3
     table_commands = [
         ("FONT", (0, 0), (-1, -1), FONT, 8.2),
         ("FONT", (0, 0), (-1, 0), FONT_BOLD, 8.4),
         ("BACKGROUND", (0, 0), (-1, 0), BLUE),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-        ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (2, 0), (-1, -1), "CENTER"),
+        ("ALIGN", (amount_first_col, 1), (-1, -1), "RIGHT"),
         ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 2.6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6),
-        ("BACKGROUND", (0, subtotal_row), (-1, subtotal_row), LIGHT_GRAY),
-        ("FONT", (0, subtotal_row), (-1, subtotal_row), FONT_BOLD, 8.2),
         ("BACKGROUND", (0, actual_total_row), (-1, actual_total_row), YELLOW),
-        ("TEXTCOLOR", (2, actual_total_row), (-1, actual_total_row), RED),
-        ("FONT", (0, actual_total_row), (1, actual_total_row), FONT_BOLD, 9.0),
-        ("FONT", (2, actual_total_row), (-1, actual_total_row), FONT_BOLD, 10.8),
+        ("TEXTCOLOR", (amount_first_col, actual_total_row), (-1, actual_total_row), RED),
+        ("FONT", (0, actual_total_row), (2, actual_total_row), FONT_BOLD, 9.0),
+        ("FONT", (amount_first_col, actual_total_row), (-1, actual_total_row), FONT_BOLD, 10.8),
     ]
-    for discount_row in discount_rows:
+    for item_index in discount_item_indexes:
+        # ヘッダ1行 + 番号付きアイテム行
+        discount_row = item_index + 1
         table_commands.extend([
-            ("TEXTCOLOR", (2, discount_row), (-1, discount_row), RED),
-            ("FONT", (2, discount_row), (-1, discount_row), FONT_BOLD, 8.2),
+            # 品名（列1）〜金額列まで赤文字。No.列は通常色のまま。
+            ("TEXTCOLOR", (1, discount_row), (-1, discount_row), RED),
+            ("FONT", (1, discount_row), (-1, discount_row), FONT_BOLD, 8.2),
         ])
     monthly.setStyle(TableStyle(table_commands))
     story.extend([monthly, Spacer(1, 1.2 * mm)])
@@ -377,7 +403,7 @@ def _attention_notes(quote: dict[str, Any], *, ips: bool, support: bool) -> list
             )
         if ips_svc.get("billing_type") == "subscription":
             notes.append(
-                "IPSサブスクリプションの手数料として165円を別途頂戴しております。"
+                "修理保証サービスのサブスクリプション手数料として1請求あたり165円を別途頂戴しております。"
             )
     if support:
         notes.append(
@@ -419,6 +445,11 @@ def _attention_notes(quote: dict[str, Any], *, ips: bool, support: bool) -> list
     return notes
 
 
+def _with_row_numbers(rows: list[list[Any]]) -> list[list[Any]]:
+    """明細行の先頭に No. 列を付与する（1始まり）。"""
+    return [[str(index), *row] for index, row in enumerate(rows, start=1)]
+
+
 def _section_table_style() -> TableStyle:
     return TableStyle([
         ("FONT", (0, 0), (-1, -1), FONT, 8.2),
@@ -426,7 +457,8 @@ def _section_table_style() -> TableStyle:
         ("BACKGROUND", (0, 0), (-1, 0), BLUE),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("ALIGN", (1, 1), (1, -1), "RIGHT"),
+        # No.列がある初期費用表: 金額は列2
+        ("ALIGN", (2, 1), (2, -1), "RIGHT"),
         ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 2.5),

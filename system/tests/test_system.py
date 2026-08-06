@@ -28,15 +28,15 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(device["payment_48"]["MNP"], {
             "1_12": 1,
             "13_24": 1,
-            "25_48": 6839,
+            "25_48": 7529,
         })
         self.assertEqual(device["payment_48"]["新規"]["1_12"], 1375)
         self.assertEqual(device["payment_48"]["番号移行"]["1_12"], 875)
         self.assertEqual(
             device["payment_48"]["機種変更・移動機物品販売"]["1_12"],
-            3160,
+            3700,
         )
-        self.assertEqual(device["total"], 164160)
+        self.assertEqual(device["total"], 180720)
         self.assertTrue(all(device["validation"].values()))
 
     def test_quote_totals(self):
@@ -48,20 +48,20 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["components"]["biz_package_discount_tax_ex"], -4300)
         self.assertEqual(quote["components"]["additional_discount_tax_ex"], -1500)
         self.assertEqual(quote["components"]["additional_discount_name"], "ハイパーライト割")
-        self.assertEqual(quote["services"]["ips"]["name"], "IPSミディアムプラン")
-        self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 1320)
+        self.assertEqual(quote["services"]["ips"]["name"], "IPSラージプラン")
+        self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 1540)
         self.assertEqual(quote["services"]["support"]["name"], "携帯電話安心サポートS")
         self.assertEqual(
             [period["monthly_total_tax_in"] for period in quote["periods"]],
-            [5131, 5131, 11969],
+            [5351, 5351, 12879],
         )
         self.assertEqual(
             [period["monthly_total_display_tax_ex"] for period in quote["periods"]],
-            [4665, 4665, 11503],
+            [4865, 4865, 12393],
         )
 
     def test_upfront_ips_monthly_equivalent(self):
-        request = {**self.request, "plan_id": "biz_plus"}
+        request = {**self.request, "plan_id": "biz_plus", "initial_fee_mode": "standard"}
         request["services"] = {
             "ips": {"type": "upfront", "plan_id": "ips_gold_24_water"},
             "support_plan_id": None,
@@ -87,11 +87,20 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["services"]["support"]["plan_id"], "support_s")
 
     def test_revised_initial_fee(self):
+        request = {**self.request, "initial_fee_mode": "standard"}
         quote = build_quote(
-            self.request, self.device_master, self.plan_master, self.service_master
+            request, self.device_master, self.plan_master, self.service_master
         )
         self.assertEqual(quote["initial_fee_tax_in"], 4950)
         self.assertEqual(self.plan_master["common"]["initial_fee_effective_from"], "2026-01-21")
+        special = build_quote(
+            {**self.request, "initial_fee_mode": "special_3000"},
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+        )
+        self.assertEqual(special["initial_fee_tax_in"], 0)
+        self.assertEqual(special["special_initial_fee_tax_ex"], 3000)
 
     def test_ips_can_be_removed_without_losing_discounts(self):
         request = deepcopy(self.request)
@@ -111,16 +120,169 @@ class QuoteSystemTest(unittest.TestCase):
     def test_rt_department_address_uses_hirai_4f_only(self):
         from quote_system.pdf_renderer import _resolve_department_header
 
-        company = load_json(DATA_DIR / "company.json")
+        # Synthetic company — no production addresses/phones in the repo.
+        company = {
+            "name": "Test Co",
+            "department": "TM事業本部",
+            "registration_number": "G0000000",
+            "postal_address": "本社ビル",
+            "phone": "000-0000-0000",
+            "fax": "",
+            "department_contacts": {
+                "TM事業本部": {"phone": "000-0000-0000", "fax": ""},
+                "RT事業部": {
+                    "phone": "000-0000-1111",
+                    "fax": "000-0000-2222",
+                    "postal_address": "本社ビル4F",
+                },
+            },
+        }
         _, _, default_address = _resolve_department_header(
             {**company, "department": "TM事業本部"}
         )
-        self.assertIn("[REDACTED]", default_address)
+        self.assertIn("本社ビル", default_address)
         self.assertNotIn("4F", default_address)
         _, _, rt_address = _resolve_department_header(
             {**company, "department": "RT事業部"}
         )
-        self.assertIn("[REDACTED]", rt_address)
+        self.assertIn("本社ビル4F", rt_address)
+
+    def test_department_contacts_resolve_per_department(self):
+        from quote_system.pdf_renderer import _resolve_department_header
+
+        company = {
+            "name": "Test Co",
+            "department": "TM事業本部",
+            "registration_number": "G0000000",
+            "postal_address": "本社ビル",
+            "phone": "000-0000-0000",
+            "fax": "",
+            "departments": ["TM事業本部", "RT事業部", "CRM事業部", "AQ事業部"],
+            "department_contacts": {
+                "TM事業本部": {"phone": "000-0000-0001", "fax": ""},
+                "RT事業部": {
+                    "phone": "000-0000-0002",
+                    "fax": "000-0000-9002",
+                    "postal_address": "本社ビル4F",
+                },
+                "CRM事業部": {"phone": "000-0000-0003", "fax": "000-0000-9003"},
+                "AQ事業部": {
+                    "phone": "000-0000-0004",
+                    "fax": "000-0000-9004",
+                    "postal_address": "別拠点ビル",
+                },
+            },
+        }
+        expected = {
+            "TM事業本部": ("000-0000-0001", "", "本社ビル"),
+            "RT事業部": ("000-0000-0002", "000-0000-9002", "本社ビル4F"),
+            "CRM事業部": ("000-0000-0003", "000-0000-9003", "本社ビル"),
+            "AQ事業部": ("000-0000-0004", "000-0000-9004", "別拠点ビル"),
+        }
+        for department, (phone, fax, address_token) in expected.items():
+            with self.subTest(department=department):
+                got_phone, got_fax, got_address = _resolve_department_header(
+                    {**company, "department": department}
+                )
+                self.assertEqual(got_phone, phone)
+                self.assertEqual(got_fax, fax)
+                self.assertIn(address_token, got_address)
+                if department in ("TM事業本部", "CRM事業部"):
+                    self.assertNotIn("4F", got_address)
+                if department == "AQ事業部":
+                    self.assertNotIn("本社ビル", got_address)
+
+    def test_pdf_header_shows_selected_department_contact(self):
+        import pdfplumber
+        from tempfile import TemporaryDirectory
+        from quote_system.pdf_renderer import render_quote
+
+        quote = build_quote(
+            self.request, self.device_master, self.plan_master, self.service_master
+        )
+        company = {
+            "name": "Test Co",
+            "department": "TM事業本部",
+            "registration_number": "G1901279",
+            "postal_address": "本社ビル",
+            "phone": "000-0000-0000",
+            "fax": "",
+            "logo_file": "assets/company_logo.png",
+            "department_contacts": {
+                "TM事業本部": {"phone": "000-0000-0001", "fax": ""},
+                "RT事業部": {
+                    "phone": "000-0000-0002",
+                    "fax": "000-0000-9002",
+                    "postal_address": "本社ビル4F",
+                },
+                "CRM事業部": {
+                    "phone": "000-0000-0003",
+                    "fax": "000-0000-9003",
+                },
+                "AQ事業部": {
+                    "phone": "000-0000-0004",
+                    "fax": "000-0000-9004",
+                    "postal_address": "別拠点ビル",
+                },
+            },
+        }
+        cases = {
+            "TM事業本部": {
+                "department": "TM事業本部",
+                "phone": "000-0000-0001",
+                "fax": None,
+                "address": "本社ビル",
+                "not_address": "4F",
+            },
+            "RT事業部": {
+                "department": "RT事業部",
+                "phone": "000-0000-0002",
+                "fax": "000-0000-9002",
+                "address": "本社ビル4F",
+                "not_address": None,
+            },
+            "CRM事業部": {
+                "department": "CRM事業部",
+                "phone": "000-0000-0003",
+                "fax": "000-0000-9003",
+                "address": "本社ビル",
+                "not_address": "4F",
+            },
+            "AQ事業部": {
+                "department": "AQ事業部",
+                "phone": "000-0000-0004",
+                "fax": "000-0000-9004",
+                "address": "別拠点ビル",
+                "not_address": "本社ビル",
+            },
+        }
+
+        with TemporaryDirectory() as tmp:
+            for department, expect in cases.items():
+                with self.subTest(department=department):
+                    output = Path(tmp) / f"{department}.pdf"
+                    render_quote(
+                        quote,
+                        {**company, "department": department},
+                        output,
+                    )
+                    with pdfplumber.open(output) as pdf:
+                        text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                    self.assertIn(expect["department"], text)
+                    self.assertIn(f"TEL：{expect['phone']}", text)
+                    self.assertIn(expect["address"], text)
+                    if expect["fax"]:
+                        self.assertRegex(
+                            text,
+                            rf"TEL：{expect['phone']}\s+FAX：{expect['fax']}",
+                        )
+                    else:
+                        self.assertIn(f"TEL：{expect['phone']}", text)
+                        self.assertNotIn("FAX：", text)
+                    if expect["not_address"]:
+                        self.assertNotIn(expect["not_address"], text)
+                    self.assertIn("届出番号：G1901279", text)
+                    self.assertIn("MNPお見積り", text)
 
     def test_support_auto_mapping(self):
         super_light = {**self.request, "plan_id": "super_light"}
@@ -151,19 +313,19 @@ class QuoteSystemTest(unittest.TestCase):
             for item in variants
         ))
         self.assertTrue(all(item["ips"]["type"] == "subscription" for item in variants))
-        self.assertTrue(all(item["initial_fee_mode"] == "standard" for item in variants))
+        self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
         self.assertEqual(len(with_no_ips), 152)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
-        with_special = list(quote_variants(
-            device, self.plan_master, include_special_initial_fee=True
+        with_standard_fee = list(quote_variants(
+            device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_special), 152)
+        self.assertEqual(len(with_standard_fee), 152)
         self.assertEqual(
-            {item["initial_fee_mode"] for item in with_special},
-            {"standard", "special_3000"},
+            {item["initial_fee_mode"] for item in with_standard_fee},
+            {"special_3000", "standard"},
         )
 
     def test_feature_phone_data_plan_rule(self):
@@ -241,7 +403,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
             "Bizパッケージ＋ハイパーライト", "初期費用3000円", "IPSサブスク",
-            "安心サポートあり", "iPhone17(256GB)_5GB_ミディアム.pdf",
+            "安心サポートあり", "iPhone17(256GB)_5GB_ラージ.pdf",
         ))
 
         upfront_request = deepcopy(self.request)
@@ -322,9 +484,9 @@ class QuoteSystemTest(unittest.TestCase):
         variants = list(quote_variants(
             device, self.plan_master,
             include_upfront_ips=True, include_no_ips=True, include_no_support=True,
-            include_special_initial_fee=True,
+            include_standard_initial_fee=True,
         ))
-        # 初期費用 standard + special_3000。一括型は lump / monthly_as_running の2版
+        # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
         self.assertEqual(len(variants), 3472)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
@@ -339,7 +501,7 @@ class QuoteSystemTest(unittest.TestCase):
         feature_variants = list(quote_variants(
             feature, self.plan_master,
             include_upfront_ips=True, include_no_ips=True, include_no_support=True,
-            include_special_initial_fee=True,
+            include_standard_initial_fee=True,
         ))
         self.assertEqual(len(feature_variants), 48)
 
@@ -383,7 +545,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["ips_display_mode"], "monthly_as_running")
 
     def test_worst_case_quote_pdf_fits_one_page(self):
-        from pypdf import PdfReader
+        import pdfplumber
         from tempfile import TemporaryDirectory
         from quote_system.pdf_renderer import render_quote
 
@@ -408,7 +570,25 @@ class QuoteSystemTest(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             output = Path(tmp) / "worst.pdf"
             render_quote(quote, company, output)
-            self.assertEqual(len(PdfReader(str(output)).pages), 1)
+            with pdfplumber.open(output) as pdf:
+                self.assertEqual(len(pdf.pages), 1)
+                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            self.assertNotIn("携帯電話料金小計", text)
+            self.assertNotIn("通信料金小計", text)
+            self.assertIn("修理保証サービス", text)
+            self.assertIn("安心保証サービス", text)
+            self.assertIn("No.", text)
+            self.assertIn("月額合計", text)
+            # 並び: 機種代金 → 修理保証 → 安心保証 → ユニバーサル → 月額合計
+            device_pos = text.find("機種代金")
+            ips_pos = text.find("修理保証サービス")
+            support_pos = text.find("安心保証サービス")
+            uni = text.find("ユニバーサルサービス料")
+            total_pos = text.find("月額合計")
+            self.assertTrue(
+                0 <= device_pos < ips_pos < support_pos < uni < total_pos
+            )
+            self.assertIn("MNPお見積り", text)  # worst case uses test request sales_type
 
     def test_attention_notes_conditions(self):
         from quote_system.pdf_renderer import _attention_notes
@@ -429,7 +609,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(any("税込の記載がない限りすべて税抜" in note for note in with_ips))
         self.assertFalse(any("ランニングコスト表記" in note for note in with_ips))
         self.assertFalse(any("おうち割光セットは、対象の光回線" in note for note in with_ips))
-        self.assertTrue(any("IPSサブスクリプションの手数料として165円" in note for note in with_ips))
+        self.assertTrue(
+            any(
+                "修理保証サービスのサブスクリプション手数料として1請求あたり165円を別途頂戴しております。"
+                in note
+                for note in with_ips
+            )
+        )
 
         no_sub_ips = _attention_notes(
             {
@@ -439,7 +625,9 @@ class QuoteSystemTest(unittest.TestCase):
             ips=True,
             support=False,
         )
-        self.assertFalse(any("IPSサブスクリプションの手数料として165円" in note for note in no_sub_ips))
+        self.assertFalse(
+            any("サブスクリプション手数料として" in note for note in no_sub_ips)
+        )
 
         with_ouchi = _attention_notes(
             {"model": "Xperia 1 VII", "ouchi_discount_applied": True},
@@ -634,7 +822,7 @@ class QuoteSystemTest(unittest.TestCase):
                         include_upfront_ips=False,
                         include_no_ips=False,
                         include_no_support=False,
-                        include_special_initial_fee=False,
+                        include_standard_initial_fee=False,
                         progress=None,
                         update_state=False,
                         control=control,

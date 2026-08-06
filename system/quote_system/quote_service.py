@@ -232,7 +232,7 @@ def build_quote(
             )
         )
 
-    initial_fee_mode = str(request.get("initial_fee_mode", "standard"))
+    initial_fee_mode = str(request.get("initial_fee_mode", "special_3000"))
     ips_display_mode = str(request.get("ips_display_mode", "lump"))
     if ips and ips["billing_type"] != "upfront":
         ips_display_mode = "lump"

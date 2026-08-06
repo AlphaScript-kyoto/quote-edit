@@ -28,3 +28,10 @@ portable/
 !system/assets/**
 .DS_Store
 Thumbs.db
+
+# Local company contact data (phones / addresses) — do not commit
+system/data/company.json
+# Runtime / operator prefs
+system/data/app_state.json
+system/data/excluded_models.json
+system/data/included_models.json

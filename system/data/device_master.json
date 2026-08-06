@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "source_pdf": "分割支払金一覧.pdf",
-  "imported_at": "2026-08-06T10:09:31",
+  "source_pdf": "分割支払金一覧20260731更新.pdf",
+  "imported_at": "2026-08-06T14:14:59",
   "page_count": 2,
-  "device_count": 247,
-  "changed_count": 27,
-  "discontinued_count": 111,
+  "device_count": 253,
+  "changed_count": 3,
+  "discontinued_count": 114,
   "devices": [
     {
       "category": "iPhone",
@@ -23,27 +23,27 @@
         "MNP": {
           "1_12": 1,
           "13_24": 1,
-          "25_48": 6839
+          "25_48": 7529
         },
         "新規": {
           "1_12": 1375,
           "13_24": 1375,
-          "25_48": 5465
+          "25_48": 6155
         },
         "番号移行": {
           "1_12": 875,
           "13_24": 875,
-          "25_48": 5965
+          "25_48": 6655
         },
         "機種変更・移動機物品販売": {
-          "1_12": 3160,
-          "13_24": 3160,
-          "25_48": 3680
+          "1_12": 3700,
+          "13_24": 3700,
+          "25_48": 3830
         }
       },
       "payment_36": null,
-      "payment_24": 6840,
-      "total": 164160,
+      "payment_24": 7530,
+      "total": 180720,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -68,27 +68,27 @@
         "MNP": {
           "1_12": 2160,
           "13_24": 2160,
-          "25_48": 6390
+          "25_48": 7050
         },
         "新規": {
           "1_12": 2160,
           "13_24": 2160,
-          "25_48": 6390
+          "25_48": 7050
         },
         "番号移行": {
           "1_12": 2620,
           "13_24": 2620,
-          "25_48": 5930
+          "25_48": 6590
         },
         "機種変更・移動機物品販売": {
-          "1_12": 4735,
-          "13_24": 4735,
-          "25_48": 3815
+          "1_12": 5275,
+          "13_24": 5275,
+          "25_48": 3935
         }
       },
       "payment_36": null,
-      "payment_24": 8550,
-      "total": 205200,
+      "payment_24": 9210,
+      "total": 221040,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -113,27 +113,27 @@
         "MNP": {
           "1_12": 1,
           "13_24": 2379,
-          "25_48": 6880
+          "25_48": 7780
         },
         "新規": {
           "1_12": 1,
           "13_24": 5379,
-          "25_48": 5380
+          "25_48": 6280
         },
         "番号移行": {
           "1_12": 3150,
           "13_24": 3150,
-          "25_48": 4920
+          "25_48": 5820
         },
         "機種変更・移動機物品販売": {
-          "1_12": 4495,
-          "13_24": 4495,
-          "25_48": 3575
+          "1_12": 5245,
+          "13_24": 5245,
+          "25_48": 3725
         }
       },
       "payment_36": null,
-      "payment_24": 8070,
-      "total": 193680,
+      "payment_24": 8970,
+      "total": 215280,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -158,27 +158,27 @@
         "MNP": {
           "1_12": 2160,
           "13_24": 2160,
-          "25_48": 7920
+          "25_48": 8850
         },
         "新規": {
           "1_12": 4180,
           "13_24": 4180,
-          "25_48": 5900
+          "25_48": 6830
         },
         "番号移行": {
           "1_12": 4640,
           "13_24": 4640,
-          "25_48": 5440
+          "25_48": 6370
         },
         "機種変更・移動機物品販売": {
-          "1_12": 5500,
-          "13_24": 5500,
-          "25_48": 4580
+          "1_12": 6250,
+          "13_24": 6250,
+          "25_48": 4760
         }
       },
       "payment_36": null,
-      "payment_24": 10080,
-      "total": 241920,
+      "payment_24": 11010,
+      "total": 264240,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -203,27 +203,27 @@
         "MNP": {
           "1_12": 3020,
           "13_24": 3020,
-          "25_48": 8890
+          "25_48": 9820
         },
         "新規": {
           "1_12": 5140,
           "13_24": 5140,
-          "25_48": 6770
+          "25_48": 7700
         },
         "番号移行": {
           "1_12": 5600,
           "13_24": 5600,
-          "25_48": 6310
+          "25_48": 7240
         },
         "機種変更・移動機物品販売": {
-          "1_12": 6415,
-          "13_24": 6415,
-          "25_48": 5495
+          "1_12": 7165,
+          "13_24": 7165,
+          "25_48": 5675
         }
       },
       "payment_36": null,
-      "payment_24": 11910,
-      "total": 285840,
+      "payment_24": 12840,
+      "total": 308160,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -248,27 +248,27 @@
         "MNP": {
           "1_12": 1,
           "13_24": 6099,
-          "25_48": 6430
+          "25_48": 7210
         },
         "新規": {
           "1_12": 1,
           "13_24": 6099,
-          "25_48": 6430
+          "25_48": 7210
         },
         "番号移行": {
           "1_12": 3510,
           "13_24": 3510,
-          "25_48": 5970
+          "25_48": 6750
         },
         "機種変更・移動機物品販売": {
-          "1_12": 5035,
-          "13_24": 5035,
-          "25_48": 4445
+          "1_12": 5655,
+          "13_24": 5655,
+          "25_48": 4605
         }
       },
       "payment_36": null,
-      "payment_24": 9480,
-      "total": 227520,
+      "payment_24": 10260,
+      "total": 246240,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -293,27 +293,27 @@
         "MNP": {
           "1_12": 4550,
           "13_24": 4550,
-          "25_48": 6550
+          "25_48": 7330
         },
         "新規": {
           "1_12": 4550,
           "13_24": 4550,
-          "25_48": 6550
+          "25_48": 7330
         },
         "番号移行": {
           "1_12": 5010,
           "13_24": 5010,
-          "25_48": 6090
+          "25_48": 6870
         },
         "機種変更・移動機物品販売": {
-          "1_12": 6010,
-          "13_24": 6010,
-          "25_48": 5090
+          "1_12": 6630,
+          "13_24": 6630,
+          "25_48": 5250
         }
       },
       "payment_36": null,
-      "payment_24": 11100,
-      "total": 266400,
+      "payment_24": 11880,
+      "total": 285120,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -338,27 +338,27 @@
         "MNP": {
           "1_12": 5280,
           "13_24": 5280,
-          "25_48": 7620
+          "25_48": 8400
         },
         "新規": {
           "1_12": 5280,
           "13_24": 5280,
-          "25_48": 7620
+          "25_48": 8400
         },
         "番号移行": {
           "1_12": 5740,
           "13_24": 5740,
-          "25_48": 7160
+          "25_48": 7940
         },
         "機種変更・移動機物品販売": {
-          "1_12": 6910,
-          "13_24": 6910,
-          "25_48": 5990
+          "1_12": 7530,
+          "13_24": 7530,
+          "25_48": 6150
         }
       },
       "payment_36": null,
-      "payment_24": 12900,
-      "total": 309600,
+      "payment_24": 13680,
+      "total": 328320,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -383,27 +383,27 @@
         "MNP": {
           "1_12": 830,
           "13_24": 6402,
-          "25_48": 6404
+          "25_48": 7424
         },
         "新規": {
           "1_12": 830,
           "13_24": 6402,
-          "25_48": 6404
+          "25_48": 7424
         },
         "番号移行": {
           "1_12": 4076,
           "13_24": 4076,
-          "25_48": 5944
+          "25_48": 6964
         },
         "機種変更・移動機物品販売": {
-          "1_12": 5470,
-          "13_24": 5470,
-          "25_48": 4550
+          "1_12": 6300,
+          "13_24": 6300,
+          "25_48": 4740
         }
       },
       "payment_36": null,
-      "payment_24": 10020,
-      "total": 240480,
+      "payment_24": 11040,
+      "total": 264960,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -428,27 +428,27 @@
         "MNP": {
           "1_12": 4910,
           "13_24": 4910,
-          "25_48": 6940
+          "25_48": 7960
         },
         "新規": {
           "1_12": 4910,
           "13_24": 4910,
-          "25_48": 6940
+          "25_48": 7960
         },
         "番号移行": {
           "1_12": 5370,
           "13_24": 5370,
-          "25_48": 6480
+          "25_48": 7500
         },
         "機種変更・移動機物品販売": {
-          "1_12": 6385,
-          "13_24": 6385,
-          "25_48": 5465
+          "1_12": 7215,
+          "13_24": 7215,
+          "25_48": 5655
         }
       },
       "payment_36": null,
-      "payment_24": 11850,
-      "total": 284400,
+      "payment_24": 12870,
+      "total": 308880,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -473,27 +473,27 @@
         "MNP": {
           "1_12": 5640,
           "13_24": 5640,
-          "25_48": 8040
+          "25_48": 9060
         },
         "新規": {
           "1_12": 5640,
           "13_24": 5640,
-          "25_48": 8040
+          "25_48": 9060
         },
         "番号移行": {
           "1_12": 6100,
           "13_24": 6100,
-          "25_48": 7580
+          "25_48": 8600
         },
         "機種変更・移動機物品販売": {
-          "1_12": 7300,
-          "13_24": 7300,
-          "25_48": 6380
+          "1_12": 8130,
+          "13_24": 8130,
+          "25_48": 6570
         }
       },
       "payment_36": null,
-      "payment_24": 13680,
-      "total": 328320,
+      "payment_24": 14700,
+      "total": 352800,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -518,27 +518,27 @@
         "MNP": {
           "1_12": 7120,
           "13_24": 7120,
-          "25_48": 9530
+          "25_48": 10790
         },
         "新規": {
           "1_12": 7120,
           "13_24": 7120,
-          "25_48": 9530
+          "25_48": 10790
         },
         "番号移行": {
           "1_12": 7580,
           "13_24": 7580,
-          "25_48": 9070
+          "25_48": 10330
         },
         "機種変更・移動機物品販売": {
-          "1_12": 8785,
-          "13_24": 8785,
-          "25_48": 7865
+          "1_12": 9825,
+          "13_24": 9825,
+          "25_48": 8085
         }
       },
       "payment_36": null,
-      "payment_24": 16650,
-      "total": 399600,
+      "payment_24": 17910,
+      "total": 429840,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -576,9 +576,9 @@
           "25_48": 4675
         },
         "機種変更・移動機物品販売": {
-          "1_12": 2920,
-          "13_24": 2920,
-          "25_48": 2630
+          "1_12": 3700,
+          "13_24": 3700,
+          "25_48": 1850
         }
       },
       "payment_36": null,
@@ -621,9 +621,9 @@
           "25_48": 5315
         },
         "機種変更・移動機物品販売": {
-          "1_12": 3790,
-          "13_24": 3790,
-          "25_48": 3230
+          "1_12": 4570,
+          "13_24": 4570,
+          "25_48": 2450
         }
       },
       "payment_36": null,
@@ -653,27 +653,27 @@
         "MNP": {
           "1_12": 1,
           "13_24": 1,
-          "25_48": 6059
+          "25_48": 5549
         },
         "新規": {
           "1_12": 1375,
           "13_24": 1375,
-          "25_48": 4685
+          "25_48": 4175
         },
         "番号移行": {
           "1_12": 1,
           "13_24": 1,
-          "25_48": 6059
+          "25_48": 5549
         },
         "機種変更・移動機物品販売": {
           "1_12": 2700,
           "13_24": 2700,
-          "25_48": 3360
+          "25_48": 2850
         }
       },
       "payment_36": null,
-      "payment_24": 6060,
-      "total": 145440,
+      "payment_24": 5550,
+      "total": 133200,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -4239,8 +4239,8 @@
     },
     {
       "category": "Android",
-      "model": "AQUOS R11 ※7月9日発売",
-      "model_key": "aquosr11※7月9日発売",
+      "model": "AQUOS R11",
+      "model_key": "aquosr11",
       "changed": false,
       "status": "販売中",
       "notes": "",
@@ -5364,6 +5364,231 @@
     },
     {
       "category": "Android",
+      "model": "Samsung Galaxy Z Fold8",
+      "model_key": "samsunggalaxyzfold8",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 2990,
+          "13_24": 2990,
+          "25_48": 9520
+        },
+        "新規": {
+          "1_12": 5990,
+          "13_24": 5990,
+          "25_48": 6520
+        },
+        "番号移行": {
+          "1_12": 6450,
+          "13_24": 6450,
+          "25_48": 6060
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 6450,
+          "13_24": 6450,
+          "25_48": 6060
+        }
+      },
+      "payment_36": null,
+      "payment_24": 12510,
+      "total": 300240,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(256GB)",
+      "model_key": "samsunggalaxyzfold8ultra256gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 3990,
+          "13_24": 3990,
+          "25_48": 9720
+        },
+        "新規": {
+          "1_12": 6990,
+          "13_24": 6990,
+          "25_48": 6720
+        },
+        "番号移行": {
+          "1_12": 7450,
+          "13_24": 7450,
+          "25_48": 6260
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 7450,
+          "13_24": 7450,
+          "25_48": 6260
+        }
+      },
+      "payment_36": null,
+      "payment_24": 13710,
+      "total": 329040,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(512GB)",
+      "model_key": "samsunggalaxyzfold8ultra512gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 4990,
+          "13_24": 4990,
+          "25_48": 9920
+        },
+        "新規": {
+          "1_12": 7990,
+          "13_24": 7990,
+          "25_48": 6920
+        },
+        "番号移行": {
+          "1_12": 8450,
+          "13_24": 8450,
+          "25_48": 6460
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 8450,
+          "13_24": 8450,
+          "25_48": 6460
+        }
+      },
+      "payment_36": null,
+      "payment_24": 14910,
+      "total": 357840,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(1TB)",
+      "model_key": "samsunggalaxyzfold8ultra1tb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 5990,
+          "13_24": 5990,
+          "25_48": 10690
+        },
+        "新規": {
+          "1_12": 8990,
+          "13_24": 8990,
+          "25_48": 7690
+        },
+        "番号移行": {
+          "1_12": 9450,
+          "13_24": 9450,
+          "25_48": 7230
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 9450,
+          "13_24": 9450,
+          "25_48": 7230
+        }
+      },
+      "payment_36": null,
+      "payment_24": 16680,
+      "total": 400320,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Flip8",
+      "model_key": "samsunggalaxyzflip8",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 2990,
+          "13_24": 2990,
+          "25_48": 6250
+        },
+        "新規": {
+          "1_12": 4490,
+          "13_24": 4490,
+          "25_48": 4750
+        },
+        "番号移行": {
+          "1_12": 4950,
+          "13_24": 4950,
+          "25_48": 4290
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 4950,
+          "13_24": 4950,
+          "25_48": 4290
+        }
+      },
+      "payment_36": null,
+      "payment_24": 9240,
+      "total": 221760,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
       "model": "Samsung Galaxy A57 5G",
       "model_key": "samsunggalaxya575g",
       "changed": false,
@@ -5949,9 +6174,54 @@
     },
     {
       "category": "Android",
+      "model": "moto g37 ※新トクするサポート＋適用不可",
+      "model_key": "motog37※新トクするサポート+適用不可",
+      "changed": false,
+      "status": "取扱終了",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": false,
+        "replacement_support": false,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
+        },
+        "新規": {
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
+        },
+        "番号移行": {
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
+        }
+      },
+      "payment_36": null,
+      "payment_24": 916,
+      "total": 21984,
+      "validation": {
+        "MNP": null,
+        "新規": null,
+        "番号移行": null,
+        "機種変更・移動機物品販売": null
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
       "model": "motorola razr 60s",
       "model_key": "motorolarazr60s",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -6266,44 +6536,44 @@
       "category": "Android",
       "model": "nubia S2e",
       "model_key": "nubias2e",
-      "changed": false,
-      "status": "販売中",
+      "changed": true,
+      "status": "取扱終了",
       "notes": "",
       "eligible": {
-        "new_toku_support_plus": true,
+        "new_toku_support_plus": false,
         "replacement_support": false,
         "mobile_device_sale": true
       },
       "payment_48": {
         "MNP": {
-          "1_12": 860,
-          "13_24": 274,
-          "25_48": 273
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
         },
         "新規": {
-          "1_12": 860,
-          "13_24": 274,
-          "25_48": 273
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
         },
         "番号移行": {
-          "1_12": 860,
-          "13_24": 274,
-          "25_48": 273
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
         },
         "機種変更・移動機物品販売": {
-          "1_12": 860,
-          "13_24": 274,
-          "25_48": 273
+          "1_12": null,
+          "13_24": null,
+          "25_48": null
         }
       },
       "payment_36": null,
-      "payment_24": 840,
-      "total": 20160,
+      "payment_24": 1140,
+      "total": 27360,
       "validation": {
-        "MNP": true,
-        "新規": true,
-        "番号移行": true,
-        "機種変更・移動機物品販売": true
+        "MNP": null,
+        "新規": null,
+        "番号移行": null,
+        "機種変更・移動機物品販売": null
       },
       "source_page": 1
     },
@@ -6492,7 +6762,7 @@
       "model": "Google Pixel 7(128GB)",
       "model_key": "googlepixel7128gb",
       "changed": false,
-      "status": "販売中",
+      "status": "取扱終了",
       "notes": "",
       "eligible": {
         "new_toku_support_plus": false,
@@ -6522,8 +6792,8 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
-      "total": null,
+      "payment_24": 3330,
+      "total": 79920,
       "validation": {
         "MNP": null,
         "新規": null,
@@ -6575,7 +6845,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 2
+      "source_page": 1
     },
     {
       "category": "Android",
@@ -7301,7 +7571,7 @@
       "category": "データ通信",
       "model": "Pocket WiFi 5G A503SH",
       "model_key": "pocketwifi5ga503sh",
-      "changed": false,
+      "changed": true,
       "status": "取扱終了",
       "notes": "",
       "eligible": {
@@ -7331,9 +7601,9 @@
           "25_48": null
         }
       },
-      "payment_36": 1220,
+      "payment_36": 1320,
       "payment_24": null,
-      "total": 43920,
+      "total": 47520,
       "validation": {
         "MNP": null,
         "新規": null,
@@ -7346,7 +7616,7 @@
       "category": "データ通信",
       "model": "A401ZT",
       "model_key": "a401zt",
-      "changed": false,
+      "changed": true,
       "status": "取扱終了",
       "notes": "",
       "eligible": {
@@ -7376,9 +7646,9 @@
           "25_48": null
         }
       },
-      "payment_36": 880,
+      "payment_36": 1120,
       "payment_24": null,
-      "total": 31680,
+      "total": 40320,
       "validation": {
         "MNP": null,
         "新規": null,
@@ -7571,7 +7841,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
       "model_key": "13インチipadprom5wifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -7616,7 +7886,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(512GB)",
       "model_key": "13インチipadprom5wifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -7661,7 +7931,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(1TB)",
       "model_key": "13インチipadprom5wifi+cellular1tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -7706,7 +7976,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(1TB)_NT",
       "model_key": "13インチipadprom5wifi+cellular1tbnt",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -7751,7 +8021,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(2TB)",
       "model_key": "13インチipadprom5wifi+cellular2tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -7796,7 +8066,7 @@
       "category": "iPad",
       "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(2TB)_NT",
       "model_key": "13インチipadprom5wifi+cellular2tbnt",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8336,7 +8606,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
       "model_key": "11インチipadprom5wifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8381,7 +8651,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(512GB)",
       "model_key": "11インチipadprom5wifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8426,7 +8696,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(1TB)",
       "model_key": "11インチipadprom5wifi+cellular1tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8471,7 +8741,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(1TB)_NT",
       "model_key": "11インチipadprom5wifi+cellular1tbnt",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8516,7 +8786,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(2TB)",
       "model_key": "11インチipadprom5wifi+cellular2tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -8561,7 +8831,7 @@
       "category": "iPad",
       "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(2TB)_NT",
       "model_key": "11インチipadprom5wifi+cellular2tbnt",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9101,7 +9371,7 @@
       "category": "iPad",
       "model": "13インチiPad Air（M4）Wi-Fi+Cellular(128GB)",
       "model_key": "13インチipadairm4wifi+cellular128gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9146,7 +9416,7 @@
       "category": "iPad",
       "model": "13インチiPad Air（M4）Wi-Fi+Cellular(256GB)",
       "model_key": "13インチipadairm4wifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9191,7 +9461,7 @@
       "category": "iPad",
       "model": "13インチiPad Air（M4）Wi-Fi+Cellular(512GB)",
       "model_key": "13インチipadairm4wifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9236,7 +9506,7 @@
       "category": "iPad",
       "model": "13インチiPad Air（M4）Wi-Fi+Cellular(1TB)",
       "model_key": "13インチipadairm4wifi+cellular1tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9281,7 +9551,7 @@
       "category": "iPad",
       "model": "11インチiPad Air（M4）Wi-Fi+Cellular(128GB)",
       "model_key": "11インチipadairm4wifi+cellular128gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9326,7 +9596,7 @@
       "category": "iPad",
       "model": "11インチiPad Air（M4）Wi-Fi+Cellular(256GB)",
       "model_key": "11インチipadairm4wifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9371,7 +9641,7 @@
       "category": "iPad",
       "model": "11インチiPad Air（M4）Wi-Fi+Cellular(512GB)",
       "model_key": "11インチipadairm4wifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -9416,7 +9686,7 @@
       "category": "iPad",
       "model": "11インチiPad Air（M4）Wi-Fi+Cellular(1TB)",
       "model_key": "11インチipadairm4wifi+cellular1tb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10271,7 +10541,7 @@
       "category": "iPad",
       "model": "iPad（A16）Wi-Fi+Cellular(128GB)",
       "model_key": "ipada16wifi+cellular128gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10316,7 +10586,7 @@
       "category": "iPad",
       "model": "iPad（A16）Wi-Fi+Cellular(256GB)",
       "model_key": "ipada16wifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10361,7 +10631,7 @@
       "category": "iPad",
       "model": "iPad（A16）Wi-Fi+Cellular(512GB)",
       "model_key": "ipada16wifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10586,7 +10856,7 @@
       "category": "iPad",
       "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(128GB)",
       "model_key": "ipadminia17prowifi+cellular128gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10631,7 +10901,7 @@
       "category": "iPad",
       "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(256GB)",
       "model_key": "ipadminia17prowifi+cellular256gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -10676,7 +10946,7 @@
       "category": "iPad",
       "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(512GB)",
       "model_key": "ipadminia17prowifi+cellular512gb",
-      "changed": true,
+      "changed": false,
       "status": "販売中",
       "notes": "",
       "eligible": {

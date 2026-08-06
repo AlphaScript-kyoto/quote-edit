@@ -8,11 +8,13 @@ You are working in a **local SoftBank corporate quote PDF batch generator** (Win
 |----------|------|----------|
 | **AI (this doc)** | `AGENTS.md` | English |
 | **AI (full architecture)** | `system/docs/AI_CONTEXT.md` | English |
+| **AI (change log / decisions)** | `system/docs/AGENT_CHANGE_HISTORY.md` | English |
 | **Human developers (handoff)** | `system/docs/開発者向け仕様書_v1.1.md` | Japanese |
 | **Field operators** | `README.txt` | Japanese (keep short) |
 | **Cursor IDE rules** | `.cursor/rules/*.mdc` | English (project rules) |
 
-Always load `system/docs/AI_CONTEXT.md` before non-trivial code changes.
+Always load `system/docs/AI_CONTEXT.md` before non-trivial code changes.  
+For prior fine-tuning, defaults, packing pitfalls, and “why is it like this?”, also load **`system/docs/AGENT_CHANGE_HISTORY.md`**.
 
 ## `.cursor` folder (required reading for agents)
 
@@ -34,14 +36,14 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.1** - constant: `system/quote_system/config.py` -> `APP_VERSION`
-- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.1`
+- **ver.1.3.1** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.3.1`
 
 ## Source of truth (edit these)
 
 - Logic: `system/quote_system/*.py`
 - GUI: `system/desktop_app.py`
-- Masters: `system/data/plans.json`, `services.json`, `company.json`
+- Masters: `system/data/plans.json`, `services.json`; **company contacts** via local `company.json` (gitignored) — template `company.example.json`
 - Tests: `system/tests/test_system.py`
 - Cursor rules: `.cursor/rules/`
 
@@ -71,5 +73,7 @@ EXE user data lives in `%LOCALAPPDATA%\InfinityQuoteApp\`. Price PDFs and `outpu
 1. Change `APP_VERSION`
 2. Update Japanese developer spec filename/content if major
 3. Sync `AI_CONTEXT.md` version table and this file
-4. Keep title bar and in-app version labels consistent
-5. Keep `.cursor/rules` pointers accurate if docs move
+4. **Append** a dated entry to `system/docs/AGENT_CHANGE_HISTORY.md` (do not wipe history)
+5. Keep title bar and in-app version labels consistent
+6. Field `README.txt` / `リリースノート_v{version}_現場向け.txt`: **UTF-8 with BOM** (see history doc)
+7. Keep `.cursor/rules` pointers accurate if docs move

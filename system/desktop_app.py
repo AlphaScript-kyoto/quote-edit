@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+import webbrowser
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -30,6 +31,9 @@ from quote_system.price_pdf_parser import SALES_COLUMNS, find_device
 from quote_system.quote_service import is_device_data_plan_allowed
 
 
+# 情報ボタン（右上「i」）で開く紹介ページ
+INFO_HOME_URL = "https://alphascript-kyoto.github.io/as-homepage/"
+
 class QuoteApp(tk.Tk):
     def __init__(self) -> None:
         ensure_directories()
@@ -39,9 +43,9 @@ class QuoteApp(tk.Tk):
         self.pdf_var = tk.StringVar()
         self.status_var = tk.StringVar(value="「機種代金一覧表」フォルダの価格表PDFを確認してください。")
         self.force_all_var = tk.BooleanVar(value=True)
-        self.upfront_var = tk.BooleanVar(value=True)
+        self.upfront_var = tk.BooleanVar(value=False)
         self.no_ips_var = tk.BooleanVar(value=False)
-        self.special_fee_var = tk.BooleanVar(value=False)
+        self.standard_fee_var = tk.BooleanVar(value=False)
         self.exclude_status_var = tk.StringVar(value="")
         self._batch_control: BatchControl | None = None
         self._is_running = False
@@ -78,6 +82,7 @@ class QuoteApp(tk.Tk):
             text=f"ver.{APP_VERSION}",
             font=("Yu Gothic UI", 12),
         ).pack(side="left", anchor="s", padx=(10, 0), pady=(0, 4))
+        self._build_info_button(header).pack(side="right", anchor="ne")
         ttk.Label(
             root,
             text="価格表PDFを読み取り、初回は全機種、次回以降は価格変更機種の見積もりを全条件で作成します。"
@@ -96,7 +101,7 @@ class QuoteApp(tk.Tk):
         ttk.Label(
             option_frame,
             text="標準：販売区分4種 × 対象料金プラン・データ容量 × SB光なし／あり × IPSサブスク × 安心サポート自動選択"
-            " × 事務手数料あり（税抜4,500円）",
+            " × 事務手数料免除＋初期費用3,000円",
         ).pack(anchor="w")
         ttk.Label(
             option_frame,
@@ -114,23 +119,31 @@ class QuoteApp(tk.Tk):
         ).pack(side="left")
         ttk.Label(
             option_frame,
-            text="※部署ごとの電話・FAX番号はヒアリング後に反映予定です（いまは共通番号の場合があります）。",
+            text="※選んだ部署が、見積もりの右上に表示されます（電話・住所も部署ごと同じになります）。",
             wraplength=700,
         ).pack(anchor="w", pady=(2, 0))
         ttk.Checkbutton(
             option_frame,
-            text="価格差分に関係なく、対象機種をすべて再生成　※初回起動時は必ずチェック",
+            text="値段が変わっていない機種も、もう一度すべて作り直す",
             variable=self.force_all_var,
         ).pack(anchor="w", pady=(8, 0))
         ttk.Label(
             option_frame,
-            text="※［作成しない機種を選ぶ］でチェックした機種は作成対象から外れます。",
+            text="※オフのとき（ふつう）：値段が変わった機種だけ作り直します。"
+            "　オンのとき：除外していない販売中の機種をすべて作り直します。"
+            "　いちばん最初の作成だけは、オン／オフどちらでも全部作ります。",
+            wraplength=700,
+            foreground="#555555",
+        ).pack(anchor="w", pady=(0, 2))
+        ttk.Label(
+            option_frame,
+            text="※［除外する機種］でチェックした機種は、どの場合も作りません。",
             foreground="#C00000",
         ).pack(anchor="w", pady=(2, 0))
         ttk.Checkbutton(
             option_frame,
-            text="事務手数料免除＋初期費用3,000円版も作成",
-            variable=self.special_fee_var,
+            text="事務手数料あり（税抜4,500円）版も作成",
+            variable=self.standard_fee_var,
         ).pack(anchor="w")
         ttk.Checkbutton(
             option_frame,
@@ -151,7 +164,7 @@ class QuoteApp(tk.Tk):
         exclude_row.pack(fill="x", pady=(12, 0))
         ttk.Button(
             exclude_row,
-            text="作成しない機種を選ぶ",
+            text="除外する機種",
             command=self._open_exclude_window,
         ).pack(side="left", ipadx=12, ipady=4)
         ttk.Label(
@@ -196,9 +209,36 @@ class QuoteApp(tk.Tk):
         excluded = load_excluded_model_keys()
         self._refresh_exclude_status(excluded)
         if excluded:
-            self._write_log(f"作成しない機種：{len(excluded)}件（［作成しない機種を選ぶ］で変更できます）")
+            self._write_log(f"除外する機種：{len(excluded)}件（［除外する機種］で変更できます）")
         else:
-            self._write_log("作成しない機種は未設定です（販売中の全機種が対象）。")
+            self._write_log("除外する機種は未設定です（販売中の全機種が対象）。")
+
+    def _build_info_button(self, parent: ttk.Frame) -> tk.Canvas:
+        """右上の情報ボタン（青い〇の中に i）。"""
+        size = 30
+        canvas = tk.Canvas(
+            parent,
+            width=size,
+            height=size,
+            highlightthickness=0,
+            cursor="hand2",
+            background=self.cget("background"),
+            borderwidth=0,
+        )
+        pad = 2
+        canvas.create_oval(
+            pad, pad, size - pad, size - pad,
+            fill="#2B6CB0", outline="#1A4A8A", width=1,
+        )
+        canvas.create_text(
+            size // 2, size // 2,
+            text="i", fill="white", font=("Segoe UI", 12, "bold"),
+        )
+        canvas.bind("<Button-1>", lambda _e: self._open_info_page())
+        return canvas
+
+    def _open_info_page(self) -> None:
+        webbrowser.open(INFO_HOME_URL)
 
     def _refresh_exclude_status(self, excluded: set[str] | None = None) -> None:
         keys = excluded if excluded is not None else load_excluded_model_keys()
@@ -226,12 +266,12 @@ class QuoteApp(tk.Tk):
             return
 
         win = tk.Toplevel(self)
-        win.title("作成しない機種")
+        win.title("除外する機種")
         win.geometry("520x560")
         win.minsize(480, 460)
         frame = ttk.Frame(win, padding=16)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="作成しない機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
+        ttk.Label(frame, text="除外する機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
         ttk.Label(
             frame,
             text="チェックした機種は一括作成・個別見積の一覧から外れます。"
@@ -336,7 +376,7 @@ class QuoteApp(tk.Tk):
         if not models:
             messagebox.showerror(
                 "選択できる機種がありません",
-                "［作成しない機種を選ぶ］ですべて除外されている可能性があります。"
+                "［除外する機種］ですべて除外されている可能性があります。"
                 "除外を解除してから、もう一度開いてください。",
             )
             return
@@ -354,7 +394,7 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w", pady=(2, 2))
         ttk.Label(
             frame,
-            text="※［作成しない機種を選ぶ］で除外していない機種が一覧に出ます（一括作成と連動）。",
+            text="※［除外する機種］で除外していない機種が一覧に出ます（一括作成と連動）。",
             wraplength=620,
         ).pack(anchor="w", pady=(0, 12))
 
@@ -448,13 +488,13 @@ class QuoteApp(tk.Tk):
 
         fee_box = ttk.LabelFrame(frame, text="初期費用（複数選択可）", padding=10)
         fee_box.pack(fill="x", pady=6)
-        fee_standard_var = tk.BooleanVar(value=True)
-        fee_special_var = tk.BooleanVar(value=False)
+        fee_special_var = tk.BooleanVar(value=True)
+        fee_standard_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            fee_box, text="事務手数料あり（通常）", variable=fee_standard_var
+            fee_box, text="事務手数料免除＋初期費用3,000円（標準）", variable=fee_special_var
         ).pack(anchor="w")
         ttk.Checkbutton(
-            fee_box, text="事務手数料免除＋初期費用3,000円", variable=fee_special_var
+            fee_box, text="事務手数料あり（税抜4,500円）", variable=fee_standard_var
         ).pack(anchor="w")
 
         status_var = tk.StringVar(value="条件を選択して［PDF作成］を押してください。")
@@ -490,8 +530,8 @@ class QuoteApp(tk.Tk):
             try:
                 fee_modes = [
                     mode for mode, enabled in (
-                        ("standard", fee_standard_var.get()),
                         ("special_3000", fee_special_var.get()),
+                        ("standard", fee_standard_var.get()),
                     ) if enabled
                 ]
                 result = run_individual(
@@ -565,7 +605,7 @@ class QuoteApp(tk.Tk):
                 messagebox.showerror(
                     "作成対象がありません",
                     "すべての機種が除外されています。"
-                    "［作成しない機種を選ぶ］で除外を減らしてください。",
+                    "［除外する機種］で除外を減らしてください。",
                 )
                 return
         pdf = Path(self.pdf_var.get())
@@ -608,7 +648,7 @@ class QuoteApp(tk.Tk):
                 force_all=self.force_all_var.get(),
                 include_upfront_ips=self.upfront_var.get(),
                 include_no_ips=self.no_ips_var.get(),
-                include_special_initial_fee=self.special_fee_var.get(),
+                include_standard_initial_fee=self.standard_fee_var.get(),
                 department=self.department_var.get(),
                 control=self._batch_control,
                 progress=lambda done, total, message: self.after(0, self._progress, done, total, message),

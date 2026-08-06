@@ -175,9 +175,9 @@ def quote_variants(
     include_upfront_ips: bool = False,
     include_no_ips: bool = False,
     include_no_support: bool = False,
-    include_special_initial_fee: bool = False,
+    include_standard_initial_fee: bool = False,
 ) -> Iterable[dict[str, Any]]:
-    """バリアント列挙。標準は事務手数料あり。特別初期費用はチェックON時のみ追加。"""
+    """バリアント列挙。標準は事務手数料免除＋初期費用3,000円。事務手数料ありはチェックON時のみ追加。"""
     ips_options: list[dict[str, Any]] = [{"type": "subscription"}]
     if include_no_ips:
         ips_options.append({"type": "none"})
@@ -187,9 +187,9 @@ def quote_variants(
             for plan_id in _upfront_ips_plan_ids(device)
         )
 
-    fee_modes = ["standard"]
-    if include_special_initial_fee:
-        fee_modes.append("special_3000")
+    fee_modes = ["special_3000"]
+    if include_standard_initial_fee:
+        fee_modes.append("standard")
 
     for sales_type in SALES_COLUMNS:
         payments = device["payment_48"][sales_type]
@@ -264,7 +264,7 @@ def run_batch(
     include_upfront_ips: bool = False,
     include_no_ips: bool = False,
     include_no_support: bool = False,
-    include_special_initial_fee: bool = False,
+    include_standard_initial_fee: bool = False,
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
@@ -292,7 +292,7 @@ def run_batch(
     if not active_devices:
         raise ValueError(
             "作成対象の機種がありません。"
-            "メイン画面の［作成しない機種を選ぶ］で除外を減らすか確認してください。"
+            "メイン画面の［除外する機種］で除外を減らすか確認してください。"
         )
     if first_run or force_all:
         targets = active_devices
@@ -330,7 +330,7 @@ def run_batch(
         include_upfront_ips=include_upfront_ips,
         include_no_ips=include_no_ips,
         include_no_support=include_no_support,
-        include_special_initial_fee=include_special_initial_fee,
+        include_standard_initial_fee=include_standard_initial_fee,
         progress=progress,
         update_state=True,
         control=control,
@@ -345,7 +345,7 @@ def generate_selected_models(
     include_upfront_ips: bool = True,
     include_no_ips: bool = True,
     include_no_support: bool = True,
-    include_special_initial_fee: bool = False,
+    include_standard_initial_fee: bool = False,
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
@@ -380,7 +380,7 @@ def generate_selected_models(
         include_upfront_ips=include_upfront_ips,
         include_no_ips=include_no_ips,
         include_no_support=include_no_support,
-        include_special_initial_fee=include_special_initial_fee,
+        include_standard_initial_fee=include_standard_initial_fee,
         progress=progress,
         update_state=False,
         quote_id_prefix="FULL",
@@ -404,6 +404,14 @@ def checkpoint_exists() -> bool:
 def clear_checkpoint() -> None:
     if CHECKPOINT_PATH.exists():
         CHECKPOINT_PATH.unlink()
+
+
+def _checkpoint_include_standard_fee(payload: dict[str, Any]) -> bool:
+    """中断データから事務手数料あり版の要否を読む（旧キー互換）。"""
+    if "include_standard_initial_fee" in payload:
+        return bool(payload.get("include_standard_initial_fee"))
+    # 旧版: special が追加オプション、base が standard → 両方だったときのみ standard あり
+    return bool(payload.get("include_special_initial_fee"))
 
 
 def resume_batch(
@@ -450,7 +458,7 @@ def resume_batch(
         include_upfront_ips=bool(payload.get("include_upfront_ips")),
         include_no_ips=bool(payload.get("include_no_ips")),
         include_no_support=bool(payload.get("include_no_support")),
-        include_special_initial_fee=bool(payload.get("include_special_initial_fee")),
+        include_standard_initial_fee=_checkpoint_include_standard_fee(payload),
         progress=progress,
         update_state=bool(payload.get("update_state", True)),
         quote_id_prefix=str(payload.get("quote_id_prefix") or "AUTO"),
@@ -479,7 +487,7 @@ def _generate_for_devices(
     include_upfront_ips: bool,
     include_no_ips: bool,
     include_no_support: bool,
-    include_special_initial_fee: bool,
+    include_standard_initial_fee: bool,
     progress: ProgressCallback | None,
     update_state: bool,
     quote_id_prefix: str = "AUTO",
@@ -495,7 +503,7 @@ def _generate_for_devices(
             include_upfront_ips,
             include_no_ips,
             include_no_support,
-            include_special_initial_fee,
+            include_standard_initial_fee,
         ):
             jobs.append((device, variant))
 
@@ -530,7 +538,7 @@ def _generate_for_devices(
         "include_upfront_ips": include_upfront_ips,
         "include_no_ips": include_no_ips,
         "include_no_support": include_no_support,
-        "include_special_initial_fee": include_special_initial_fee,
+        "include_standard_initial_fee": include_standard_initial_fee,
         "department": department,
         "target_model_keys": [device["model_key"] for device in targets],
         "discontinued": list(discontinued),
@@ -569,7 +577,7 @@ def _generate_for_devices(
             "sales_type": variant["sales_type"],
             "plan_id": variant["plan_id"],
             "data_plan": variant["data_plan"],
-            "initial_fee_mode": variant.get("initial_fee_mode", "standard"),
+            "initial_fee_mode": variant.get("initial_fee_mode", "special_3000"),
             "ips_display_mode": variant.get("ips_display_mode", "lump"),
             "services": {
                 "ips": ips,
@@ -683,7 +691,7 @@ def run_individual(
     elif initial_fee_mode:
         fee_modes = [initial_fee_mode]
     else:
-        fee_modes = ["standard"]
+        fee_modes = ["special_3000"]
     fee_modes = [mode for mode in fee_modes if mode in {"standard", "special_3000"}]
     if not fee_modes:
         raise ValueError("初期費用のパターンを1つ以上選択してください")

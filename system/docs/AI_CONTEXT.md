@@ -1,10 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.1)
+# AI Context - Infinity Quote Batch App (ver.1.3.1)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.1.md`  
+**Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.1"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.1"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -47,18 +48,19 @@ Each rule is Markdown with YAML frontmatter:
 
 Current `quote-edit-handoff.mdc` purpose:
 
-1. Force agents to read `AGENTS.md` + this `AI_CONTEXT.md` before non-trivial changes
+1. Force agents to read `AGENTS.md` + this `AI_CONTEXT.md` + `AGENT_CHANGE_HISTORY.md` before non-trivial changes
 2. Point Japanese human successors to `開発者向け仕様書_v1.1.md`
-3. Restate hard invariants (fixed output root, exclusions, no ouchi+5GB, one-page PDF, no bulk regen unless asked)
-4. Distinguish source (`system/quote_system`, GUI, masters, tests, docs, `.cursor/rules`) from generated (`portable/`, `system/work/`)
+3. Restate hard invariants (fixed output root, exclusions, no ouchi+5GB, one-page PDF, fee defaults, field UTF-8 BOM, no bulk regen unless asked)
+4. Distinguish source from generated; require append-only entries in the change history
 
 ### Maintenance rules for agents
 
 | Do | Do not |
 |----|--------|
 | Update rule text when invariants or doc paths change | Delete `.cursor` "to clean up" without human approval |
-| Keep rules short; put deep architecture here / Japanese spec | Dump long architecture only into `.mdc` (prefer this file) |
+| Keep rules short; architecture here; decisions in `AGENT_CHANGE_HISTORY.md` | Dump long session history only into `.mdc` |
 | Keep user-facing `README.txt` at one short note about `.cursor` | Teach field users how to edit Cursor rules |
+| Append dated log after user-visible changes | Erase past decisions from the history file |
 
 ### Distribution note
 
@@ -68,8 +70,8 @@ Portable EXE packages under `portable/` may omit `.cursor`. That is expected. Th
 
 ```
 Field user      -> README.txt                 (mentions .cursor only as "ignore")
-Human developer -> 開発者向け仕様書_v1.1.md                  (explains why .cursor exists)
-AI / Cursor     -> AGENTS.md + this file + .cursor/rules/*.mdc
+Human developer -> 開発者向け仕様書_v1.1.md + AGENT_CHANGE_HISTORY.md (1.3.x deltas)
+AI / Cursor     -> AGENTS.md + this file + AGENT_CHANGE_HISTORY.md + .cursor/rules/*.mdc
 ```
 
 ---
@@ -91,6 +93,8 @@ quote-edit/
     tests/
     docs/開発者向け仕様書_v1.1.md
     docs/AI_CONTEXT.md
+    docs/AGENT_CHANGE_HISTORY.md  # decisions, session log, pitfalls
+    docs/リリースノート_v*_現場向け.txt  # optional field release notes (UTF-8 BOM)
 ```
 
 Ignore generated trees when editing logic: `portable/`, `system/work/`.
@@ -129,11 +133,19 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 ## Agent change protocol
 
-1. Read this file + Japanese spec if changing product behavior. Obey `.cursor/rules`.
-2. Keep field `README.txt` simple; put depth in `docs/`.
-3. Bump `APP_VERSION` when releasing a user-visible milestone; sync titles and both specs.
-4. Update tests for rule changes.
-5. Do not regenerate thousands of PDFs unless the human asks.
+1. Read this file + **`AGENT_CHANGE_HISTORY.md`** + Japanese spec if changing product behavior. Obey `.cursor/rules`.
+2. Keep field `README.txt` simple; put depth in `docs/` (architecture here; decisions in change history).
+3. Bump `APP_VERSION` when releasing a user-visible milestone; sync titles, this file, `AGENTS.md`, and append change history.
+4. Field Japanese `.txt` for ships: **UTF-8 with BOM** (`utf-8-sig`). Arrange uses `_write_utf8_bom`. Bat files for build stay ASCII/CRLF **without** BOM.
+5. Update tests for rule changes.
+6. Do not regenerate thousands of PDFs unless the human asks.
+7. After behavior changes, append a dated log line in `AGENT_CHANGE_HISTORY.md`.
+
+### Portable field texts
+
+- Source: root `README.txt`, `system/docs/リリースノート_v{APP_VERSION}_現場向け.txt`
+- Package: `system/_arrange_portable.py` → package root; UTF-8 BOM + CRLF
+- Pure `?` characters in Japanese files mean **content was destroyed** (not “open as Shift_JIS”); rewrite from history / human source
 
 ---
 
@@ -141,4 +153,9 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
+| 1.3.1 | PDF: No. column; monthly order plan→IPS→support→universal→total (no subtotal); red discount text; no title box; `{sales_type}お見積り`; TEL/FAX one line; AQ TEL/FAX; subscription IPS note 165円/請求; field text UTF-8 BOM + arrange rewrite; release-note `?` incident documented in `AGENT_CHANGE_HISTORY.md` |
+| 1.3 | Default `special_3000`; optional standard fee via `include_standard_initial_fee` (legacy `include_special_initial_fee` mapped in checkpoints); 「除外する機種」; IPS upfront default off; info (i) → alphascript homepage; AQ Tokyo address; masters 20260731; force-all wording |
+| 1.2 | Field options/notes packaging refresh (mostly superseded by 1.3 defaults) |
 | 1.1 | Fixed output root; exclusions (+ individual dropdown); ouchi skips 5GB; dual human/AI docs; `.cursor` documented |
+
+**Detail & session log:** always prefer `system/docs/AGENT_CHANGE_HISTORY.md` over short row above.

@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| バージョン | **ver.1.2**（`quote_system.config.APP_VERSION`） |
+| バージョン | **ver.1.3.1**（`quote_system.config.APP_VERSION`） |
 | 現場向け操作 | ひとつ上の `README.txt` |
 | **引き継ぎ仕様書（日本語・詳細）** | [`docs/開発者向け仕様書_v1.1.md`](docs/開発者向け仕様書_v1.1.md) |
 | **AI向け仕様（英語）** | [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) ／ リポジトリ直下 [`AGENTS.md`](../AGENTS.md) |
@@ -36,7 +36,7 @@ quote-edit/
 
 ## 管理者権限なしでの配布
 
-`system\build_portable_exe.bat` → `portable\見積もり一括作成ver{APP_VERSION}`（現在は ver1.2）  
+`system\build_portable_exe.bat` → `portable\見積もり一括作成ver{APP_VERSION}`（現在は ver1.3.1）  
 EXEの作業データ（除外機種など）は `%LOCALAPPDATA%\InfinityQuoteApp`。
 
 ## セットアップ（開発PC）
