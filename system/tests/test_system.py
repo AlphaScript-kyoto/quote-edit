@@ -487,8 +487,9 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
             "Bizパッケージ＋ハイパーライト", "初期費用3000円", "IPSサブスク",
-            "安心サポートあり", "iPhone17(256GB)_5GB.pdf",
+            "iPhone17(256GB)_5GB.pdf",
         ))
+        self.assertNotIn("安心サポート", str(relative))
 
         upfront_request = deepcopy(self.request)
         upfront_request.update({
@@ -518,8 +519,8 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(upfront_relative.parts[6], "IPS一括型")
         # 通常IPSはゴ/プ等をフォルダで分け、ファイル名は機種_容量のみ
         self.assertEqual(upfront_relative.parts[7], "プラチナ36水没")
-        self.assertEqual(upfront_relative.parts[8], "安心サポートあり")
         self.assertEqual(upfront_relative.name, "iPhone17(256GB)_50GB.pdf")
+        self.assertNotIn("安心サポート", str(upfront_relative))
 
         running_variant = {**upfront_variant, "ips_display_mode": "monthly_as_running"}
         running_quote = build_quote(
@@ -564,6 +565,8 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(gold24_relative.parts[6], "IPS一括型")
         self.assertEqual(gold24_relative.parts[7], "ゴールド24")
+        # 強制加入プランでサポートなしを選んだときだけサポートフォルダを付ける
+        self.assertEqual(gold24_relative.parts[8], "安心サポートなし")
         self.assertEqual(gold24_relative.name, "iPhone17(256GB)_50GB.pdf")
 
         none_request = deepcopy(self.request)
@@ -575,10 +578,56 @@ class QuoteSystemTest(unittest.TestCase):
             device, variant, none_quote, "none", "SB光なし"
         )
         self.assertEqual(none_relative.parts[6], "IPSなし")
+        self.assertEqual(none_relative.parts[7], "安心サポートなし")
         self.assertEqual(
             _quote_filename(device, variant, none_quote),
             "iPhone17(256GB)_5GB.pdf",
         )
+
+        # サポートなしバリアントも作る場合はあり側にもフォルダを付ける
+        branched = _quote_relative_path(
+            device, variant, quote, "subscription", "SB光なし",
+            include_no_support=True,
+        )
+        self.assertEqual(branched.parts[-2], "安心サポートあり")
+        self.assertEqual(branched.name, "iPhone17(256GB)_5GB.pdf")
+
+        # 自動サポートのない Bizパッケージ＋ は「なし」固定なのでフォルダ省略
+        biz_request = deepcopy(self.request)
+        biz_request["plan_id"] = "biz_plus"
+        biz_request["services"] = {"ips": {"type": "subscription"}, "support_plan_id": "auto"}
+        biz_quote = build_quote(
+            biz_request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertIsNone(biz_quote["services"]["support"])
+        biz_relative = _quote_relative_path(
+            device,
+            {**variant, "plan_id": "biz_plus"},
+            biz_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(biz_relative.parts[4], "Bizパッケージ＋")
+        self.assertNotIn("安心サポート", str(biz_relative))
+        biz_with_support_request = deepcopy(biz_request)
+        biz_with_support_request["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": "support_s",
+        }
+        biz_with_support = build_quote(
+            biz_with_support_request,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+        )
+        biz_with_support_relative = _quote_relative_path(
+            device,
+            {**variant, "plan_id": "biz_plus"},
+            biz_with_support,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(biz_with_support_relative.parts[-2], "安心サポートあり")
 
         kishu_request = deepcopy(self.request)
         kishu_request["sales_type"] = "機種変更・移動機物品販売"

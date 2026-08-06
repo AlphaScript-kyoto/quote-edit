@@ -595,7 +595,8 @@ def _generate_for_devices(
             request["initial_fee_tax_ex"] = int(plan_master["common"]["initial_fee_tax_ex"])
         quote = build_quote(request, device_master, plan_master, service_master)
         output_path = output_dir / _quote_relative_path(
-            device, variant, quote, ips_key, ouchi_key
+            device, variant, quote, ips_key, ouchi_key,
+            include_no_support=include_no_support,
         )
         render_quote(quote, company, output_path)
         relative = str(output_path.relative_to(output_dir))
@@ -936,15 +937,46 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
     return display or None
 
 
+# auto_mapping で安心サポートが付くプラン（services.json と揃える）
+_SUPPORT_AUTO_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+
+
+def _support_folder_name(
+    quote: dict[str, Any],
+    variant: dict[str, Any] | None = None,
+    *,
+    include_no_support: bool = False,
+) -> str | None:
+    """安心サポートのフォルダ名。あり／なしの分岐があるときだけ返す。
+
+    - スーパー／ハイパーライト: 標準は強制加入のためフォルダ省略。
+      「なし」バリアントも作るとき（include_no_support）や、個別でなしを選んだときは
+      あり／なしフォルダを付ける（パス衝突防止）。
+    - その他プラン: 標準はなし固定のため省略。サポート付きだけ「安心サポートあり」。
+    """
+    plan_id = str((variant or {}).get("plan_id") or quote.get("plan_id") or "").strip()
+    has_support = bool((quote.get("services") or {}).get("support"))
+
+    if plan_id in _SUPPORT_AUTO_PLAN_IDS:
+        if include_no_support or not has_support:
+            return "安心サポートあり" if has_support else "安心サポートなし"
+        return None
+
+    if has_support:
+        return "安心サポートあり"
+    return None
+
+
 def _quote_relative_path(
     device: dict[str, Any],
     variant: dict[str, Any],
     quote: dict[str, Any],
     ips_key: str,
     ouchi_key: str,
+    *,
+    include_no_support: bool = False,
 ) -> Path:
     del ips_key
-    support_folder = "安心サポートあり" if quote["services"]["support"] else "安心サポートなし"
     plan_folder = _safe_name(quote.get("plan_name") or variant["plan_id"])
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
@@ -958,6 +990,10 @@ def _quote_relative_path(
     plan_token_folder = _upfront_ips_plan_folder(quote)
     if plan_token_folder:
         parts.append(_safe_name(plan_token_folder))
-    parts.append(support_folder)
+    support_folder = _support_folder_name(
+        quote, variant, include_no_support=include_no_support
+    )
+    if support_folder:
+        parts.append(support_folder)
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)
