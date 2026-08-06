@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "contract_term_years": 3,
+  "valid_from": "2026-04-01",
+  "valid_to": "2026-09-30",
+  "common": {
+    "basic_voice_tax_ex": 980,
+    "flat_call_option_tax_ex": 1800,
+    "initial_fee_tax_ex": 4500,
+    "initial_fee_tax_in": 4950,
+    "initial_fee_effective_from": "2026-01-21",
+    "special_initial_fee_tax_ex": 3000,
+    "special_initial_fee_note": "弊社特別特典により事務手数料免除。初期費用はクレジットカードまたは振込。",
+    "universal_fee_tax_ex": 4,
+    "universal_fee_tax_in": 4,
+    "required_paid_warranty_service": "IPS",
+    "required_contract": "基本プラン専用法人3年契約",
+    "ouchi_discount_by_data_plan_tax_ex": {
+      "1GB": 0,
+      "5GB": -500,
+      "20GB": -1000,
+      "50GB": -1000,
+      "無制限": -1000
+    }
+  },
+  "plans": {
+    "biz_plus": {
+      "name": "Bizパッケージ＋",
+      "additional_discount_name": null,
+      "additional_discount_tax_ex": 0,
+      "enabled": true,
+      "data_plans": {
+        "1GB": {"data_before_tax_ex": 1500, "data_after_tax_ex": 1500, "package_discount_tax_ex": -1800},
+        "5GB": {"data_before_tax_ex": 5000, "data_after_tax_ex": 2500, "package_discount_tax_ex": -4300},
+        "20GB": {"data_before_tax_ex": 6000, "data_after_tax_ex": 3000, "package_discount_tax_ex": -4800},
+        "50GB": {"data_before_tax_ex": 6500, "data_after_tax_ex": 3500, "package_discount_tax_ex": -4800},
+        "無制限": {"data_before_tax_ex": 8000, "data_after_tax_ex": 4500, "package_discount_tax_ex": -5300}
+      }
+    },
+    "super_light": {
+      "name": "Bizパッケージ＋スーパーライト",
+      "additional_discount_name": "スーパーライト割",
+      "additional_discount_tax_ex": -1000,
+      "enabled": true,
+      "data_plans": {
+        "5GB": {"data_before_tax_ex": 5000, "data_after_tax_ex": 1500, "package_discount_tax_ex": -5300},
+        "20GB": {"data_before_tax_ex": 6000, "data_after_tax_ex": 2000, "package_discount_tax_ex": -5800},
+        "50GB": {"data_before_tax_ex": 6500, "data_after_tax_ex": 2500, "package_discount_tax_ex": -5800},
+        "無制限": {"data_before_tax_ex": 8000, "data_after_tax_ex": 3500, "package_discount_tax_ex": -6300}
+      }
+    },
+    "hyper_light": {
+      "name": "Bizパッケージ＋ハイパーライト",
+      "additional_discount_name": "ハイパーライト割",
+      "additional_discount_tax_ex": -1500,
+      "enabled": true,
+      "data_plans": {
+        "5GB": {"data_before_tax_ex": 5000, "data_after_tax_ex": 1000, "package_discount_tax_ex": -5800},
+        "20GB": {"data_before_tax_ex": 6000, "data_after_tax_ex": 1500, "package_discount_tax_ex": -6300},
+        "無制限": {"data_before_tax_ex": 8000, "data_after_tax_ex": 3000, "package_discount_tax_ex": -6800}
+      }
+    }
+  }
+}

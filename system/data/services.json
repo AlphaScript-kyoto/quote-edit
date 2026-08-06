@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "ips_common": {
+    "service_label": "携帯電話有料保証サービス（IPS）",
+    "provider": "株式会社インフィニティ",
+    "separate_billing": true
+  },
+  "ips_upfront": {
+    "description": "契約時にクレジットカードまたは振込で保証期間分を先払い。見積では月額換算額も表示する。",
+    "common_terms": {
+      "eligibility": "本サービス加入時に当社または指定販売店で購入した携帯電話機1台につき1契約。購入から1か月以内に申込み。",
+      "service_start": "申込金の入金確認後にサービス開始。端末購入日と開始日を同日にする場合は開通前に手続完了が必要。",
+      "repair_cooldown": "前回の修理サービス利用から6か月間は再度利用不可。",
+      "repair_exclusions": "電池パック交換、背面ガラス交換、改造・著しい破損等は対象外。端末内データは修理前に初期化。",
+      "claim": "修理申込はサポート窓口へ連絡し、申請書と修理見積をFAX・郵送・メール・PDF等で提出。",
+      "cancellation": "開始日以降はキャンセル不可。中途解約・サービス終了でも返金なし。",
+      "loaner_deposit": "代替機貸出時は保証金30,000円を預かり、正常返却後に全額返金。"
+    },
+    "plans": {
+      "ips_gold_24": {
+        "serial_no": "IPSPLAN_00144",
+        "name": "IPSゴールド24",
+        "period_months": 24,
+        "upfront_total_tax_in": 30690,
+        "base_fee_tax_in": 30690,
+        "water_fee_tax_in": 0,
+        "repair_limit": "1回",
+        "failure_support": "1回まで0円対応",
+        "water_support": "対象外",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "ips_gold_24_water": {
+        "serial_no": "IPSPLAN_00145",
+        "name": "IPSゴールド24水没",
+        "period_months": 24,
+        "upfront_total_tax_in": 40370,
+        "base_fee_tax_in": 30690,
+        "water_fee_tax_in": 9680,
+        "repair_limit": "1回",
+        "failure_support": "1回まで0円対応",
+        "water_support": "1回まで0円対応",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "ips_platinum_24": {
+        "serial_no": "IPSPLAN_00146",
+        "name": "IPSプラチナ24",
+        "period_months": 24,
+        "upfront_total_tax_in": 40260,
+        "base_fee_tax_in": 40260,
+        "water_fee_tax_in": 0,
+        "repair_limit": "2回",
+        "failure_support": "2回まで0円対応",
+        "water_support": "対象外",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "ips_platinum_24_water": {
+        "serial_no": "IPSPLAN_00147",
+        "name": "IPSプラチナ24水没",
+        "period_months": 24,
+        "upfront_total_tax_in": 49940,
+        "base_fee_tax_in": 40260,
+        "water_fee_tax_in": 9680,
+        "repair_limit": "2回",
+        "failure_support": "2回まで0円対応",
+        "water_support": "1回まで0円対応",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "ips_platinum_36": {
+        "serial_no": "IPSPLAN_00148",
+        "name": "IPSプラチナ36",
+        "period_months": 36,
+        "upfront_total_tax_in": 49060,
+        "base_fee_tax_in": 49060,
+        "water_fee_tax_in": 0,
+        "repair_limit": "2回",
+        "failure_support": "2回まで0円対応",
+        "water_support": "対象外",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "ips_platinum_36_water": {
+        "serial_no": "IPSPLAN_00149",
+        "name": "IPSプラチナ36水没",
+        "period_months": 36,
+        "upfront_total_tax_in": 58740,
+        "base_fee_tax_in": 49060,
+        "water_fee_tax_in": 9680,
+        "repair_limit": "2回",
+        "failure_support": "2回まで0円対応",
+        "water_support": "1回まで0円対応",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "feature_phone_ips_24": {
+        "serial_no": "IPSPLAN_00150",
+        "name": "ガラケーIPS24",
+        "period_months": 24,
+        "upfront_total_tax_in": 19030,
+        "base_fee_tax_in": 19030,
+        "water_fee_tax_in": 0,
+        "repair_limit": "制限なし",
+        "failure_support": "制限なし",
+        "water_support": "サービス終了まで代替機貸出",
+        "theft_loss_support": "サービス終了まで代替機貸出",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      "feature_phone_ips_36": {
+        "serial_no": "IPSPLAN_00151",
+        "name": "ガラケーIPS36",
+        "period_months": 36,
+        "upfront_total_tax_in": 24750,
+        "base_fee_tax_in": 24750,
+        "water_fee_tax_in": 0,
+        "repair_limit": "制限なし",
+        "failure_support": "制限なし",
+        "water_support": "サービス終了まで代替機貸出",
+        "theft_loss_support": "サービス終了まで代替機貸出",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      }
+    }
+  },
+  "ips_subscription": {
+    "description": "契約開始から解約まで月額徴収。クレジットカードまたは口座振替。料金は税込表示。",
+    "collection_fee_tax_in": 165,
+    "common_terms": {
+      "eligibility": "本サービス加入時に当社または指定販売店で購入した正常な携帯電話機1台につき1契約。端末総額に応じてプランを選択。",
+      "service_period": "入会日（開始日）から契約解除まで。",
+      "repair_exclusions": "電池パック交換、背面ガラス交換、改造・著しい破損等は対象外。端末内データは修理前に初期化。",
+      "claim": "修理申込はサポート窓口へ連絡し、申請書と修理見積をFAX・郵送・メール・PDF等で提出。",
+      "loaner_deposit": "代替機貸出時は保証金30,000円を預かり、正常返却後に全額返金。",
+      "esim": "eSIM利用時は再発行手数料がかかる場合あり。",
+      "common_exclusions": "盗難・紛失、SIMカード、使用不能・改造等は対象外。"
+    },
+    "tiers": [
+      {
+        "serial_no": "IPSPLAN_00167",
+        "name": "IPSミニプラン",
+        "device_total_min": 0,
+        "device_total_max_exclusive": 60000,
+        "monthly_fee_tax_in": 550,
+        "monthly_fee_tax_ex": 500,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき4,950円",
+        "water_support": "1回につき13,750円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      {
+        "serial_no": "IPSPLAN_00168",
+        "name": "IPSスモールプラン",
+        "device_total_min": 60000,
+        "device_total_max_exclusive": 110000,
+        "monthly_fee_tax_in": 880,
+        "monthly_fee_tax_ex": 800,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき7,920円",
+        "water_support": "1回につき22,000円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      {
+        "serial_no": "IPSPLAN_00169",
+        "name": "IPSミディアムプラン",
+        "device_total_min": 110000,
+        "device_total_max_exclusive": 165000,
+        "monthly_fee_tax_in": 1320,
+        "monthly_fee_tax_ex": 1200,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき11,880円",
+        "water_support": "1回につき33,000円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      {
+        "serial_no": "IPSPLAN_00170",
+        "name": "IPSラージプラン",
+        "device_total_min": 165000,
+        "device_total_max_exclusive": 200000,
+        "monthly_fee_tax_in": 1540,
+        "monthly_fee_tax_ex": 1400,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき13,860円",
+        "water_support": "1回につき38,500円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      },
+      {
+        "serial_no": "IPSPLAN_00171",
+        "name": "IPSメガプラン",
+        "device_total_min": 200000,
+        "device_total_max_exclusive": null,
+        "monthly_fee_tax_in": 1760,
+        "monthly_fee_tax_ex": 1600,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき15,840円",
+        "water_support": "1回につき44,000円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）"
+      }
+    ]
+  },
+  "support_subscription": {
+    "description": "遠隔サポート、業務支援、通信端末レンタル、携帯電話契約内容照会を提供。契約開始から解約まで月額徴収。",
+    "billing": "クレジットカードまたは口座振替。毎月1日が請求日。",
+    "auto_mapping": {
+      "super_light": "support_xs",
+      "hyper_light": "support_s"
+    },
+    "common_terms": {
+      "service_period": "入会日（開始日）から契約解除まで",
+      "remote_support": "通信機器に関する遠隔サポート。訪問設定は別途2,000円（税抜）／台。",
+      "business_support": "業務上・プライベート上の困りごとに対応できる業者を紹介。",
+      "rental": "通信端末レンタルは最長2か月。別途レンタル料金が必要。ポケットWiFiは1か月6,500円、1週間2,500円（税抜）。",
+      "rental_deposit": "レンタル時に保証金20,000円（税抜）を預かり、返却確認後に登録カードへ返金。",
+      "contract_lookup": "携帯電話の契約内容をExcelやPDFにまとめ、メールで送付。"
+    },
+    "plans": {
+      "support_xs": {
+        "serial_no": "SUBSC-001",
+        "name": "携帯電話安心サポートXS",
+        "created_on": "2026-02-03",
+        "monthly_fee_tax_ex": 980,
+        "monthly_fee_tax_in": 1078
+      },
+      "support_s": {
+        "serial_no": "SUBSC-002",
+        "name": "携帯電話安心サポートS",
+        "created_on": "2026-02-03",
+        "monthly_fee_tax_ex": 1480,
+        "monthly_fee_tax_in": 1628
+      }
+    }
+  }
+}

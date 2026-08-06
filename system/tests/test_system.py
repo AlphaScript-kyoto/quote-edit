@@ -1,0 +1,668 @@
+import unittest
+from pathlib import Path
+from copy import deepcopy
+
+from quote_system.batch_service import (
+    _ips_filename_token,
+    _quote_filename,
+    _quote_relative_path,
+    changed_model_keys,
+    quote_variants,
+)
+from quote_system.config import DATA_DIR, load_json
+from quote_system.pdf_renderer import _display_periods
+from quote_system.price_pdf_parser import find_device
+from quote_system.quote_service import build_quote
+
+
+class QuoteSystemTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.device_master = load_json(DATA_DIR / "device_master.json")
+        cls.plan_master = load_json(DATA_DIR / "plans.json")
+        cls.service_master = load_json(DATA_DIR / "services.json")
+        cls.request = load_json(DATA_DIR / "test_quote.json")
+
+    def test_iphone_17_256gb_prices(self):
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        self.assertEqual(device["payment_48"]["MNP"], {
+            "1_12": 1,
+            "13_24": 1,
+            "25_48": 6839,
+        })
+        self.assertEqual(device["payment_48"]["新規"]["1_12"], 1375)
+        self.assertEqual(device["payment_48"]["番号移行"]["1_12"], 875)
+        self.assertEqual(
+            device["payment_48"]["機種変更・移動機物品販売"]["1_12"],
+            3160,
+        )
+        self.assertEqual(device["total"], 164160)
+        self.assertTrue(all(device["validation"].values()))
+
+    def test_quote_totals(self):
+        quote = build_quote(
+            self.request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["components"]["communication_tax_ex"], 1980)
+        self.assertEqual(quote["components"]["communication_tax_in"], 2178)
+        self.assertEqual(quote["components"]["biz_package_discount_tax_ex"], -4300)
+        self.assertEqual(quote["components"]["additional_discount_tax_ex"], -1500)
+        self.assertEqual(quote["components"]["additional_discount_name"], "ハイパーライト割")
+        self.assertEqual(quote["services"]["ips"]["name"], "IPSミディアムプラン")
+        self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 1320)
+        self.assertEqual(quote["services"]["support"]["name"], "携帯電話安心サポートS")
+        self.assertEqual(
+            [period["monthly_total_tax_in"] for period in quote["periods"]],
+            [5131, 5131, 11969],
+        )
+        self.assertEqual(
+            [period["monthly_total_display_tax_ex"] for period in quote["periods"]],
+            [4665, 4665, 11503],
+        )
+
+    def test_upfront_ips_monthly_equivalent(self):
+        request = {**self.request, "plan_id": "biz_plus"}
+        request["services"] = {
+            "ips": {"type": "upfront", "plan_id": "ips_gold_24_water"},
+            "support_plan_id": None,
+        }
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["initial_total_tax_in"], 45320)
+        self.assertEqual(quote["services"]["ips"]["monthly_equivalent_tax_in"], 1683)
+        self.assertEqual(quote["periods"][0]["monthly_total_tax_in"], 3833)
+        self.assertEqual(quote["periods"][0]["monthly_equivalent_total_tax_in"], 5516)
+
+    def test_upfront_ips_keeps_plan_support_mapping(self):
+        request = deepcopy(self.request)
+        request["services"] = {
+            "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+            "support_plan_id": "auto",
+        }
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["services"]["ips"]["plan_id"], "ips_gold_24")
+        self.assertEqual(quote["services"]["support"]["plan_id"], "support_s")
+
+    def test_revised_initial_fee(self):
+        quote = build_quote(
+            self.request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["initial_fee_tax_in"], 4950)
+        self.assertEqual(self.plan_master["common"]["initial_fee_effective_from"], "2026-01-21")
+
+    def test_ips_can_be_removed_without_losing_discounts(self):
+        request = deepcopy(self.request)
+        request["services"] = {"ips": {"type": "none"}, "support_plan_id": "auto"}
+        quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
+        self.assertIsNone(quote["services"]["ips"])
+        self.assertEqual(quote["components"]["biz_package_discount_tax_ex"], -4300)
+        self.assertEqual(quote["components"]["additional_discount_tax_ex"], -1500)
+        self.assertEqual(quote["periods"][0]["monthly_total_display_tax_ex"], 3465)
+
+    def test_iphone_category_is_available_for_notes(self):
+        quote = build_quote(
+            self.request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["device_category"], "iPhone")
+
+    def test_rt_department_address_uses_hirai_4f_only(self):
+        from quote_system.pdf_renderer import _resolve_department_header
+
+        company = load_json(DATA_DIR / "company.json")
+        _, _, default_address = _resolve_department_header(
+            {**company, "department": "TM事業本部"}
+        )
+        self.assertIn("[REDACTED]", default_address)
+        self.assertNotIn("4F", default_address)
+        _, _, rt_address = _resolve_department_header(
+            {**company, "department": "RT事業部"}
+        )
+        self.assertIn("[REDACTED]", rt_address)
+
+    def test_support_auto_mapping(self):
+        super_light = {**self.request, "plan_id": "super_light"}
+        quote = build_quote(
+            super_light, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["services"]["support"]["plan_id"], "support_xs")
+        self.assertEqual(quote["services"]["support"]["monthly_fee_tax_ex"], 980)
+        self.assertEqual(quote["services"]["support"]["monthly_fee_tax_in"], 1078)
+
+        biz_plus = {**self.request, "plan_id": "biz_plus"}
+        quote = build_quote(
+            biz_plus, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertIsNone(quote["services"]["support"])
+
+    def test_standard_batch_variants(self):
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        variants = list(quote_variants(device, self.plan_master))
+        self.assertEqual(len(variants), 76)
+        self.assertEqual({item["sales_type"] for item in variants}, {
+            "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
+        })
+        self.assertNotIn("1GB", {item["data_plan"] for item in variants})
+        self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False, True})
+        self.assertFalse(any(
+            item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
+            for item in variants
+        ))
+        self.assertTrue(all(item["ips"]["type"] == "subscription" for item in variants))
+        self.assertTrue(all(item["initial_fee_mode"] == "standard" for item in variants))
+
+        with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
+        self.assertEqual(len(with_no_ips), 152)
+        self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
+
+        with_special = list(quote_variants(
+            device, self.plan_master, include_special_initial_fee=True
+        ))
+        self.assertEqual(len(with_special), 152)
+        self.assertEqual(
+            {item["initial_fee_mode"] for item in with_special},
+            {"standard", "special_3000"},
+        )
+
+    def test_feature_phone_data_plan_rule(self):
+        device = find_device(self.device_master, "DIGNOケータイ4")
+        variants = list(quote_variants(device, self.plan_master))
+        self.assertEqual({item["data_plan"] for item in variants}, {"1GB"})
+        self.assertEqual({item["plan_id"] for item in variants}, {"biz_plus"})
+        self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False})
+
+        request = deepcopy(self.request)
+        request.update({"model": device["model"], "plan_id": "biz_plus", "data_plan": "1GB"})
+        quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
+        self.assertEqual(quote["data_plan"], "1GB")
+
+        request["data_plan"] = "5GB"
+        with self.assertRaisesRegex(ValueError, "1GBのみ"):
+            build_quote(request, self.device_master, self.plan_master, self.service_master)
+
+    def test_non_feature_phone_cannot_use_1gb(self):
+        request = deepcopy(self.request)
+        request.update({"plan_id": "biz_plus", "data_plan": "1GB"})
+        with self.assertRaisesRegex(ValueError, "5GB以上"):
+            build_quote(request, self.device_master, self.plan_master, self.service_master)
+
+    def test_ouchi_discount_schedule(self):
+        request = deepcopy(self.request)
+        request["data_plan"] = "20GB"
+        request["ouchi_discount_applied"] = True
+        quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
+        self.assertEqual(quote["components"]["ouchi_discount_tax_ex"], -1000)
+        self.assertTrue(quote["ouchi_discount_applied"])
+
+        request["data_plan"] = "50GB"
+        request["plan_id"] = "super_light"
+        quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
+        self.assertEqual(quote["components"]["ouchi_discount_tax_ex"], -1000)
+
+    def test_ouchi_discount_rejects_5gb(self):
+        request = deepcopy(self.request)
+        request["data_plan"] = "5GB"
+        request["ouchi_discount_applied"] = True
+        with self.assertRaisesRegex(ValueError, "5GB見積は作成しません"):
+            build_quote(request, self.device_master, self.plan_master, self.service_master)
+
+    def test_equal_initial_payment_periods_are_merged_for_pdf(self):
+        quote = build_quote(
+            self.request, self.device_master, self.plan_master, self.service_master
+        )
+        displayed = _display_periods(quote["periods"])
+        self.assertEqual([period["label"] for period in displayed], [
+            "分割支払 1～24回目", "分割支払 25～48回目",
+        ])
+
+        changed = deepcopy(quote["periods"])
+        changed[1]["device_payment"] += 1
+        self.assertEqual(len(_display_periods(changed)), 3)
+
+    def test_output_folder_hierarchy(self):
+        device = find_device(self.device_master, self.request["model"])
+        request = deepcopy(self.request)
+        request["initial_fee_mode"] = "special_3000"
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        variant = {
+            "sales_type": self.request["sales_type"],
+            "plan_id": self.request["plan_id"],
+            "data_plan": self.request["data_plan"],
+            "initial_fee_mode": "special_3000",
+            "ips_display_mode": "lump",
+        }
+        relative = _quote_relative_path(
+            device, variant, quote, "subscription", "SB光なし"
+        )
+        self.assertEqual(relative.parts, (
+            "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
+            "Bizパッケージ＋ハイパーライト", "初期費用3000円", "IPSサブスク",
+            "安心サポートあり", "iPhone17(256GB)_5GB_ミディアム.pdf",
+        ))
+
+        upfront_request = deepcopy(self.request)
+        upfront_request.update({
+            "data_plan": "50GB",
+            "plan_id": "super_light",
+            "initial_fee_mode": "special_3000",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_platinum_36_water"},
+                "support_plan_id": "auto",
+            },
+        })
+        upfront_quote = build_quote(
+            upfront_request, self.device_master, self.plan_master, self.service_master
+        )
+        upfront_variant = {
+            "sales_type": upfront_request["sales_type"],
+            "plan_id": upfront_request["plan_id"],
+            "data_plan": upfront_request["data_plan"],
+            "initial_fee_mode": "special_3000",
+            "ips_display_mode": "lump",
+        }
+        upfront_relative = _quote_relative_path(
+            device, upfront_variant, upfront_quote, "ips_platinum_36_water", "SB光なし"
+        )
+        self.assertEqual(upfront_relative.parts[4], "Bizパッケージ＋スーパーライト")
+        self.assertEqual(upfront_relative.parts[5], "初期費用3000円")
+        self.assertEqual(upfront_relative.parts[6], "IPS一括型")
+        self.assertEqual(upfront_relative.name, "iPhone17(256GB)_50GB_プ36水.pdf")
+
+        running_variant = {**upfront_variant, "ips_display_mode": "monthly_as_running"}
+        running_quote = build_quote(
+            {**upfront_request, "ips_display_mode": "monthly_as_running"},
+            self.device_master, self.plan_master, self.service_master,
+        )
+        running_relative = _quote_relative_path(
+            device, running_variant, running_quote, "ips_platinum_36_water", "SB光なし"
+        )
+        self.assertEqual(running_relative.parts[6], "IPS一括型_月額換算")
+        self.assertEqual(
+            running_quote["initial_total_tax_ex"],
+            running_quote["initial_fee_tax_ex"] + running_quote["special_initial_fee_tax_ex"],
+        )
+
+        none_request = deepcopy(self.request)
+        none_request["services"] = {"ips": {"type": "none"}, "support_plan_id": None}
+        none_quote = build_quote(
+            none_request, self.device_master, self.plan_master, self.service_master
+        )
+        none_relative = _quote_relative_path(
+            device, variant, none_quote, "none", "SB光なし"
+        )
+        self.assertEqual(none_relative.parts[6], "IPSなし")
+        self.assertEqual(
+            _quote_filename(device, variant, none_quote),
+            "iPhone17(256GB)_5GB.pdf",
+        )
+
+    def test_special_initial_fee_mode(self):
+        request = deepcopy(self.request)
+        request["initial_fee_mode"] = "special_3000"
+        request["services"] = {
+            "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+            "support_plan_id": None,
+        }
+        request["plan_id"] = "biz_plus"
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(quote["initial_fee_tax_ex"], 0)
+        self.assertEqual(quote["special_initial_fee_tax_ex"], 3000)
+        # IPS一括（税抜）+ 初期費用3000
+        ips_tax_ex = round(quote["services"]["ips"]["upfront_total_tax_in"] / 1.1)
+        self.assertEqual(quote["initial_total_tax_ex"], 3000 + ips_tax_ex)
+
+    def test_full_pattern_variant_count_for_selected_models(self):
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        variants = list(quote_variants(
+            device, self.plan_master,
+            include_upfront_ips=True, include_no_ips=True, include_no_support=True,
+            include_special_initial_fee=True,
+        ))
+        # 初期費用 standard + special_3000。一括型は lump / monthly_as_running の2版
+        self.assertEqual(len(variants), 3472)
+        self.assertEqual(
+            {item["initial_fee_mode"] for item in variants},
+            {"standard", "special_3000"},
+        )
+        self.assertFalse(any(
+            item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
+            for item in variants
+        ))
+
+        feature = find_device(self.device_master, "DIGNOケータイ4")
+        feature_variants = list(quote_variants(
+            feature, self.plan_master,
+            include_upfront_ips=True, include_no_ips=True, include_no_support=True,
+            include_special_initial_fee=True,
+        ))
+        self.assertEqual(len(feature_variants), 48)
+
+    def test_quote_output_root_constant(self):
+        from quote_system.batch_service import QUOTE_OUTPUT_ROOT
+        from quote_system.config import OUTPUT_DIR
+        self.assertEqual(QUOTE_OUTPUT_ROOT, OUTPUT_DIR / "見積PDF")
+
+    def test_excluded_model_keys_roundtrip(self):
+        from quote_system.batch_service import (
+            EXCLUDED_MODELS_PATH,
+            load_excluded_model_keys,
+            save_excluded_model_keys,
+        )
+        previous = load_excluded_model_keys()
+        existed = EXCLUDED_MODELS_PATH.exists()
+        try:
+            save_excluded_model_keys(["demo_key_a", "demo_key_b"])
+            self.assertEqual(load_excluded_model_keys(), {"demo_key_a", "demo_key_b"})
+        finally:
+            if existed:
+                save_excluded_model_keys(previous)
+            elif EXCLUDED_MODELS_PATH.exists():
+                EXCLUDED_MODELS_PATH.unlink()
+
+    def test_running_mode_omits_ips_from_initial_total(self):
+        request = deepcopy(self.request)
+        request["initial_fee_mode"] = "special_3000"
+        request["ips_display_mode"] = "monthly_as_running"
+        request["services"] = {
+            "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+            "support_plan_id": None,
+        }
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(
+            quote["initial_total_tax_in"],
+            quote["special_initial_fee_tax_in"],
+        )
+        self.assertEqual(quote["ips_display_mode"], "monthly_as_running")
+
+    def test_worst_case_quote_pdf_fits_one_page(self):
+        from pypdf import PdfReader
+        from tempfile import TemporaryDirectory
+        from quote_system.pdf_renderer import render_quote
+
+        request = deepcopy(self.request)
+        request.update({
+            "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
+            "plan_id": "hyper_light",
+            "data_plan": "無制限",
+            "ouchi_discount_applied": True,
+            "initial_fee_mode": "special_3000",
+            "ips_display_mode": "monthly_as_running",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_platinum_36_water"},
+                "support_plan_id": "auto",
+            },
+        })
+        quote = build_quote(
+            request, self.device_master, self.plan_master, self.service_master
+        )
+        company = load_json(DATA_DIR / "company.json")
+        company = {**company, "department": "TM事業本部"}
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "worst.pdf"
+            render_quote(quote, company, output)
+            self.assertEqual(len(PdfReader(str(output)).pages), 1)
+
+    def test_attention_notes_conditions(self):
+        from quote_system.pdf_renderer import _attention_notes
+
+        with_ips = _attention_notes(
+            {
+                "model": "iPhone 17(256GB)",
+                "services": {"ips": {"billing_type": "subscription"}},
+            },
+            ips=True,
+            support=True,
+        )
+        self.assertTrue(any("修理保証サービスへの加入が必要" in note for note in with_ips))
+        self.assertTrue(any("携帯電話有料保証について" in note for note in with_ips))
+        self.assertTrue(any("携帯電話機安心サポートについて" in note for note in with_ips))
+        self.assertTrue(any("クレジットカードまたは口座振替" in note for note in with_ips))
+        self.assertTrue(any("USB-C充電ケーブル" in note for note in with_ips))
+        self.assertTrue(any("税込の記載がない限りすべて税抜" in note for note in with_ips))
+        self.assertFalse(any("ランニングコスト表記" in note for note in with_ips))
+        self.assertFalse(any("おうち割光セットは、対象の光回線" in note for note in with_ips))
+        self.assertTrue(any("IPSサブスクリプションの手数料として165円" in note for note in with_ips))
+
+        no_sub_ips = _attention_notes(
+            {
+                "model": "iPhone 17(256GB)",
+                "services": {"ips": {"billing_type": "upfront", "upfront_total_tax_in": 1000}},
+            },
+            ips=True,
+            support=False,
+        )
+        self.assertFalse(any("IPSサブスクリプションの手数料として165円" in note for note in no_sub_ips))
+
+        with_ouchi = _attention_notes(
+            {"model": "Xperia 1 VII", "ouchi_discount_applied": True},
+            ips=False,
+            support=True,
+        )
+        self.assertTrue(any("おうち割光セットは、対象の光回線" in note for note in with_ouchi))
+
+        running = _attention_notes(
+            {
+                "model": "iPhone 17(256GB)",
+                "ips_display_mode": "monthly_as_running",
+                "services": {
+                    "ips": {
+                        "billing_type": "upfront",
+                        "upfront_total_tax_in": 40392,
+                        "period_months": 24,
+                    }
+                },
+            },
+            ips=True,
+            support=True,
+        )
+        self.assertTrue(any("ランニングコスト表記" in note for note in running))
+        self.assertTrue(
+            any(
+                "<br/>実際は契約時に一括で¥40,392（税込）のお支払いがあります。" in note
+                for note in running
+            )
+        )
+
+        no_ips = _attention_notes({"model": "Xperia 1 VII"}, ips=False, support=True)
+        self.assertFalse(any("修理保証サービスへの加入が必要" in note for note in no_ips))
+        self.assertFalse(any("携帯電話有料保証について" in note for note in no_ips))
+        self.assertTrue(any("携帯電話機安心サポートについて" in note for note in no_ips))
+        self.assertFalse(any("USB-C充電ケーブル" in note for note in no_ips))
+
+    def test_price_diff_detection(self):
+        updated = deepcopy(self.device_master)
+        device = find_device(updated, "iPhone 17 256GB")
+        device["payment_48"]["MNP"]["1_12"] = 2
+        changed = changed_model_keys(self.device_master, updated)
+        self.assertEqual(changed, {device["model_key"]})
+
+    def test_individual_ips_variant_selection(self):
+        from quote_system.batch_service import (
+            _individual_ips_variants,
+            _upfront_ips_plan_ids,
+        )
+
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        only_sub = _individual_ips_variants(
+            device,
+            include_ips_subscription=True,
+            include_upfront_lump=False,
+            include_upfront_running=False,
+            include_no_ips=False,
+        )
+        self.assertEqual(only_sub, [({"type": "subscription"}, "lump")])
+
+        lump_and_running = _individual_ips_variants(
+            device,
+            include_ips_subscription=False,
+            include_upfront_lump=True,
+            include_upfront_running=True,
+            include_no_ips=False,
+        )
+        plan_ids = _upfront_ips_plan_ids(device)
+        self.assertEqual(len(lump_and_running), len(plan_ids) * 2)
+        self.assertTrue(all(item[0]["type"] == "upfront" for item in lump_and_running))
+        self.assertEqual(
+            {item[1] for item in lump_and_running},
+            {"lump", "monthly_as_running"},
+        )
+
+        empty = _individual_ips_variants(
+            device,
+            include_ips_subscription=False,
+            include_upfront_lump=False,
+            include_upfront_running=False,
+            include_no_ips=False,
+        )
+        self.assertEqual(empty, [])
+
+    def test_run_individual_ips_patterns(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from quote_system.batch_service import run_individual
+
+        common = dict(
+            model="iPhone 17 256GB",
+            sales_type="MNP",
+            plan_id="biz_plus",
+            data_plans=["50GB"],
+            ouchi_options=[False],
+            support_plan_id="auto",
+            department="TM事業本部",
+        )
+
+        with self.assertRaises(ValueError):
+            run_individual(
+                **common,
+                include_ips_subscription=False,
+                include_upfront_lump=False,
+                include_upfront_running=False,
+                include_no_ips=False,
+            )
+
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    **common,
+                    include_ips_subscription=True,
+                    include_upfront_lump=False,
+                    include_upfront_running=False,
+                    include_no_ips=False,
+                )
+            self.assertEqual(result.generated_files, 1)
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+            self.assertTrue(any("IPSサブスク" in p.parts for p in pdfs))
+
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    **common,
+                    include_ips_subscription=False,
+                    include_upfront_lump=True,
+                    include_upfront_running=True,
+                    include_no_ips=False,
+                )
+            from quote_system.batch_service import _upfront_ips_plan_ids
+
+            device = find_device(self.device_master, "iPhone 17 256GB")
+            expected = len(_upfront_ips_plan_ids(device)) * 2
+            self.assertEqual(result.generated_files, expected)
+            all_parts = {part for p in out.rglob("*.pdf") for part in p.parts}
+            self.assertIn("IPS一括型", all_parts)
+            self.assertIn("IPS一括型_月額換算", all_parts)
+
+    def test_batch_checkpoint_pause_and_resume(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from quote_system.batch_service import (
+            BatchControl,
+            CHECKPOINT_PATH,
+            _generate_for_devices,
+            checkpoint_exists,
+            clear_checkpoint,
+            resume_batch,
+        )
+
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        company = load_json(DATA_DIR / "company.json")
+        clear_checkpoint()
+        control = BatchControl()
+        # 3件目に入る直前で止める
+        call_count = {"n": 0}
+
+        def fake_render(quote, company_arg, output_path):
+            call_count["n"] += 1
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(b"%PDF-1.4")
+            if call_count["n"] >= 2:
+                control.request_cancel()
+
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out), patch(
+                "quote_system.batch_service.render_quote", side_effect=fake_render
+            ), patch(
+                "quote_system.batch_service.CHECKPOINT_PATH", Path(tmp) / "cp.json"
+            ):
+                # re-import path for clear uses CHECKPOINT_PATH module level - patch where used
+                import quote_system.batch_service as bs
+
+                old_cp = bs.CHECKPOINT_PATH
+                bs.CHECKPOINT_PATH = Path(tmp) / "cp.json"
+                try:
+                    paused = _generate_for_devices(
+                        [device],
+                        device_master=self.device_master,
+                        plan_master=self.plan_master,
+                        service_master=self.service_master,
+                        company=company,
+                        mode="checkpoint-test",
+                        source_pdf=Path("test.pdf"),
+                        source_hash="x",
+                        discontinued=(),
+                        include_upfront_ips=False,
+                        include_no_ips=False,
+                        include_no_support=False,
+                        include_special_initial_fee=False,
+                        progress=None,
+                        update_state=False,
+                        control=control,
+                    )
+                    self.assertTrue(paused.paused)
+                    self.assertTrue(bs.checkpoint_exists())
+                    self.assertEqual(paused.generated_files, 2)
+
+                    resumed_control = BatchControl()
+                    call_count["n"] = 0  # allow more without canceling early
+
+                    def fake_render_resume(quote, company_arg, output_path):
+                        call_count["n"] += 1
+                        output_path.parent.mkdir(parents=True, exist_ok=True)
+                        output_path.write_bytes(b"%PDF-1.4")
+
+                    with patch(
+                        "quote_system.batch_service.render_quote",
+                        side_effect=fake_render_resume,
+                    ):
+                        done = resume_batch(control=resumed_control)
+                    self.assertFalse(done.paused)
+                    self.assertGreater(done.generated_files, 2)
+                    self.assertFalse(bs.checkpoint_exists())
+                finally:
+                    bs.CHECKPOINT_PATH = old_cp
+                    clear_checkpoint()
+
+
+if __name__ == "__main__":
+    unittest.main()

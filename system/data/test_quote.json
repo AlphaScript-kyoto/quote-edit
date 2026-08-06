@@ -1,0 +1,20 @@
+{
+  "quote_id": "TEST-20260714-001",
+  "quote_date": "2026-07-14",
+  "customer_name": "テスト法人 御中",
+  "model": "iPhone 17 256GB",
+  "sales_type": "MNP",
+  "plan_id": "hyper_light",
+  "data_plan": "5GB",
+  "initial_fee_tax_in": 4950,
+  "services": {
+    "ips": {
+      "type": "subscription"
+    },
+    "support_plan_id": "auto"
+  },
+  "universal_fee_tax_in": 4,
+  "universal_fee_tax_ex": 4,
+  "ouchi_discount_tax_ex": 0,
+  "tax_rate": 0.10
+}

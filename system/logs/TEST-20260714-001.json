@@ -1,0 +1,101 @@
+{
+  "generated_at": "2026-07-14T17:08:10",
+  "request_file": "data\\test_quote.json",
+  "output_file": "C:\\Users\\1180075\\Desktop\\プログラミング\\quote-edit\\output\\TEST-20260714-001_iPhone_17(256GB).pdf",
+  "quote": {
+    "quote_id": "TEST-20260714-001",
+    "quote_date": "2026-07-14",
+    "customer_name": "テスト法人 御中",
+    "model": "iPhone 17(256GB)",
+    "device_category": "iPhone",
+    "sales_type": "MNP",
+    "plan_name": "Bizパッケージ＋ハイパーライト",
+    "data_plan": "5GB",
+    "ouchi_discount_applied": false,
+    "contract_term_years": 3,
+    "initial_fee_tax_in": 4950,
+    "initial_fee_tax_ex": 4500,
+    "initial_total_tax_in": 4950,
+    "initial_total_tax_ex": 4500,
+    "tax_rate": 0.1,
+    "components": {
+      "basic_voice_tax_ex": 980,
+      "call_option_tax_ex": 1800,
+      "data_before_tax_ex": 5000,
+      "package_discount_tax_ex": -5800,
+      "biz_package_discount_tax_ex": -4300,
+      "additional_discount_name": "ハイパーライト割",
+      "additional_discount_tax_ex": -1500,
+      "ouchi_discount_tax_ex": 0,
+      "communication_tax_ex": 1980,
+      "communication_tax_in": 2178,
+      "universal_fee_tax_in": 4,
+      "universal_fee_tax_ex": 3
+    },
+    "services": {
+      "ips": {
+        "service_label": "携帯電話有料保証サービス（IPS）",
+        "provider": "株式会社インフィニティ",
+        "separate_billing": true,
+        "serial_no": "IPSPLAN_00169",
+        "name": "IPSミディアムプラン",
+        "device_total_min": 110000,
+        "device_total_max_exclusive": 165000,
+        "monthly_fee_tax_in": 1320,
+        "monthly_fee_tax_ex": 1200,
+        "repair_limit": "制限なし",
+        "failure_support": "1回につき11,880円",
+        "water_support": "1回につき33,000円",
+        "theft_loss_support": "対象外",
+        "loaner_support": "機種に応じた代替機（データカード対象外）",
+        "billing_type": "subscription",
+        "upfront_total_tax_in": 0,
+        "period_months": null,
+        "collection_fee_tax_in": 165,
+        "monthly_charge_tax_in": 1485,
+        "monthly_equivalent_tax_in": 1485
+      },
+      "support": {
+        "serial_no": "SUBSC-002",
+        "name": "携帯電話安心サポートS",
+        "created_on": "2026-02-03",
+        "monthly_fee_tax_ex": 1480,
+        "monthly_fee_tax_in": 1628,
+        "plan_id": "support_s",
+        "billing_type": "subscription"
+      }
+    },
+    "periods": [
+      {
+        "key": "1_12",
+        "label": "分割支払 1～12回目",
+        "device_payment": 1,
+        "monthly_total_tax_in": 5296,
+        "monthly_equivalent_total_tax_in": 5296,
+        "monthly_total_display_tax_ex": 4664,
+        "monthly_equivalent_display_tax_ex": 4664
+      },
+      {
+        "key": "13_24",
+        "label": "分割支払 13～24回目",
+        "device_payment": 1,
+        "monthly_total_tax_in": 5296,
+        "monthly_equivalent_total_tax_in": 5296,
+        "monthly_total_display_tax_ex": 4664,
+        "monthly_equivalent_display_tax_ex": 4664
+      },
+      {
+        "key": "25_48",
+        "label": "分割支払 25～48回目",
+        "device_payment": 6839,
+        "monthly_total_tax_in": 12134,
+        "monthly_equivalent_total_tax_in": 12134,
+        "monthly_total_display_tax_ex": 11502,
+        "monthly_equivalent_display_tax_ex": 11502
+      }
+    ],
+    "device_total_tax_in": 164160,
+    "source_pdf": "分割支払金一覧.pdf",
+    "source_page": 1
+  }
+}
