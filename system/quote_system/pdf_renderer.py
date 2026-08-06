@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
 import unicodedata
 from xml.sax.saxutils import escape
 
@@ -58,6 +59,93 @@ def _display_periods(periods: list[dict[str, Any]]) -> list[dict[str, Any]]:
         merged = {**periods[0], "key": "1_24", "label": "分割支払 1～24回目"}
         return [merged, periods[2]]
     return periods
+
+
+def _period_month_bounds(period: dict[str, Any]) -> tuple[int, int]:
+    """Return inclusive 1-based month bounds for a period column (key preferred)."""
+    key = str(period.get("key") or "")
+    if "_" in key:
+        left, right = key.split("_", 1)
+        if left.isdigit() and right.isdigit():
+            return int(left), int(right)
+    label = str(period.get("label") or "")
+    match = re.search(r"(\d+)\s*[～〜~\-]\s*(\d+)", label)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return 1, 48
+
+
+def _split_period_at_month(period: dict[str, Any], cut_end: int) -> list[dict[str, Any]]:
+    """Split a period [start,end] into [start,cut_end] and [cut_end+1,end] when needed."""
+    start, end = _period_month_bounds(period)
+    if end <= cut_end or start > cut_end:
+        return [period]
+    first = {
+        **period,
+        "key": f"{start}_{cut_end}",
+        "label": f"分割支払 {start}～{cut_end}回目",
+    }
+    second = {
+        **period,
+        "key": f"{cut_end + 1}_{end}",
+        "label": f"分割支払 {cut_end + 1}～{end}回目",
+    }
+    return [first, second]
+
+
+def _display_periods_for_quote(quote: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Period columns for PDF.
+
+    For upfront IPS in monthly_as_running mode, split any column that crosses the
+    guarantee end (e.g. 25～48 with 36-month cover → 25～36 / 37～48) so warranty
+    does not look active through month 48.
+    """
+    displayed = _display_periods(list(quote.get("periods") or []))
+    ips = ((quote.get("services") or {}).get("ips") or {})
+    if (
+        quote.get("ips_display_mode") != "monthly_as_running"
+        or ips.get("billing_type") != "upfront"
+    ):
+        return displayed
+    period_months = int(ips.get("period_months") or 0)
+    if period_months <= 0:
+        return displayed
+    refined: list[dict[str, Any]] = []
+    for period in displayed:
+        refined.extend(_split_period_at_month(period, period_months))
+    return refined
+
+
+def _ips_monthly_for_period(
+    period: dict[str, Any],
+    *,
+    ips: dict[str, Any] | None,
+    ips_display_mode: str,
+    ips_tax_in_monthly: int,
+) -> int:
+    """Monthly IPS amount for one column (0 after guarantee ends on running/upfront)."""
+    if not ips or ips_tax_in_monthly <= 0:
+        return 0
+    if ips.get("billing_type") == "subscription":
+        return ips_tax_in_monthly
+    if ips_display_mode != "monthly_as_running":
+        return 0
+    period_months = int(ips.get("period_months") or 0)
+    if period_months <= 0:
+        return ips_tax_in_monthly
+    _start, end = _period_month_bounds(period)
+    # Column fully after guarantee → no amount; columns are pre-split at period_months.
+    if end > period_months:
+        return 0
+    return ips_tax_in_monthly
+
+
+def _ips_amount_cell(amount: int, *, active: bool) -> str:
+    """Show en-dash when guarantee does not cover that column."""
+    if not active:
+        return "－"
+    return yen(amount)
 
 
 def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Path) -> None:
@@ -223,7 +311,7 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
 
     components = quote["components"]
     periods = quote["periods"]
-    display_periods = _display_periods(periods)
+    display_periods = _display_periods_for_quote(quote)
     period_count = len(display_periods)
     plan_item_rows: list[list[Any]] = [
         ["基本プラン（音声）", "税抜"] + [yen(components["basic_voice_tax_ex"])] * period_count,
@@ -253,14 +341,6 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
 
     ips_tax_in_monthly = _ips_monthly_tax_in(ips)
     support_tax_ex_monthly = int(support["monthly_fee_tax_ex"]) if support else 0
-    ips_in_running_total = (
-        ips_tax_in_monthly
-        if ips and (
-            ips["billing_type"] == "subscription"
-            or ips_display_mode == "monthly_as_running"
-        )
-        else 0
-    )
     # IPS一括（lump）は初期費用表に載せ、月額内訳の修理保証行には出さない
     show_ips_monthly = bool(
         ips and (
@@ -268,9 +348,22 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
             or ips_display_mode == "monthly_as_running"
         )
     )
+    ips_amounts = [
+        _ips_monthly_for_period(
+            period,
+            ips=ips,
+            ips_display_mode=ips_display_mode,
+            ips_tax_in_monthly=ips_tax_in_monthly,
+        )
+        for period in display_periods
+    ]
     if show_ips_monthly:
         plan_item_rows.append(
-            ["修理保証サービス", "税込"] + [yen(ips_tax_in_monthly)] * period_count
+            ["修理保証サービス", "税込"]
+            + [
+                _ips_amount_cell(amount, active=amount > 0)
+                for amount in ips_amounts
+            ]
         )
     if support:
         plan_item_rows.append(
@@ -287,16 +380,19 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     ]
     plan_rows.extend(_with_row_numbers(plan_item_rows))
     actual_total_row = len(plan_rows)
-    # 月額合計＝基本〜機種代金＋修理保証（月額表示時）＋安心保証＋ユニバーサル
+    # 月額合計＝基本〜機種代金＋修理保証（列ごと）＋安心保証＋ユニバーサル
     plan_rows.append(
         ["", "月額合計（参考）", ""]
         + [
             yen(
                 _mixed_monthly_total(
-                    period, components, ips_in_running_total, support_tax_ex_monthly
+                    period,
+                    components,
+                    ips_amount,
+                    support_tax_ex_monthly,
                 )
             )
-            for period in display_periods
+            for period, ips_amount in zip(display_periods, ips_amounts)
         ]
     )
 
@@ -396,9 +492,13 @@ def _attention_notes(quote: dict[str, Any], *, ips: bool, support: bool) -> list
             and ips_svc.get("billing_type") == "upfront"
         ):
             upfront = int(ips_svc.get("upfront_total_tax_in") or 0)
+            period_months = int(ips_svc.get("period_months") or 0)
+            period_text = f"{period_months}か月" if period_months else "保証期間"
             notes.append(
                 "本見積もりにおける修理保証サービスはランニングコスト表記"
-                "（総額を保証期間で割って1か月あたりの料金）です。"
+                f"（総額を保証期間（{period_text}）で割って1か月あたりの料金）です。"
+                f"<br/>保証期間は契約から{period_text}です。"
+                "保証終了後の分割支払回の「修理保証サービス」欄は「－」表示となります。"
                 f"<br/>実際は契約時に一括で{yen(upfront)}（税込）のお支払いがあります。"
             )
         if ips_svc.get("billing_type") == "subscription":

@@ -21,6 +21,14 @@ def is_device_data_plan_allowed(device: dict[str, Any], data_plan: str) -> bool:
     return bool(match and float(match.group(1)) >= 5)
 
 
+def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
+    """Return whether the tariff plan may offer the packet size."""
+    # Bizパッケージ＋スーパーライトはパケット50GBのみ（現場ルール）
+    if str(plan_id).strip() == "super_light":
+        return str(data_plan).strip() == "50GB"
+    return True
+
+
 @dataclass(frozen=True)
 class PeriodAmount:
     key: str
@@ -125,6 +133,15 @@ def build_quote(
     data_plan = plan["data_plans"].get(request["data_plan"])
     if not data_plan:
         raise ValueError(f"プランとデータ容量の組み合わせが不正です: {request['data_plan']}")
+    if not is_plan_data_plan_allowed(request["plan_id"], request["data_plan"]):
+        if str(request["plan_id"]).strip() == "super_light":
+            raise ValueError(
+                "Bizパッケージ＋スーパーライトはパケット50GBのみ作成します"
+            )
+        raise ValueError(
+            f"料金プランとデータ容量の組み合わせが不正です: "
+            f"{request['plan_id']} / {request['data_plan']}"
+        )
     if not is_device_data_plan_allowed(device, request["data_plan"]):
         if str(device.get("category", "")).strip() == "ケータイ":
             condition = "1GBのみ"

@@ -28,7 +28,7 @@ from quote_system.config import (
     load_json,
 )
 from quote_system.price_pdf_parser import SALES_COLUMNS, find_device
-from quote_system.quote_service import is_device_data_plan_allowed
+from quote_system.quote_service import is_device_data_plan_allowed, is_plan_data_plan_allowed
 
 
 # 情報ボタン（右上「i」）で開く紹介ページ
@@ -502,12 +502,17 @@ class QuoteApp(tk.Tk):
         def refresh_capacities(*_args) -> None:
             try:
                 device = find_device(device_master, model_var.get())
-                plan = plan_master["plans"][plan_name_to_id[plan_var.get()]]
+                plan_id = plan_name_to_id[plan_var.get()]
+                plan = plan_master["plans"][plan_id]
             except (KeyError, ValueError):
                 return
             selected_any = False
             for name, check in capacity_checks.items():
-                allowed = name in plan["data_plans"] and is_device_data_plan_allowed(device, name)
+                allowed = (
+                    name in plan["data_plans"]
+                    and is_plan_data_plan_allowed(plan_id, name)
+                    and is_device_data_plan_allowed(device, name)
+                )
                 check.configure(state="normal" if allowed else "disabled")
                 if not allowed:
                     capacity_vars[name].set(False)

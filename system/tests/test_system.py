@@ -285,7 +285,7 @@ class QuoteSystemTest(unittest.TestCase):
                     self.assertIn("MNPお見積り", text)
 
     def test_support_auto_mapping(self):
-        super_light = {**self.request, "plan_id": "super_light"}
+        super_light = {**self.request, "plan_id": "super_light", "data_plan": "50GB"}
         quote = build_quote(
             super_light, self.device_master, self.plan_master, self.service_master
         )
@@ -302,11 +302,19 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 76)
+        self.assertEqual(len(variants), 56)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
         self.assertNotIn("1GB", {item["data_plan"] for item in variants})
+        # スーパーライトは50GBのみ
+        self.assertTrue(
+            all(
+                item["data_plan"] == "50GB"
+                for item in variants
+                if item["plan_id"] == "super_light"
+            )
+        )
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False, True})
         self.assertFalse(any(
             item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
@@ -316,13 +324,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 152)
+        self.assertEqual(len(with_no_ips), 112)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 152)
+        self.assertEqual(len(with_standard_fee), 112)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -363,6 +371,10 @@ class QuoteSystemTest(unittest.TestCase):
         quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
         self.assertEqual(quote["components"]["ouchi_discount_tax_ex"], -1000)
 
+        request["data_plan"] = "5GB"
+        with self.assertRaisesRegex(ValueError, "スーパーライトはパケット50GBのみ"):
+            build_quote(request, self.device_master, self.plan_master, self.service_master)
+
     def test_ouchi_discount_rejects_5gb(self):
         request = deepcopy(self.request)
         request["data_plan"] = "5GB"
@@ -371,6 +383,12 @@ class QuoteSystemTest(unittest.TestCase):
             build_quote(request, self.device_master, self.plan_master, self.service_master)
 
     def test_equal_initial_payment_periods_are_merged_for_pdf(self):
+        from quote_system.pdf_renderer import (
+            _display_periods_for_quote,
+            _ips_monthly_for_period,
+            _ips_monthly_tax_in,
+        )
+
         quote = build_quote(
             self.request, self.device_master, self.plan_master, self.service_master
         )
@@ -382,6 +400,65 @@ class QuoteSystemTest(unittest.TestCase):
         changed = deepcopy(quote["periods"])
         changed[1]["device_payment"] += 1
         self.assertEqual(len(_display_periods(changed)), 3)
+
+        # 24か月通常IPSのランニング表記: 25回目以降は修理保証0
+        gold24_request = deepcopy(self.request)
+        gold24_request.update({
+            "ips_display_mode": "monthly_as_running",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+                "support_plan_id": None,
+            },
+        })
+        gold24 = build_quote(
+            gold24_request, self.device_master, self.plan_master, self.service_master
+        )
+        gold_periods = _display_periods_for_quote(gold24)
+        self.assertEqual([p["label"] for p in gold_periods], [
+            "分割支払 1～24回目", "分割支払 25～48回目",
+        ])
+        monthly = _ips_monthly_tax_in(gold24["services"]["ips"])
+        amounts = [
+            _ips_monthly_for_period(
+                p,
+                ips=gold24["services"]["ips"],
+                ips_display_mode="monthly_as_running",
+                ips_tax_in_monthly=monthly,
+            )
+            for p in gold_periods
+        ]
+        self.assertEqual(amounts[0], monthly)
+        self.assertEqual(amounts[1], 0)
+
+        # 36か月通常IPS: 25～48を 25～36 / 37～48 に分割し、37以降は0
+        plat36_request = deepcopy(self.request)
+        plat36_request.update({
+            "ips_display_mode": "monthly_as_running",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_platinum_36"},
+                "support_plan_id": None,
+            },
+        })
+        plat36 = build_quote(
+            plat36_request, self.device_master, self.plan_master, self.service_master
+        )
+        plat_periods = _display_periods_for_quote(plat36)
+        self.assertEqual([p["label"] for p in plat_periods], [
+            "分割支払 1～24回目",
+            "分割支払 25～36回目",
+            "分割支払 37～48回目",
+        ])
+        monthly36 = _ips_monthly_tax_in(plat36["services"]["ips"])
+        amounts36 = [
+            _ips_monthly_for_period(
+                p,
+                ips=plat36["services"]["ips"],
+                ips_display_mode="monthly_as_running",
+                ips_tax_in_monthly=monthly36,
+            )
+            for p in plat_periods
+        ]
+        self.assertEqual(amounts36, [monthly36, monthly36, 0])
 
     def test_output_folder_hierarchy(self):
         device = find_device(self.device_master, self.request["model"])
@@ -403,7 +480,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
             "Bizパッケージ＋ハイパーライト", "初期費用3000円", "IPSサブスク",
-            "安心サポートあり", "iPhone17(256GB)_5GB_ラージ.pdf",
+            "安心サポートあり", "iPhone17(256GB)_5GB.pdf",
         ))
 
         upfront_request = deepcopy(self.request)
@@ -432,7 +509,10 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(upfront_relative.parts[4], "Bizパッケージ＋スーパーライト")
         self.assertEqual(upfront_relative.parts[5], "初期費用3000円")
         self.assertEqual(upfront_relative.parts[6], "IPS一括型")
-        self.assertEqual(upfront_relative.name, "iPhone17(256GB)_50GB_プ36水.pdf")
+        # 通常IPSはゴ/プ等をフォルダで分け、ファイル名は機種_容量のみ
+        self.assertEqual(upfront_relative.parts[7], "プラチナ36水没")
+        self.assertEqual(upfront_relative.parts[8], "安心サポートあり")
+        self.assertEqual(upfront_relative.name, "iPhone17(256GB)_50GB.pdf")
 
         running_variant = {**upfront_variant, "ips_display_mode": "monthly_as_running"}
         running_quote = build_quote(
@@ -443,10 +523,41 @@ class QuoteSystemTest(unittest.TestCase):
             device, running_variant, running_quote, "ips_platinum_36_water", "SB光なし"
         )
         self.assertEqual(running_relative.parts[6], "IPS一括型_月額換算")
+        self.assertEqual(running_relative.parts[7], "プラチナ36水没")
         self.assertEqual(
             running_quote["initial_total_tax_ex"],
             running_quote["initial_fee_tax_ex"] + running_quote["special_initial_fee_tax_ex"],
         )
+
+        gold24_request = deepcopy(self.request)
+        gold24_request.update({
+            "data_plan": "50GB",
+            "plan_id": "super_light",
+            "initial_fee_mode": "special_3000",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+                "support_plan_id": None,
+            },
+        })
+        gold24_quote = build_quote(
+            gold24_request, self.device_master, self.plan_master, self.service_master
+        )
+        gold24_relative = _quote_relative_path(
+            device,
+            {
+                "sales_type": gold24_request["sales_type"],
+                "plan_id": gold24_request["plan_id"],
+                "data_plan": gold24_request["data_plan"],
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            gold24_quote,
+            "ips_gold_24",
+            "SB光なし",
+        )
+        self.assertEqual(gold24_relative.parts[6], "IPS一括型")
+        self.assertEqual(gold24_relative.parts[7], "ゴールド24")
+        self.assertEqual(gold24_relative.name, "iPhone17(256GB)_50GB.pdf")
 
         none_request = deepcopy(self.request)
         none_request["services"] = {"ips": {"type": "none"}, "support_plan_id": None}
@@ -487,7 +598,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         ))
         # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 3472)
+        self.assertEqual(len(variants), 2352)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},
@@ -652,9 +763,10 @@ class QuoteSystemTest(unittest.TestCase):
             support=True,
         )
         self.assertTrue(any("ランニングコスト表記" in note for note in running))
+        self.assertTrue(any("保証期間は契約から24か月" in note for note in running))
         self.assertTrue(
             any(
-                "<br/>実際は契約時に一括で¥40,392（税込）のお支払いがあります。" in note
+                "実際は契約時に一括で¥40,392（税込）のお支払いがあります。" in note
                 for note in running
             )
         )

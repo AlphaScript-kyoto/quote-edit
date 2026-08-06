@@ -13,7 +13,7 @@ from typing import Any, Callable, Iterable
 from .config import DATA_DIR, OUTPUT_DIR, UPDATE_DIR, load_json, save_json
 from .pdf_renderer import render_quote
 from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf
-from .quote_service import build_quote, is_device_data_plan_allowed
+from .quote_service import build_quote, is_device_data_plan_allowed, is_plan_data_plan_allowed
 
 STATE_PATH = DATA_DIR / "app_state.json"
 DEVICE_MASTER_PATH = DATA_DIR / "device_master.json"
@@ -202,6 +202,8 @@ def quote_variants(
             if include_no_support and plan_id in {"super_light", "hyper_light"}:
                 support_options.append(None)
             for data_plan in plan["data_plans"]:
+                if not is_plan_data_plan_allowed(plan_id, data_plan):
+                    continue
                 if not is_device_data_plan_allowed(device, data_plan):
                     continue
                 ouchi_amount = int(
@@ -678,7 +680,9 @@ def run_individual(
 
     selected_data = [
         value for value in data_plans
-        if value in plan["data_plans"] and is_device_data_plan_allowed(device, value)
+        if value in plan["data_plans"]
+        and is_plan_data_plan_allowed(plan_id, value)
+        and is_device_data_plan_allowed(device, value)
     ]
     if not selected_data:
         raise ValueError("機種と料金プランに対応するデータ容量を選択してください")
@@ -892,10 +896,8 @@ def _ips_filename_token(ips: dict[str, Any] | None) -> str | None:
 
 
 def _quote_filename(device: dict[str, Any], variant: dict[str, Any], quote: dict[str, Any]) -> str:
+    """PDF basename: 機種_容量 のみ（IPS プラン名はフォルダで区別）。"""
     parts = [_filename_model(device["model"]), str(variant["data_plan"])]
-    ips_token = _ips_filename_token(quote["services"]["ips"])
-    if ips_token:
-        parts.append(ips_token)
     return _safe_name("_".join(parts)) + ".pdf"
 
 
@@ -920,6 +922,20 @@ def _ips_folder_name(quote: dict[str, Any], variant: dict[str, Any] | None = Non
     return "IPSサブスク"
 
 
+def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
+    """通常（一括）IPS をプラン単位で分ける日本語フォルダ名（例: ゴールド24）。"""
+    ips = quote["services"]["ips"]
+    if not ips or ips.get("billing_type") != "upfront":
+        return None
+    name = str(ips.get("name") or "").strip()
+    if not name:
+        return None
+    # "IPSゴールド24" -> "ゴールド24", "ガラケーIPS24" -> "ガラケー24"
+    display = re.sub(r"IPS", "", name).strip()
+    display = re.sub(r"\s+", "", display)
+    return display or None
+
+
 def _quote_relative_path(
     device: dict[str, Any],
     variant: dict[str, Any],
@@ -930,7 +946,7 @@ def _quote_relative_path(
     del ips_key
     support_folder = "安心サポートあり" if quote["services"]["support"] else "安心サポートなし"
     plan_folder = _safe_name(quote.get("plan_name") or variant["plan_id"])
-    return Path(
+    parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),
         _safe_name(variant["sales_type"]),
@@ -938,6 +954,10 @@ def _quote_relative_path(
         plan_folder,
         _fee_folder_name(quote),
         _ips_folder_name(quote, variant),
-        support_folder,
-        _quote_filename(device, variant, quote),
-    )
+    ]
+    plan_token_folder = _upfront_ips_plan_folder(quote)
+    if plan_token_folder:
+        parts.append(_safe_name(plan_token_folder))
+    parts.append(support_folder)
+    parts.append(_quote_filename(device, variant, quote))
+    return Path(*parts)
