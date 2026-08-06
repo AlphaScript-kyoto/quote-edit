@@ -2,7 +2,7 @@
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
-**Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.1.md`  
+**Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.3.md`  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
 **App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.1"`  
@@ -49,7 +49,7 @@ Each rule is Markdown with YAML frontmatter:
 Current `quote-edit-handoff.mdc` purpose:
 
 1. Force agents to read `AGENTS.md` + this `AI_CONTEXT.md` + `AGENT_CHANGE_HISTORY.md` before non-trivial changes
-2. Point Japanese human successors to `開発者向け仕様書_v1.1.md`
+2. Point Japanese human successors to `開発者向け仕様書_v1.3.md`
 3. Restate hard invariants (fixed output root, exclusions, no ouchi+5GB, one-page PDF, fee defaults, field UTF-8 BOM, no bulk regen unless asked)
 4. Distinguish source from generated; require append-only entries in the change history
 
@@ -70,7 +70,7 @@ Portable EXE packages under `portable/` may omit `.cursor`. That is expected. Th
 
 ```
 Field user      -> README.txt                 (mentions .cursor only as "ignore")
-Human developer -> 開発者向け仕様書_v1.1.md + AGENT_CHANGE_HISTORY.md (1.3.x deltas)
+Human developer -> 開発者向け仕様書_v1.3.md + AGENT_CHANGE_HISTORY.md
 AI / Cursor     -> AGENTS.md + this file + AGENT_CHANGE_HISTORY.md + .cursor/rules/*.mdc
 ```
 
@@ -91,7 +91,8 @@ quote-edit/
     quote_system/
     data/
     tests/
-    docs/開発者向け仕様書_v1.1.md
+    docs/開発者向け仕様書_v1.3.md
+    docs/開発者向け仕様書_v1.1.md  # stub pointer only
     docs/AI_CONTEXT.md
     docs/AGENT_CHANGE_HISTORY.md  # decisions, session log, pitfalls
     docs/リリースノート_v*_現場向け.txt  # optional field release notes (UTF-8 BOM)
@@ -153,8 +154,8 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
-| 1.3.1 | PDF: No. column; monthly order plan→IPS→support→universal→total (no subtotal); red discount text; no title box; `{sales_type}お見積り`; TEL/FAX one line; AQ TEL/FAX; subscription IPS note 165円/請求; field text UTF-8 BOM + arrange rewrite; release-note `?` incident documented in `AGENT_CHANGE_HISTORY.md` |
-| 1.3 | Default `special_3000`; optional standard fee via `include_standard_initial_fee` (legacy `include_special_initial_fee` mapped in checkpoints); 「除外する機種」; IPS upfront default off; info (i) → alphascript homepage; AQ Tokyo address; masters 20260731; force-all wording |
+| 1.3.1 | PDF layout polish; upfront IPS folders (JP names); running warranty columns; super_light 50GB only; subscr. filename without tier; PDF light discounts as 弊社特別割引; company.json gitignored; developer spec v1.3 |
+| 1.3 | Default `special_3000`; optional standard fee via `include_standard_initial_fee` (legacy `include_special_initial_fee` mapped in checkpoints); 「除外する機種」; IPS upfront default off; info (i) → alphascript homepage; masters 20260731; force-all wording |
 | 1.2 | Field options/notes packaging refresh (mostly superseded by 1.3 defaults) |
 | 1.1 | Fixed output root; exclusions (+ individual dropdown); ouchi skips 5GB; dual human/AI docs; `.cursor` documented |
 

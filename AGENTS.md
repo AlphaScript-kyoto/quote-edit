@@ -9,7 +9,7 @@ You are working in a **local SoftBank corporate quote PDF batch generator** (Win
 | **AI (this doc)** | `AGENTS.md` | English |
 | **AI (full architecture)** | `system/docs/AI_CONTEXT.md` | English |
 | **AI (change log / decisions)** | `system/docs/AGENT_CHANGE_HISTORY.md` | English |
-| **Human developers (handoff)** | `system/docs/開発者向け仕様書_v1.1.md` | Japanese |
+| **Human developers (handoff)** | `system/docs/開発者向け仕様書_v1.3.md` | Japanese |
 | **Field operators** | `README.txt` | Japanese (keep short) |
 | **Cursor IDE rules** | `.cursor/rules/*.mdc` | English (project rules) |
 

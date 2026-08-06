@@ -2,277 +2,120 @@
 
 **Audience:** coding agents / future AI sessions  
 **Language:** English (product UI strings stay Japanese)  
-**Purpose:** Full handoff of *why* things are the way they are ? not only architecture.
+**Purpose:** Full handoff of *why* things are the way they are.
 
-After reading root `AGENTS.md` and this file?s parent `AI_CONTEXT.md`, use **this document** when:
-
-- Resuming work after a long gap or a new chat
-- Something ?used to work? or ?was already fixed?
-- Packaging text looks corrupted
-- Defaults / parameter names feel inconsistent
-- PDF layout rules are unclear
-
-When you ship a user-visible behavior change, **append a dated entry** at the bottom of ?Session / decision log? (and bump the version table in `AI_CONTEXT.md` / `AGENTS.md` if `APP_VERSION` changes).
+After reading root `AGENTS.md` and `AI_CONTEXT.md`, use **this document** for prior fine-tuning and decisions.
+Append a dated entry after user-visible changes.
 
 ---
 
-## Current ship target (as of 2026-08)
+## Current ship target
 
 | Item | Value |
 |------|--------|
-| App version | **1.3.1** (`system/quote_system/config.py` ? `APP_VERSION`) |
-| Display name | `????????` |
-| Window title | `????????  ver.1.3.1` (two spaces after name is existing style ? match `desktop_app` / drag bar) |
-| Dist folder / ZIP | `portable/????????ver{APP_VERSION}/` and `.zip` |
-| Price master context | list PDF pattern `???????20260731??.pdf` under `???????/` |
-| Japanese human spec filename | still `????????_v1.1.md` (content lags version numbers ? see ?Doc drift?) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently 1.3.1 until next release bump) |
+| Display name | 見積もり一括作成 |
+| Window title | `見積もり一括作成  ver.{APP_VERSION}` |
+| Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
+| Japanese spec | `system/docs/開発者向け仕様書_v1.3.md` |
+| Company contacts | Local-only `system/data/company.json` (gitignored). Template: `company.example.json` |
 
 ---
 
-## Doc map (who reads what)
+## Doc map
 
 | File | Role |
 |------|------|
-| `AGENTS.md` | Short agent entry + hard product rules |
-| `system/docs/AI_CONTEXT.md` | Architecture, paths, data flow, Cursor `.cursor` |
-| **`system/docs/AGENT_CHANGE_HISTORY.md` (this file)** | Decision log, fine-tuning, pitfalls, parameter renames |
-| `system/docs/????????_v1.1.md` | Japanese for human successors (partially stale on version digits) |
-| `README.txt` | Field operators only ? **keep short**; no architecture dump |
-| `system/docs/???????_v{APP_VERSION}_????.txt` | Optional field release note; ship with portable package |
-| `.cursor/rules/quote-edit-handoff.mdc` | Always-on Cursor inject (points here) |
+| `AGENTS.md` | Short agent entry |
+| `system/docs/AI_CONTEXT.md` | Architecture |
+| `AGENT_CHANGE_HISTORY.md` (this) | Decisions / session log |
+| `開発者向け仕様書_v1.3.md` | Japanese human handoff |
+| `README.txt` | Field operators (short) |
 
-Field copy encoding: **UTF-8 with BOM** (`utf-8-sig`) for root `README.txt` and field release notes. Package step rewrites via `_write_utf8_bom` in `system/_arrange_portable.py`.
+Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_write_utf8_bom`.
 
 ---
 
-## Hard invariants (do not regress)
+## Hard invariants
 
-Copied for agents who only open this history file ? full wording in `AGENTS.md`:
-
-1. Output root fixed: `output/??PDF/` (merge/overwrite; no dated batch folders).
-2. `excluded_models.json` beats ?force regenerate all?; excluded models hidden from individual-quote Combobox.
-3. No **?????SB???? + 5GB** quotes (same money as 20GB).
-4. Upfront IPS can produce `lump` and `monthly_as_running` (separate output folders).
-5. Portrait A4 only; prefer **one page** even with worst-case attention notes.
-6. Do not bulk-regenerate thousands of PDFs unless the human explicitly asks.
-7. Prefer editing **source** under `system/quote_system/`, `desktop_app.py`, `system/data/`, tests, docs ? not `portable/` or `system/work/` as truth.
-
----
-
-## Version timeline (product)
-
-### 1.1 (baseline handoff era)
-
-- Fixed output under `output/??PDF/`.
-- Exclusions + individual-quote dropdown hide.
-- Ouchi skips 5GB.
-- Dual docs: AI English + Japanese developer spec; `.cursor` documented.
-- Title bar must show `ver.{APP_VERSION}`.
-
-### 1.2 (transitional packaging)
-
-- Field options / notes refresh; packaging paths established.
-- Superseded operationally by 1.3 UI defaults and masters; keep older release note files if present for history only.
-
-### 1.3 (behavior defaults + field UX)
-
-Shipped product decisions (still valid unless later note says otherwise):
-
-| Topic | Decision | Where |
-|-------|----------|--------|
-| Default initial fee | **Special 3000**: ??????? + ???? 3,000?????????? 3300 ?? | `quote_service` / `batch_service` `special_3000` |
-| Optional standard fee | Checkbox drives **`include_standard_initial_fee`** (not inverted ?special? flag) | `batch_service.quote_variants`, GUI |
-| Legacy checkpoint | Old payloads may still say `include_special_initial_fee` ? map via `_checkpoint_include_standard_fee` | `batch_service.py` |
-| IPS upfront batch | Default **off** (`upfront_var = False`) | `desktop_app.py` |
-| Exclude UI wording | **????????** (not ?exclude models? English in UI) | `desktop_app.py` |
-| Force-all wording | Explicit: on = rebuild all non-excluded active models; exclusions always win | `desktop_app.py` |
-| Info button (i) | Opens `https://alphascript-kyoto.github.io/as-homepage/` | `INFO_HOME_URL` in `desktop_app.py` |
-| AQ department | Per-dept contact fields supported; real values stay local-only | `company.json` (gitignored); `company.example.json` in git |
-| Price list | Masters refreshed from **20260731** update PDF | `???????/` + parsed `device_master` / tests |
-| SmartScreen note | Mentioned for field users in `README.txt` | field doc only |
-
-**Parameter rename (important when reading old code/checkpoints):**
-
-- `include_special_initial_fee` ? **`include_standard_initial_fee`**
-- Semantics: default batch = special only; optional **add** standard 4500 path when flag true.
-- Checkpoint helper still understands legacy key for resume.
-
-### 1.3.1 (PDF layout polish + contacts + packaging text)
-
-#### PDF layout (`pdf_renderer.py`)
-
-| Topic | Decision |
-|-------|----------|
-| Line item No. column | `No.` first column on initial-fee and monthly tables; 1-based via `_with_row_numbers` |
-| Title box | **Removed** ? no decorative frame around model/title |
-| Subtitle under model | `{sales_type}????` (fallback `????`) |
-| Monthly row order | Voice/plan/device lines ? **????IPS** (if shown monthly) ? **????** ? **??????????? last before total** ? monthly total |
-| Subtotal row | Monthly **subtotal removed**; total only |
-| Discount styling | Discount **names + amounts** in **red**; No. column stays normal color |
-| Company TEL/FAX | One line in header contact block, e.g. `TEL ? / FAX ?` |
-| IPS lump in monthly | Upfront IPS with `lump` stays in **initial** table, not monthly IPS row |
-| IPS monthly display | Subscription always monthly row; upfront with `monthly_as_running` uses equivalent monthly |
-
-#### Attention notes (`_attention_notes`)
-
-| Condition | Note behavior |
-|-----------|----------------|
-| Subscription IPS | Fixed text: `????????????????????????1?????165?????????????` |
-| Upfront + `monthly_as_running` | Explain running-cost display + actual lump amount |
-| Support present | Infinity support note (separate from SoftBank billing) |
-| Ouchi applied | Light set starts next month after circuit open |
-| Always / common | Plan next-month apply, SMS/extra, tax note, Biz package, packet plan change rules, ??????????, personal?corp transfer fee, no smart login, iPhone accessory note |
-
-Do **not** invent shorter marketing notes without human approval; field wording is intentional.
-
-#### Company contacts (LOCAL ONLY)
-
-- **Do not commit** real phones or postal addresses.
-- Template: `system/data/company.example.json` (placeholders / empty phones).
-- Runtime file: `system/data/company.json` (**gitignored**). Departments include TM / RT / CRM / AQ with optional per-department phone, fax, postal_address.
-- Renderer: one-line TEL/FAX in header; empty FAX ? do not print a broken `FAX` stub.
-- Tests that need contacts must use **synthetic** dicts (placeholders like `000-0000-?`), never production numbers.
-
-#### Portable packaging
-
-| Topic | Decision |
-|-------|----------|
-| Bundle price PDF(s) | Copy all `*.pdf` from repo `???????/` into package same folder name |
-| README + release note | UTF-8 **with BOM**, CRLF via `_write_utf8_bom` |
-| Package name | `{APP_DISPLAY_NAME}ver{APP_VERSION}` (no space before ver) |
-| Exclude `.cursor` | Optional in portable; required in source repo |
-
-#### Text corruption incident (2026-08, release note ???????)
-
-**Symptom:** Field release note (and any copy from it) showed only `?` for Japanese, ASCII digits/phones intact. Same before and after unzip.
-
-**Root cause:** Source file on disk was **already** lost ? Japanese replaced by literal ASCII `0x3F` (`?`). Not primarily ?ZIP re-encoding?. Classic UTF-8-as-CP932 mojibake looks like garbage kana, not pure question marks.
-
-**Fix:** Rewrite `system/docs/???????_v1.3.1_????.txt` with correct Japanese; save **UTF-8 BOM**; also BOM `README.txt`; arrange step forces `utf-8-sig` when copying; rebuild ZIP.
-
-**Prevention for agents:**
-
-1. Never ?fix encoding? by round-tripping through a code page that cannot represent Japanese without replacement.
-2. After writing Japanese `.txt`, verify with Python: `path.read_bytes()[:3] == b"\xef\xbb\xbf"` optional BOM; `read_text(encoding="utf-8-sig")` must not be dominated by `?`.
-3. If you see pure `?` lines, the content is **gone** ? restore from this doc / prior good `README` wording / chat, do not try to reverse `?`.
-4. PyInstaller bat files stay **ASCII + CRLF, no UTF-8 BOM** (different from field Japanese `.txt`).
+1. Output root: `output/見積PDF/` only.
+2. Exclusions beat force-all; hide models from individual Combobox.
+3. No ouchi (おうち割 SB光あり) + 5GB.
+4. Upfront IPS: `lump` and/or `monthly_as_running`.
+5. Portrait A4; prefer one-page PDFs.
+6. No bulk regen of thousands of PDFs unless asked.
+7. Real phones/addresses must not be in git.
+8. Biz package super light: **50GB only**.
 
 ---
 
-## Important code pivots (quick index)
+## Version timeline (summary)
 
-| Concern | Primary files |
-|---------|----------------|
-| Version string | `quote_system/config.py` |
-| Batch matrix / fees / IPS modes / checkpoints | `quote_system/batch_service.py` |
-| Quote math / ouchi+5GB guard | `quote_system/quote_service.py` |
-| PDF one-page layout | `quote_system/pdf_renderer.py` |
-| GUI defaults & exclude & info | `system/desktop_app.py` |
-| Department phones (local) | `system/data/company.json` (gitignored); example in `company.example.json` |
-| Plans / services masters | `system/data/plans.json`, `services.json` |
-| Tests | `system/tests/test_system.py` |
-| Arrange portable | `system/_arrange_portable.py` |
-| Build portable EXE | `system/build_portable_exe.bat` |
+### 1.1
+Fixed output root; exclusions; ouchi skips 5GB; dual AI/human docs; `.cursor`.
 
-### Default fee modes (mental model)
+### 1.2
+Field packaging refresh (mostly superseded by 1.3).
 
-```
-Batch default:
-  fee_modes = ["special_3000"]
-  if include_standard_initial_fee:
-      fee_modes also includes "standard"
+### 1.3
+- Default fee: `special_3000`; optional `include_standard_initial_fee` (legacy key mapped).
+- IPS upfront default off; exclude UI `除外する機種`; info (i) button.
 
-Individual quote:
-  user-selected initial_fee_modes list ? {special_3000, standard}
-```
+### 1.3.1 + current polish
+**PDF:** No. column; monthly order plan/IPS/support/universal/total; red discounts; no title box; `{sales_type}お見積もり`; TEL/FAX one line.
+**PDF additional light discounts (display only):** super/hyper light names become **弊社特別割引** (internal `スーパーライト割` / `ハイパーライト割` stay in plans.json).
+Biz package row remains `Bizパッケージ＋ 特別割引`.
 
-### IPS display modes (mental model)
+**Upfront IPS folders:** under `IPS一括型` or `IPS一括型_月額換算` + plan folder `ゴールド24`, `プラチナ36水没`. Filename `model_data.pdf` only.
 
-```
-billing_type subscription  ? monthly row always; attention 165?/??
-billing_type upfront:
-  ips_display_mode=lump              ? lump in ????; not monthly IPS row
-  ips_display_mode=monthly_as_running ? monthly equivalent row + attention about real lump
-```
+**Subscription filename:** no tier suffix; folder `IPSサブスク`.
 
-### Monthly table visual order (1.3.1)
+**Running warranty columns:**
+- 24 months: dash after month 24
+- 36 months (plan B): split 25-36 / 37-48; dash after 36
 
-1. Plan / voice / packet / discounts / device payment lines (as built in `plan_item_rows`)
-2. ???????? (if `show_ips_monthly`)
-3. ???????? (if support)
-4. ???????????
-5. ???? (highlighted; no intermediate ??)
+**super_light:** only 50GB (`is_plan_data_plan_allowed`).
+
+**Encoding incident:** pure ASCII `?` in Japanese files = destroyed content; rewrite + UTF-8 BOM.
+
+**Privacy:** `company.json` gitignored; tests use synthetic contacts.
 
 ---
 
-## GUI defaults snapshot (1.3.x)
+## Code pivots
 
-| Control | Default | Notes |
-|---------|---------|--------|
-| Force regenerate all | `True` | Still loses to exclusions |
-| IPS ????????+?????? | `False` | User opts in |
-| ?????????standard fee variants? | UI-specific; batch flag usually off | Prefer special 3000 by default |
-| ?????? | Persisted JSON | Window title/lables use that Japanese phrase |
-| Info (i) | Top-right | External browser to homepage |
-
----
-
-## Known doc drift / cleanup TODOs for agents
-
-1. **`????????_v1.1.md`** still labeled ver.1.1 in headers; product is 1.3.1. Prefer updating version tables or adding a ?post-1.1 delta ? see AGENT_CHANGE_HISTORY? rather than rewriting whole file mid-incident.
-2. Field release notes per version under `system/docs/???????_v*_????.txt` ? keep the **current** `APP_VERSION` file correct; older files are archival.
-3. `portable/` ZIP is generated ? never treat it as source of truth for code or masters.
-4. If Japanese human asks for ?README.md always?, this product deliberately uses **`README.txt`** for operators (`AGENTS.md`). Do not replace field docs with a long English README.md.
+| Concern | Files |
+|---------|-------|
+| Version | `config.py` |
+| Paths / batch | `batch_service.py` |
+| Math / plan rules | `quote_service.py` |
+| PDF | `pdf_renderer.py` |
+| GUI | `desktop_app.py` |
+| Tests | `tests/test_system.py` |
 
 ---
 
-## Session / decision log (append-only)
+## Session log
 
-### 2026-08 ? 1.3 ? 1.3.1 product + packaging (summary of long sessions)
+### 2026-08 - 1.3 / 1.3.1 packaging
+Defaults, fee flag rename, PDF polish, BOM field texts, company.json out of git.
 
-- Bumped product toward 1.3 defaults (special 3000, IPS upfront off, exclude UI rename, info URL, 20260731 price masters).
-- Renamed fee include flag to `include_standard_initial_fee` with checkpoint compatibility for old key.
-- 1.3.1 PDF: No. column; monthly order with universal last; red discounts; no title box; sales_type subheading; TEL/FAX one line; subscription IPS 165 yen note.
-- Field README / portable packaging; UTF-8 BOM for Japanese field texts.
-- Encoding incident: release note source destroyed to `?`; restored + `_write_utf8_bom`.
-- Privacy: real company addresses/phones and personal contacts must not be pushed; `company.json` gitignored; tests use synthetic contacts.
-- Documented in this file for agent handoff (this entry).
+### 2026-08-06 - IPS folders + warranty + super_light 50GB
+Folder JP names; running 24/36 rules; subscription filename without tier.
 
-### 2026-08-06 ? Upfront IPS folders + running warranty columns
-- Human request: upfront IPS in **folders** not filename suffix; running-cost 24-month no IPS after month 24; 36-mo column split (B).
-- Upfront folders use full JP names without IPS prefix: `????24`, `????36??` (not `?24`).
-- PDF: split periods at `period_months`; IPS cell `?` after guarantee.
-- **super_light**: only `50GB` in batch/individual/build_quote/UI (`is_plan_data_plan_allowed`).
-- Subscription filename: `??_??.pdf` only (no `_???`).
-- Test counts: standard 56, full 2352.
+### 2026-08-06 - PDF additional discount label
+Display **弊社特別割引** for super/hyper light rows (internal names unchanged).
 
----
+### 2026-08-06 - Docs repair + history scrub
+Rewrite this file (fix pure-`?` corruption). Japanese developer spec to v1.3. Git history rewrite removes phone/address blobs (approved).
 
-## Release checklist (agent)
+## Release checklist
+1. APP_VERSION
+2. Titles match
+3. unittest
+4. Field notes UTF-8 BOM
+5. Append this file + sync AI_CONTEXT/AGENTS/Japanese spec
+6. Never commit real company.json
 
-1. `APP_VERSION` in `config.py`
-2. Window title / UI labels show same version
-3. Tests: `cd system && python -m unittest tests.test_system -v`
-4. Update / rewrite `system/docs/???????_v{version}_????.txt` as **UTF-8 BOM** Japanese
-5. Keep `README.txt` short; encoding **UTF-8 BOM**
-6. Append this history file + sync `AI_CONTEXT.md` version table + `AGENTS.md` current version
-7. Build: `system/build_portable_exe.bat` then confirm arrange wrote BOM texts
-8. Spot-check unzipped release note: must not be `?` soup
-9. Do not bulk-generate full quote forest unless asked
-
----
-
-## Anti-patterns seen in this project
-
-| Bad idea | Why |
-|----------|-----|
-| Reopening landscape PDF layout | Explicitly rejected; portrait A4 only |
-| ?ANSI? convert Japanese release notes | Replaces or mojibakes; use utf-8-sig |
-| Treating `portable/*.zip` as editable source | Generated tree |
-| Creating ouchi+5GB for ?completeness? | Business rule forbids |
-| Hiding exclusions when force-all is on | Exclusions must win |
-| Dumping architecture into `README.txt` | Field docs must stay simple |
-| Inventing new attention-note prose | Use human-approved strings |
-| Amending fees by only changing renderer totals | Numbers come from `quote_service` / masters |
-
-End of living history ? **append; do not delete past decisions** unless the human retracts them (then mark withdrawn).
+## Anti-patterns
+Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB; inventing attention notes.

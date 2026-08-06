@@ -46,6 +46,14 @@ def yen(value: int) -> str:
     return f"{sign}¥{abs(value):,}"
 
 
+def _pdf_additional_discount_label(name: Any) -> str:
+    """PDF上だけスーパーライト割／ハイパーライト割を「弊社特別割引」と表記する。"""
+    text = str(name or "").strip()
+    if text in {"スーパーライト割", "ハイパーライト割", "特別割引"}:
+        return "弊社特別割引"
+    return text or "弊社特別割引"
+
+
 def _display_periods(periods: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Merge months 1-12 and 13-24 when every displayed total is identical."""
     comparable_keys = (
@@ -324,7 +332,7 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     discount_item_indexes = [len(plan_item_rows) - 1]
     if components["additional_discount_tax_ex"]:
         plan_item_rows.append(
-            [components["additional_discount_name"], "税抜"]
+            [_pdf_additional_discount_label(components.get("additional_discount_name")), "税抜"]
             + [yen(components["additional_discount_tax_ex"])] * period_count
         )
         discount_item_indexes.append(len(plan_item_rows) - 1)

@@ -48,6 +48,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["components"]["biz_package_discount_tax_ex"], -4300)
         self.assertEqual(quote["components"]["additional_discount_tax_ex"], -1500)
         self.assertEqual(quote["components"]["additional_discount_name"], "ハイパーライト割")
+        from quote_system.pdf_renderer import _pdf_additional_discount_label
+        self.assertEqual(
+            _pdf_additional_discount_label(quote["components"]["additional_discount_name"]),
+            "弊社特別割引",
+        )
+        self.assertEqual(_pdf_additional_discount_label("スーパーライト割"), "弊社特別割引")
+        self.assertEqual(_pdf_additional_discount_label("特別割引"), "弊社特別割引")
         self.assertEqual(quote["services"]["ips"]["name"], "IPSラージプラン")
         self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 1540)
         self.assertEqual(quote["services"]["support"]["name"], "携帯電話安心サポートS")
