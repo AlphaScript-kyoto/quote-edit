@@ -1,6 +1,5 @@
-__pycache__/
+﻿__pycache__/
 *.py[cod]
-*$py.class
 *$py.class
 *.so
 .Python
@@ -21,6 +20,9 @@ build/
 *.log
 output/
 system/output/
+system/work/
+system/logs/*
+!system/logs/.gitkeep
 portable/
 *.pdf
 !system/assets/**
