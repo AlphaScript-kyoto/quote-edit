@@ -1,32 +1,32 @@
 {
   "logo_file": "assets/company_logo.png",
   "departments": [
-    "TM????",
-    "RT???",
-    "CRM???",
-    "AQ???"
+    "TM事業本部",
+    "RT事業部",
+    "CRM事業部",
+    "AQ事業部"
   ],
-  "name": "???????????",
-  "department": "TM????",
+  "name": "株式会社インフィニティ",
+  "department": "TM事業本部",
   "registration_number": "G1901279",
-  "postal_address": "?????? company.json ????",
+  "postal_address": "(set in local company.json)",
   "phone": "",
   "fax": "",
   "department_contacts": {
-    "TM????": {
+    "TM事業本部": {
       "phone": "",
       "fax": ""
     },
-    "RT???": {
+    "RT事業部": {
       "phone": "",
       "fax": "",
-      "postal_address": "??????4F??????"
+      "postal_address": "(optional local override)"
     },
-    "CRM???": {
+    "CRM事業部": {
       "phone": "",
       "fax": ""
     },
-    "AQ???": {
+    "AQ事業部": {
       "phone": "",
       "fax": "",
       "postal_address": ""
