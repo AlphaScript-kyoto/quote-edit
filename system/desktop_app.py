@@ -235,16 +235,18 @@ class QuoteApp(tk.Tk):
         )
         self.resume_button.pack(side="left", padx=(8, 0), ipadx=12, ipady=8)
         ttk.Button(action, text="出力フォルダを開く", command=self._open_output_folder).pack(side="left", padx=10)
-        ttk.Button(
+        self.individual_button = ttk.Button(
             action,
             text="個別見積作成",
             command=lambda: self._open_individual_window(48),
-        ).pack(side="left")
-        ttk.Button(
+        )
+        self.individual_button.pack(side="left")
+        self.individual36_button = ttk.Button(
             action,
             text="個別見積（36回割賦）",
             command=lambda: self._open_individual_window(36),
-        ).pack(side="left", padx=(8, 0))
+        )
+        self.individual36_button.pack(side="left", padx=(8, 0))
 
         self.progress = ttk.Progressbar(root, mode="determinate")
         self.progress.pack(fill="x")
@@ -314,9 +316,14 @@ class QuoteApp(tk.Tk):
                 "※36回割賦では使いません（対象は installment_36_targets.json で管理）"
             )
             self.edit_targets_button.pack(side="left", padx=(12, 0), ipadx=8, ipady=2)
+            # モードに合わない個別見積ボタンは押せないようにする
+            self.individual_button.configure(state="disabled")
+            self.individual36_button.configure(state="normal")
         else:
             self.edit_targets_button.pack_forget()
             self.exclude_button.configure(state="normal")
+            self.individual_button.configure(state="normal")
+            self.individual36_button.configure(state="disabled")
             self._refresh_exclude_status()
             self._select_latest()
 
