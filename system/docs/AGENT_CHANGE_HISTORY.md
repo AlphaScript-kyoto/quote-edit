@@ -188,6 +188,9 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 ### 2026-08-07 - Individual window: create button moved to header
 - Both individual windows (48 and 36): the PDF-create button now sits top-right next to the window title, and the status text moved under the header, so they are always visible regardless of window height (previously hidden below the fold on small screens).
 
+### 2026-08-07 - PDF footer: tool version stamp
+- Every quote PDF now draws a small gray footer at the bottom-right margin: APP_DISPLAY_NAME ver.APP_VERSION (canvas onPage draw at y=2.2mm, 5pt), outside the flowable area so one-page packing is unaffected. Applies to all quotes (48 and 36).
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

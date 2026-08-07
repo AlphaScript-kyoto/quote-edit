@@ -17,7 +17,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image as ReportLabImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from .config import RESOURCE_ROOT
+from .config import APP_DISPLAY_NAME, APP_VERSION, RESOURCE_ROOT
 from .price_pdf_parser import sales_type_display_name
 
 
@@ -454,7 +454,20 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     )
     notes_box.setStyle(_boxed_section_style())
     story.append(notes_box)
-    doc.build(story)
+    doc.build(story, onFirstPage=_draw_version_footer, onLaterPages=_draw_version_footer)
+
+
+def _draw_version_footer(canvas, _doc) -> None:
+    """ページ最下部の右端に作成ツール名とバージョンを描く（本文レイアウトに影響しない余白描画）。"""
+    canvas.saveState()
+    canvas.setFont(FONT, 5)
+    canvas.setFillGray(0.45)
+    canvas.drawRightString(
+        A4[0] - 10 * mm,
+        2.2 * mm,
+        f"{APP_DISPLAY_NAME} ver.{APP_VERSION} で作成",
+    )
+    canvas.restoreState()
 
 
 def _ips_monthly_tax_in(ips: dict[str, Any] | None) -> int:
