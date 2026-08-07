@@ -29,8 +29,10 @@ from quote_system.config import (
     DATA_DIR,
     ensure_directories,
     load_json,
+    save_json,
 )
 from quote_system.installment_36 import (
+    TARGETS_PATH,
     UPDATE_36_DIR,
     filter_36_target_devices,
     import_installment_36_master,
@@ -213,6 +215,12 @@ class QuoteApp(tk.Tk):
             textvariable=self.exclude_status_var,
             foreground="#C00000",
         ).pack(side="left", padx=(12, 0))
+        # 36回モードのときだけ表示する（対象JSONを直接開いて編集）
+        self.edit_targets_button = ttk.Button(
+            exclude_row,
+            text="対象機種JSONを編集",
+            command=self._open_targets_json,
+        )
 
         action = ttk.Frame(root)
         action.pack(fill="x", pady=(2, 12))
@@ -264,6 +272,20 @@ class QuoteApp(tk.Tk):
         root.mkdir(parents=True, exist_ok=True)
         _open_path(root)
 
+    def _open_targets_json(self) -> None:
+        """36回割賦の対象機種JSONを既定のエディタで開く。"""
+        if not TARGETS_PATH.exists():
+            # 初回はシード内容を書き出してから開く
+            save_json(TARGETS_PATH, load_installment_36_targets())
+        try:
+            os.startfile(TARGETS_PATH)  # type: ignore[attr-defined]
+        except OSError:
+            import subprocess
+
+            subprocess.Popen(["notepad.exe", str(TARGETS_PATH)])
+        self._write_log(f"対象機種JSONを開きました：{TARGETS_PATH}")
+        self._write_log("編集して保存すると、次の作成（個別・一括）から反映されます。")
+
     def _on_installment_mode_changed(self) -> None:
         if self._installment_months() == 36:
             latest = latest_installment_36_pdf()
@@ -291,7 +313,9 @@ class QuoteApp(tk.Tk):
             self.exclude_status_var.set(
                 "※36回割賦では使いません（対象は installment_36_targets.json で管理）"
             )
+            self.edit_targets_button.pack(side="left", padx=(12, 0), ipadx=8, ipady=2)
         else:
+            self.edit_targets_button.pack_forget()
             self.exclude_button.configure(state="normal")
             self._refresh_exclude_status()
             self._select_latest()

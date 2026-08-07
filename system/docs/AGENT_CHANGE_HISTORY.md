@@ -175,6 +175,9 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 - PDF attention notes: the SHIN-TOKU SUPPORT+ paragraph (48-installment contract wording) is omitted when quote installment_months == 36 (test added).
 - import_installment_36_master now caches by PDF sha256 into device_master_36.json so per-model run_individual calls do not re-parse the PDF.
 
+### 2026-08-07 - 36-mode: edit-targets button
+- Main window: when 36-installment mode is selected, a button next to the disabled exclusion status opens installment_36_targets.json in the default editor (seeds the file first if missing; notepad fallback). Hidden in 48 mode.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
