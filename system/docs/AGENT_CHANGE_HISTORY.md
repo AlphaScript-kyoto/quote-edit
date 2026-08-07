@@ -134,6 +134,12 @@ For 機種変更 + super/hyper standard path, omit plan folder (特別割引) an
 ### 2026-08-07 - Release ver.1.3.3
 Ship 1.3.3: branching fee/support folders; Biz light plan; kishu path layout (IPS一括表記 / IPSランニングコスト表記); display 機種変更 short name.
 
+### 2026-08-07 - Super/hyper path merge for all sales types
+Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alike.
+- `super_light` + `hyper_light`: no plan-name folder; subscription PDF under SB光; upfront under 一括表記 / ランニングコスト表記 then IPS plan token.
+- Do **not** merge `light` (容量 overlap with both) — keeps `Bizパッケージ＋ライト`.
+- `biz_plus` unchanged. Capacity uniqueness keeps zero path collisions across ~18k variants.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

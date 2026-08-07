@@ -978,19 +978,13 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
 
 # auto_mapping で安心サポートが付くプラン（services.json と揃える）
 _SUPPORT_AUTO_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
-_KISHU_SALES_TYPE = "機種変更・移動機物品販売"
-_KISHU_SPECIAL_DISCOUNT_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+# スーパー／ハイパーは容量が重ならないため、全販売区分でプラン名フォルダを統合する
+_MERGED_SPECIAL_DISCOUNT_PLAN_IDS = frozenset({"super_light", "hyper_light"})
 
 
-def _is_kishu_special_discount(
-    sales_type: str,
-    plan_id: str,
-) -> bool:
-    """機種変更のスーパー／ハイパー（特別割引）見積かどうか。"""
-    return (
-        str(sales_type or "").strip() == _KISHU_SALES_TYPE
-        and str(plan_id or "").strip() in _KISHU_SPECIAL_DISCOUNT_PLAN_IDS
-    )
+def _is_merged_special_discount(plan_id: str) -> bool:
+    """スーパー／ハイパー（特別割引）をプラン名フォルダなしで扱うか。"""
+    return str(plan_id or "").strip() in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS
 
 
 def _plan_folder_name(
@@ -999,24 +993,21 @@ def _plan_folder_name(
 ) -> str | None:
     """料金プラン用フォルダ名。
 
-    機種変更のスーパー／ハイパーは料金プランフォルダを付けない（Bizパッケージ＋のみ残す）。
-    通常IPSは一括／ランニング表記で分岐する。
+    スーパー／ハイパーはプラン名フォルダなし（容量で区別。Biz・ライトは従来どおり）。
     """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
-    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
-    if _is_kishu_special_discount(sales_type, plan_id):
+    if _is_merged_special_discount(plan_id):
         return None
     return str(quote.get("plan_name") or plan_id)
 
 
-def _kishu_upfront_display_folder(
+def _merged_upfront_display_folder(
     quote: dict[str, Any],
     variant: dict[str, Any],
 ) -> str | None:
-    """機種変更の特別割引＋通常IPSを、IPS一括表記／IPSランニングコスト表記で分ける。"""
+    """スーパー／ハイパー＋通常IPSを、IPS一括表記／IPSランニングコスト表記で分ける。"""
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
-    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
-    if not _is_kishu_special_discount(sales_type, plan_id):
+    if not _is_merged_special_discount(plan_id):
         return None
     ips = (quote.get("services") or {}).get("ips")
     if not ips or ips.get("billing_type") != "upfront":
@@ -1069,7 +1060,6 @@ def _quote_relative_path(
 ) -> Path:
     del ips_key
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
-    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),
@@ -1090,22 +1080,22 @@ def _quote_relative_path(
         quote, variant, include_no_support=include_no_support
     )
     ips = (quote.get("services") or {}).get("ips")
-    # 機種変更のスーパー／ハイパー標準（IPSサブスクのみ）は SB光直下に PDF
-    kishu_flat = (
-        _is_kishu_special_discount(sales_type, plan_id)
+    # スーパー／ハイパー標準（IPSサブスク・追加分岐なし）は SB光直下に PDF
+    merged_flat = (
+        _is_merged_special_discount(plan_id)
         and not fee_folder
         and not support_folder
         and bool(ips)
         and ips.get("billing_type") == "subscription"
     )
-    if kishu_flat:
+    if merged_flat:
         parts.append(_quote_filename(device, variant, quote))
         return Path(*parts)
 
-    # 機種変更の通常IPS: スーパー／ハイパー統合 → IPS一括表記 / IPSランニングコスト表記 → IPSプラン
-    kishu_upfront_display = _kishu_upfront_display_folder(quote, variant)
-    if kishu_upfront_display:
-        parts.append(_safe_name(kishu_upfront_display))
+    # スーパー／ハイパー＋通常IPS → IPS一括表記 / IPSランニングコスト表記 → IPSプラン
+    merged_upfront_display = _merged_upfront_display_folder(quote, variant)
+    if merged_upfront_display:
+        parts.append(_safe_name(merged_upfront_display))
         plan_token_folder = _upfront_ips_plan_folder(quote)
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
