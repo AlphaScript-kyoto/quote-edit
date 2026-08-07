@@ -597,6 +597,7 @@ def _generate_for_devices(
         output_path = output_dir / _quote_relative_path(
             device, variant, quote, ips_key, ouchi_key,
             include_no_support=include_no_support,
+            include_standard_initial_fee=include_standard_initial_fee,
         )
         render_quote(quote, company, output_path)
         relative = str(output_path.relative_to(output_dir))
@@ -610,7 +611,7 @@ def _generate_for_devices(
             "あり" if variant["ouchi_discount_applied"] else "なし",
             quote["services"]["ips"]["name"] if quote["services"]["ips"] else "なし",
             quote["services"]["support"]["name"] if quote["services"]["support"] else "なし",
-            _fee_folder_name(quote),
+            _fee_mode_label(quote),
             _ips_folder_name(quote, variant),
             relative,
         ]
@@ -777,8 +778,10 @@ def run_individual(
                     ips_key = (
                         ips_selection.get("plan_id") or ips_selection.get("type", "none")
                     )
+                    fee_branch = "standard" in fee_modes and "special_3000" in fee_modes
                     output_path = output_dir / _quote_relative_path(
-                        device, variant, quote, str(ips_key), ouchi_key
+                        device, variant, quote, str(ips_key), ouchi_key,
+                        include_standard_initial_fee=fee_branch,
                     )
                     render_quote(quote, company, output_path)
                     relative = str(output_path.relative_to(output_dir))
@@ -799,7 +802,7 @@ def run_individual(
                         quote["services"]["support"]["name"]
                         if quote["services"]["support"]
                         else "なし",
-                        _fee_folder_name(quote),
+                        _fee_mode_label(quote),
                         _ips_folder_name(quote, variant),
                         relative,
                     ]
@@ -902,9 +905,31 @@ def _quote_filename(device: dict[str, Any], variant: dict[str, Any], quote: dict
     return _safe_name("_".join(parts)) + ".pdf"
 
 
-def _fee_folder_name(quote: dict[str, Any]) -> str:
-    if quote.get("initial_fee_mode") == "special_3000":
-        return "初期費用3000円"
+def _fee_folder_name(
+    quote: dict[str, Any],
+    *,
+    include_standard_initial_fee: bool = False,
+) -> str | None:
+    """初期費用のフォルダ名。標準 special_3000（PDF上は税込3,300円）は省略。
+
+    - 事務手数料あり（standard）だけ分岐フォルダを付ける
+    - special と standard を同時生成するとき（include_standard_initial_fee）は
+      両方にフォルダを付けてパス衝突を防ぐ
+    """
+    mode = str(quote.get("initial_fee_mode") or "special_3000")
+    if mode == "special_3000":
+        if include_standard_initial_fee:
+            return "初期費用3300円"
+        return None
+    if mode == "standard":
+        return "事務手数料あり"
+    return None
+
+
+def _fee_mode_label(quote: dict[str, Any]) -> str:
+    """見積一覧CSVなど用の初期費用区分ラベル（フォルダ有無に依存しない）。"""
+    if str(quote.get("initial_fee_mode") or "special_3000") == "special_3000":
+        return "初期費用3300円"
     return "事務手数料あり"
 
 
@@ -975,6 +1000,7 @@ def _quote_relative_path(
     ouchi_key: str,
     *,
     include_no_support: bool = False,
+    include_standard_initial_fee: bool = False,
 ) -> Path:
     del ips_key
     plan_folder = _safe_name(quote.get("plan_name") or variant["plan_id"])
@@ -984,9 +1010,13 @@ def _quote_relative_path(
         _safe_name(sales_type_display_name(variant["sales_type"])),
         _safe_name(ouchi_key),
         plan_folder,
-        _fee_folder_name(quote),
-        _ips_folder_name(quote, variant),
     ]
+    fee_folder = _fee_folder_name(
+        quote, include_standard_initial_fee=include_standard_initial_fee
+    )
+    if fee_folder:
+        parts.append(fee_folder)
+    parts.append(_ips_folder_name(quote, variant))
     plan_token_folder = _upfront_ips_plan_folder(quote)
     if plan_token_folder:
         parts.append(_safe_name(plan_token_folder))

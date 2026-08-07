@@ -116,6 +116,9 @@ Rewrite this file (fix pure-`?` corruption). Japanese developer spec to v1.3. Gi
 ### 2026-08-06 - Display name for 機種変更
 Folder path and PDF heading show **機種変更** (omit trailing 「・移動機物品販売」). Master key and price lookup unchanged. ver stays 1.3.2.
 
+### 2026-08-07 - Initial-fee folder only when branching
+Default `special_3000` (PDF tax-in ¥3,300) omits fee folder. Folder only for `standard` (事務手数料あり), or for both modes when `include_standard_initial_fee` (special side uses `初期費用3300円`).
+
 ### 2026-08-06 - Support folder only when branching
 Omit `安心サポートあり/なし` when that plan has a single support outcome (forced auto support for light plans; no support for biz+). Add folders when both variants are generated (`include_no_support`) or light plan explicitly has no support / non-auto plan has support.
 

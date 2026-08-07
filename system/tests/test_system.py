@@ -486,10 +486,12 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
-            "Bizパッケージ＋ハイパーライト", "初期費用3000円", "IPSサブスク",
+            "Bizパッケージ＋ハイパーライト", "IPSサブスク",
             "iPhone17(256GB)_5GB.pdf",
         ))
         self.assertNotIn("安心サポート", str(relative))
+        self.assertNotIn("初期費用", str(relative))
+        self.assertNotIn("事務手数料", str(relative))
 
         upfront_request = deepcopy(self.request)
         upfront_request.update({
@@ -515,12 +517,12 @@ class QuoteSystemTest(unittest.TestCase):
             device, upfront_variant, upfront_quote, "ips_platinum_36_water", "SB光なし"
         )
         self.assertEqual(upfront_relative.parts[4], "Bizパッケージ＋スーパーライト")
-        self.assertEqual(upfront_relative.parts[5], "初期費用3000円")
-        self.assertEqual(upfront_relative.parts[6], "IPS一括型")
+        self.assertEqual(upfront_relative.parts[5], "IPS一括型")
         # 通常IPSはゴ/プ等をフォルダで分け、ファイル名は機種_容量のみ
-        self.assertEqual(upfront_relative.parts[7], "プラチナ36水没")
+        self.assertEqual(upfront_relative.parts[6], "プラチナ36水没")
         self.assertEqual(upfront_relative.name, "iPhone17(256GB)_50GB.pdf")
         self.assertNotIn("安心サポート", str(upfront_relative))
+        self.assertNotIn("初期費用", str(upfront_relative))
 
         running_variant = {**upfront_variant, "ips_display_mode": "monthly_as_running"}
         running_quote = build_quote(
@@ -530,8 +532,8 @@ class QuoteSystemTest(unittest.TestCase):
         running_relative = _quote_relative_path(
             device, running_variant, running_quote, "ips_platinum_36_water", "SB光なし"
         )
-        self.assertEqual(running_relative.parts[6], "IPS一括型_月額換算")
-        self.assertEqual(running_relative.parts[7], "プラチナ36水没")
+        self.assertEqual(running_relative.parts[5], "IPS一括型_月額換算")
+        self.assertEqual(running_relative.parts[6], "プラチナ36水没")
         self.assertEqual(
             running_quote["initial_total_tax_ex"],
             running_quote["initial_fee_tax_ex"] + running_quote["special_initial_fee_tax_ex"],
@@ -563,10 +565,10 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        self.assertEqual(gold24_relative.parts[6], "IPS一括型")
-        self.assertEqual(gold24_relative.parts[7], "ゴールド24")
+        self.assertEqual(gold24_relative.parts[5], "IPS一括型")
+        self.assertEqual(gold24_relative.parts[6], "ゴールド24")
         # 強制加入プランでサポートなしを選んだときだけサポートフォルダを付ける
-        self.assertEqual(gold24_relative.parts[8], "安心サポートなし")
+        self.assertEqual(gold24_relative.parts[7], "安心サポートなし")
         self.assertEqual(gold24_relative.name, "iPhone17(256GB)_50GB.pdf")
 
         none_request = deepcopy(self.request)
@@ -577,8 +579,8 @@ class QuoteSystemTest(unittest.TestCase):
         none_relative = _quote_relative_path(
             device, variant, none_quote, "none", "SB光なし"
         )
-        self.assertEqual(none_relative.parts[6], "IPSなし")
-        self.assertEqual(none_relative.parts[7], "安心サポートなし")
+        self.assertEqual(none_relative.parts[5], "IPSなし")
+        self.assertEqual(none_relative.parts[6], "安心サポートなし")
         self.assertEqual(
             _quote_filename(device, variant, none_quote),
             "iPhone17(256GB)_5GB.pdf",
@@ -591,6 +593,34 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(branched.parts[-2], "安心サポートあり")
         self.assertEqual(branched.name, "iPhone17(256GB)_5GB.pdf")
+
+        # 事務手数料あり版との同時生成時は標準側にも初期費用フォルダを付ける
+        fee_branched = _quote_relative_path(
+            device, variant, quote, "subscription", "SB光なし",
+            include_standard_initial_fee=True,
+        )
+        self.assertEqual(fee_branched.parts[5], "初期費用3300円")
+        self.assertEqual(fee_branched.parts[6], "IPSサブスク")
+        standard_request = deepcopy(self.request)
+        standard_request["initial_fee_mode"] = "standard"
+        standard_request["initial_fee_tax_in"] = int(
+            self.plan_master["common"]["initial_fee_tax_in"]
+        )
+        standard_request["initial_fee_tax_ex"] = int(
+            self.plan_master["common"]["initial_fee_tax_ex"]
+        )
+        standard_quote = build_quote(
+            standard_request, self.device_master, self.plan_master, self.service_master
+        )
+        standard_relative = _quote_relative_path(
+            device,
+            {**variant, "initial_fee_mode": "standard"},
+            standard_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(standard_relative.parts[5], "事務手数料あり")
+        self.assertNotIn("初期費用3300円", str(standard_relative))
 
         # 自動サポートのない Bizパッケージ＋ は「なし」固定なのでフォルダ省略
         biz_request = deepcopy(self.request)
@@ -609,6 +639,7 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(biz_relative.parts[4], "Bizパッケージ＋")
         self.assertNotIn("安心サポート", str(biz_relative))
+        self.assertEqual(biz_relative.parts[5], "IPSサブスク")
         biz_with_support_request = deepcopy(biz_request)
         biz_with_support_request["services"] = {
             "ips": {"type": "subscription"},
