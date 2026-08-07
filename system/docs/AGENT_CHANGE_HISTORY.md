@@ -128,6 +128,9 @@ Add light (Bizパッケージ＋ライト, additional -500 yen; not 1GB). Forced
 ### 2026-08-07 - Kishu super/hyper PDFs under SB光
 For 機種変更 + super/hyper standard path, omit plan folder (特別割引) and place PDF directly under SB光なし/あり. Biz+ keeps its folder. Branched IPS/fee still get intermediate folders.
 
+### 2026-08-07 - Kishu upfront IPS display folders
+機種変更 super/hyper: no plan folders; under SB光 use 一括表記 / ランニングコスト表記 then IPS plan (ゴールド24 etc.). Biz+ unchanged.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

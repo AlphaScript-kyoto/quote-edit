@@ -999,14 +999,36 @@ def _plan_folder_name(
 ) -> str | None:
     """料金プラン用フォルダ名。
 
-    機種変更のスーパー／ハイパーはプラン名フォルダを作らず、SB光直下に PDF を置く
-    （Bizパッケージ＋ はそのままフォルダ分け）。
+    機種変更のスーパー／ハイパーは料金プランフォルダを付けない（Bizパッケージ＋のみ残す）。
+    通常IPSは一括／ランニング表記で分岐する。
     """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
     if _is_kishu_special_discount(sales_type, plan_id):
         return None
     return str(quote.get("plan_name") or plan_id)
+
+
+def _kishu_upfront_display_folder(
+    quote: dict[str, Any],
+    variant: dict[str, Any],
+) -> str | None:
+    """機種変更の特別割引＋通常IPSを、一括表記／ランニングコスト表記で分ける。"""
+    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
+    if not _is_kishu_special_discount(sales_type, plan_id):
+        return None
+    ips = (quote.get("services") or {}).get("ips")
+    if not ips or ips.get("billing_type") != "upfront":
+        return None
+    display_mode = str(
+        variant.get("ips_display_mode")
+        or quote.get("ips_display_mode")
+        or "lump"
+    )
+    if display_mode == "monthly_as_running":
+        return "ランニングコスト表記"
+    return "一括表記"
 
 
 def _support_folder_name(
@@ -1068,8 +1090,7 @@ def _quote_relative_path(
         quote, variant, include_no_support=include_no_support
     )
     ips = (quote.get("services") or {}).get("ips")
-    # 機種変更のスーパー／ハイパー標準パス（IPSサブスク・追加分岐なし）は
-    # SB光直下に PDF を置く（使う側は容量付き PDF を直接ピック）
+    # 機種変更のスーパー／ハイパー標準（IPSサブスクのみ）は SB光直下に PDF
     kishu_flat = (
         _is_kishu_special_discount(sales_type, plan_id)
         and not fee_folder
@@ -1077,13 +1098,27 @@ def _quote_relative_path(
         and bool(ips)
         and ips.get("billing_type") == "subscription"
     )
-    if not kishu_flat:
-        parts.append(_ips_folder_name(quote, variant))
+    if kishu_flat:
+        parts.append(_quote_filename(device, variant, quote))
+        return Path(*parts)
+
+    # 機種変更の通常IPS: スーパー／ハイパー統合 → 一括表記 / ランニングコスト表記 → IPSプラン
+    kishu_upfront_display = _kishu_upfront_display_folder(quote, variant)
+    if kishu_upfront_display:
+        parts.append(_safe_name(kishu_upfront_display))
         plan_token_folder = _upfront_ips_plan_folder(quote)
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
         if support_folder:
             parts.append(support_folder)
+        parts.append(_quote_filename(device, variant, quote))
+        return Path(*parts)
 
+    parts.append(_ips_folder_name(quote, variant))
+    plan_token_folder = _upfront_ips_plan_folder(quote)
+    if plan_token_folder:
+        parts.append(_safe_name(plan_token_folder))
+    if support_folder:
+        parts.append(support_folder)
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)

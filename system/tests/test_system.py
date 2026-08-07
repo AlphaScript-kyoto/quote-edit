@@ -834,6 +834,78 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertIn("IPSなし", kishu_no_ips_path.parts)
 
+        # 機種変更＋通常IPS: スーパー／ハイパー統合 → 一括表記／ランニングコスト表記
+        kishu_upfront = deepcopy(self.request)
+        kishu_upfront.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "super_light",
+            "data_plan": "50GB",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_platinum_36_water"},
+                "support_plan_id": "auto",
+            },
+        })
+        kishu_upfront_quote = build_quote(
+            kishu_upfront, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_lump_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_upfront["sales_type"],
+                "plan_id": "super_light",
+                "data_plan": "50GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            kishu_upfront_quote,
+            "ips_platinum_36_water",
+            "SB光なし",
+        )
+        self.assertEqual(
+            kishu_lump_path.parts,
+            (
+                "iPhone",
+                "iPhone_17(256GB)",
+                "機種変更",
+                "SB光なし",
+                "一括表記",
+                "プラチナ36水没",
+                "iPhone17(256GB)_50GB.pdf",
+            ),
+        )
+        self.assertNotIn("スーパーライト", str(kishu_lump_path))
+        self.assertNotIn("ハイパーライト", str(kishu_lump_path))
+        kishu_hyper_upfront = deepcopy(kishu_upfront)
+        kishu_hyper_upfront.update({
+            "plan_id": "hyper_light",
+            "data_plan": "5GB",
+            "ips_display_mode": "monthly_as_running",
+            "services": {
+                "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+                "support_plan_id": "auto",
+            },
+        })
+        kishu_hyper_upfront_quote = build_quote(
+            kishu_hyper_upfront, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_running_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_hyper_upfront["sales_type"],
+                "plan_id": "hyper_light",
+                "data_plan": "5GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "monthly_as_running",
+            },
+            kishu_hyper_upfront_quote,
+            "ips_gold_24",
+            "SB光なし",
+        )
+        self.assertEqual(kishu_running_path.parts[4], "ランニングコスト表記")
+        self.assertEqual(kishu_running_path.parts[5], "ゴールド24")
+        self.assertNotIn("ハイパーライト", str(kishu_running_path))
+        self.assertNotIn("IPS一括型", str(kishu_running_path))
+
         # 機種変更ではライト不可
         kishu_light = deepcopy(self.request)
         kishu_light.update({
