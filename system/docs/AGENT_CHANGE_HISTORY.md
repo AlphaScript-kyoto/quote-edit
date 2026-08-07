@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.4**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.5**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -198,6 +198,15 @@ Terminology fixed by user: IPS = repair warranty (shuuri hoshou), IRS = anshin s
 - Folder layout for merged super/hyper: IRS-ari / IRS-nashi frames by support presence; inner anshin-support ari/nashi folder removed (no duplication). IPS-nashi frame unchanged.
 - Notes consistency verified: without IRS the anshin-support note and PDF row disappear; discount row (heisha tokubetsu waribiki) stays; IPS-related notes unaffected.
 - Variant counts: standard 57 -> 85; full-pattern 3164 (was 2380). Tests updated + new PDF content test for MNP hyper no-IRS.
+
+### 2026-08-07 - Release ver.1.3.5
+QA (strict) before bump, all green:
+- 36 unit tests OK.
+- Exhaustive variant rule scan (iPhone default 85 variants): no super/hyper on 番号移行, no-IRS only on MNP/新規 super/hyper, no light-on-kishu, super=50GB only, no 1GB on light family, no ouchi+5GB.
+- Output-path collision check: 0 collisions (default 85 / full 3164 / feature phone 48).
+- Real PDF content checks: super MNP no-IRS (no 安心保証サービス row, no 安心サポート note, 弊社特別割引 kept, IPS note kept, IRSなし path, 1 page, footer), hyper 新規 IRS-yes, 番号移行 super rejected, 36-mode (single 1-36 column, no 新トク note, footer).
+Bump: APP_VERSION 1.3.4 -> 1.3.5; AGENTS.md / AI_CONTEXT.md (version table row added) / system/README.md / field README.txt updated; field release note リリースノート_v1.3.5_現場向け.txt written UTF-8 BOM + CRLF.
+Terminology (user-defined, use consistently): IPS = 修理保証サービス (repair warranty), IRS = 安心サポート (support; PDF row label 安心保証サービス).
 
 ## Release checklist
 1. APP_VERSION
