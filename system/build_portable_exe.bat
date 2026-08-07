@@ -25,7 +25,18 @@ if errorlevel 1 goto :error
 if errorlevel 1 goto :error
 
 echo [3/5] Building a portable Windows application...
+if not exist "%DATA_SRC%\company.json" (
+  echo.
+  echo ERROR: system\data\company.json がありません。
+  echo        現場の TEL/FAX 表記のため、ビルド前に company.example.json を
+  echo        company.json にコピーし、正しい部署連絡先を入れてください。
+  echo        （Git にはコミットしないこと）
+  echo.
+  goto :error
+)
 if not exist "%ASSETS_SRC%" mkdir "%ASSETS_SRC%"
+"%VENV%\Scripts\python.exe" "%~dp0_check_company_for_portable.py"
+if errorlevel 1 goto :error
 "%VENV%\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed --name "%BUILD_NAME%" --contents-directory system --distpath "%DIST%\build" --workpath "%~dp0work\pyinstaller" --specpath "%~dp0work" --collect-all pdfplumber --collect-all reportlab --add-data "%DATA_SRC%;data" --add-data "%ASSETS_SRC%;assets" desktop_app.py
 if errorlevel 1 goto :error
 

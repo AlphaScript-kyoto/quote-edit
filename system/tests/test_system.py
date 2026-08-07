@@ -1310,6 +1310,102 @@ class QuoteSystemTest(unittest.TestCase):
             self.assertIn("IPS一括型", all_parts)
             self.assertIn("IPS一括型_月額換算", all_parts)
 
+    def test_run_individual_pdf_content_and_merged_paths(self):
+        """個別見積: 実PDF生成・1ページ・部署FAX・スーパー統合パスを検算。"""
+        import re
+        import pdfplumber
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from quote_system.batch_service import run_individual
+
+        # サブスク＋ハイパー（MNP）→ IPSあり/IPSサブスク
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    model="iPhone 17 256GB",
+                    sales_type="MNP",
+                    plan_id="hyper_light",
+                    data_plans=["5GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    include_upfront_lump=False,
+                    include_upfront_running=False,
+                    include_no_ips=False,
+                    support_plan_id="auto",
+                    department="RT事業部",
+                )
+            self.assertEqual(result.generated_files, 1)
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+            pdf = pdfs[0]
+            self.assertEqual(
+                pdf.parts[-4:],
+                ("SB光なし", "IPSあり", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
+            )
+            with pdfplumber.open(pdf) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = "\n".join(page.extract_text() or "" for page in doc.pages)
+            self.assertIn("RT事業部", text)
+            self.assertIn("MNPお見積り", text)
+            # company.json の RT に FAX があれば表記（ローカル専用マスタ）
+            company = load_json(DATA_DIR / "company.json")
+            rt_fax = str(
+                (company.get("department_contacts") or {})
+                .get("RT事業部", {})
+                .get("fax")
+                or ""
+            ).strip()
+            if rt_fax:
+                self.assertRegex(text, rf"FAX：\s*{re.escape(rt_fax)}")
+            else:
+                self.assertNotIn("FAX：", text)
+
+        # 機種変更×スーパー＋通常IPS両方表記 → IPSあり配下の表記フォルダ
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    model="iPhone 17 256GB",
+                    sales_type="機種変更・移動機物品販売",
+                    plan_id="super_light",
+                    data_plans=["50GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    include_upfront_lump=True,
+                    include_upfront_running=True,
+                    include_no_ips=False,
+                    support_plan_id="auto",
+                    department="RT事業部",
+                )
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(result.generated_files, len(pdfs))
+            self.assertGreaterEqual(result.generated_files, 3)
+            parts_sets = [set(p.parts) for p in pdfs]
+            self.assertTrue(any("IPSサブスク" in s and "IPSあり" in s for s in parts_sets))
+            self.assertTrue(any("IPS一括表記" in s and "IPSあり" in s for s in parts_sets))
+            self.assertTrue(
+                any("通常IPSランニングコスト表記" in s and "IPSあり" in s for s in parts_sets)
+            )
+            self.assertFalse(any("Bizパッケージ" in str(p) for p in pdfs))
+            for pdf in pdfs[:3]:
+                with pdfplumber.open(pdf) as doc:
+                    self.assertEqual(len(doc.pages), 1, msg=str(pdf))
+                    text = doc.pages[0].extract_text() or ""
+                self.assertIn("機種変更お見積り", text)
+                self.assertIn("RT事業部", text)
+
+        # 機種変更でライトは拒否
+        with self.assertRaisesRegex(ValueError, "機種変更では"):
+            run_individual(
+                model="iPhone 17 256GB",
+                sales_type="機種変更・移動機物品販売",
+                plan_id="light",
+                data_plans=["20GB"],
+                ouchi_options=[False],
+                include_ips_subscription=True,
+            )
+
     def test_batch_checkpoint_pause_and_resume(self):
         from tempfile import TemporaryDirectory
         from unittest.mock import patch

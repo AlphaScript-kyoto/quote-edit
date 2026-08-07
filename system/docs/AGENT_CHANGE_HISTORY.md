@@ -145,6 +145,10 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 - EXE `company.json`: on launch, fill empty `phone`/`fax`/`postal_address` (incl. department_contacts) from bundled company so field LOCALAPPDATA does not silently drop RT FAX while dev `system/data` still has it.
 - PDF still hides FAX line when fax is empty string (TM etc.).
 
+### 2026-08-07 - Portable company.json required + individual PDF QA
+- `build_portable_exe.bat` refuses build without `system/data/company.json`; `_check_company_for_portable.py` requires RT/CRM/AQ phone+fax present (values not logged). Arrange step verifies bundled company exists.
+- Expanded individual-quote tests: real PDF one page, RT header, super/hyper `IPSあり` paths, kishu light rejected.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
@@ -152,6 +156,7 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 4. Field notes UTF-8 BOM
 5. Append this file + sync AI_CONTEXT/AGENTS/Japanese spec
 6. Never commit real company.json
+7. Portable ZIP build only after local company.json has field FAXes
 
 ## Anti-patterns
 Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB; inventing attention notes.

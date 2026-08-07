@@ -38,6 +38,7 @@ quote-edit/
 
 `system\build_portable_exe.bat` → `portable\見積もり一括作成ver{APP_VERSION}`  
 EXEの作業データは `%LOCALAPPDATA%\InfinityQuoteApp`。
+現場 ZIP ビルド時は **`system/data/company.json` 必須**（TEL/FAX 入り）。Git にはコミットしない。
 
 ## セットアップ（開発PC）
 

@@ -57,6 +57,22 @@ def main() -> int:
         for child in BUILD_DIR.iterdir():
             shutil.move(str(child), str(system_dst / child.name))
 
+    # 配布パッケージ内の同梱 data（初回シード元）に company.json があることを再確認
+    bundled_company = STAGE / "system" / "data" / "company.json"
+    if not bundled_company.exists():
+        # PyInstaller onefile/onedir layout: data next to internal
+        candidates = list((STAGE / "system").rglob("company.json"))
+        if not candidates:
+            print(
+                "ERROR: packaged company.json not found under system/. "
+                "Build must include system/data/company.json via --add-data.",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"Bundled company.json: {candidates[0].relative_to(STAGE)}")
+    else:
+        print("Bundled company.json: system/data/company.json")
+
     (STAGE / UPDATE_NAME).mkdir(exist_ok=True)
     (STAGE / "output").mkdir(exist_ok=True)
 
