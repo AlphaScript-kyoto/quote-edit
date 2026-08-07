@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 from pathlib import Path
 from copy import deepcopy
 
@@ -566,10 +566,10 @@ class QuoteSystemTest(unittest.TestCase):
         relative = _quote_relative_path(
             device, variant, quote, "subscription", "SB光なし"
         )
-        # スーパー／ハイパー: Biz＋と並ぶ IPSあり / IPSサブスク
+        # スーパー／ハイパー: Biz＋と並ぶ IRSあり / IPSサブスク
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
-            "IPSあり", "IPSサブスク",
+            "IRSあり", "IPSサブスク",
             "iPhone17(256GB)_5GB.pdf",
         ))
         self.assertNotIn("ハイパーライト", str(relative))
@@ -601,7 +601,7 @@ class QuoteSystemTest(unittest.TestCase):
         upfront_relative = _quote_relative_path(
             device, upfront_variant, upfront_quote, "ips_platinum_36_water", "SB光なし"
         )
-        self.assertEqual(upfront_relative.parts[4], "IPSあり")
+        self.assertEqual(upfront_relative.parts[4], "IRSあり")
         self.assertEqual(upfront_relative.parts[5], "IPS一括表記")
         # 通常IPSはゴ/プ等をフォルダで分け、ファイル名は機種_容量のみ
         self.assertEqual(upfront_relative.parts[6], "プラチナ36水没")
@@ -619,7 +619,7 @@ class QuoteSystemTest(unittest.TestCase):
         running_relative = _quote_relative_path(
             device, running_variant, running_quote, "ips_platinum_36_water", "SB光なし"
         )
-        self.assertEqual(running_relative.parts[4], "IPSあり")
+        self.assertEqual(running_relative.parts[4], "IRSあり")
         self.assertEqual(running_relative.parts[5], "通常IPSランニングコスト表記")
         self.assertEqual(running_relative.parts[6], "プラチナ36水没")
         self.assertEqual(
@@ -653,7 +653,7 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        self.assertEqual(gold24_relative.parts[4], "IPSあり")
+        self.assertEqual(gold24_relative.parts[4], "IRSあり")
         self.assertEqual(gold24_relative.parts[5], "IPS一括表記")
         self.assertEqual(gold24_relative.parts[6], "ゴールド24")
         # 強制加入プランでサポートなしを選んだときだけサポートフォルダを付ける
@@ -674,7 +674,7 @@ class QuoteSystemTest(unittest.TestCase):
             _quote_filename(device, variant, none_quote),
             "iPhone17(256GB)_5GB.pdf",
         )
-        self.assertNotIn("IPSあり", str(none_relative))
+        self.assertNotIn("IRSあり", str(none_relative))
 
         # サポートなしバリアントも作る場合はあり側にもフォルダを付ける
         branched = _quote_relative_path(
@@ -683,7 +683,7 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(branched.parts[-2], "安心サポートあり")
         self.assertEqual(branched.name, "iPhone17(256GB)_5GB.pdf")
-        self.assertIn("IPSあり", branched.parts)
+        self.assertIn("IRSあり", branched.parts)
         self.assertIn("IPSサブスク", branched.parts)
 
         # 事務手数料あり版との同時生成時は標準側にも初期費用フォルダを付ける
@@ -692,7 +692,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         )
         self.assertEqual(fee_branched.parts[4], "初期費用3300円")
-        self.assertEqual(fee_branched.parts[5], "IPSあり")
+        self.assertEqual(fee_branched.parts[5], "IRSあり")
         self.assertEqual(fee_branched.parts[6], "IPSサブスク")
         standard_request = deepcopy(self.request)
         standard_request["initial_fee_mode"] = "standard"
@@ -713,7 +713,7 @@ class QuoteSystemTest(unittest.TestCase):
             "SB光なし",
         )
         self.assertEqual(standard_relative.parts[4], "事務手数料あり")
-        self.assertIn("IPSあり", standard_relative.parts)
+        self.assertIn("IRSあり", standard_relative.parts)
         self.assertNotIn("初期費用3300円", str(standard_relative))
 
         # 自動サポートのない Bizパッケージ＋ は「なし」固定なのでフォルダ省略
@@ -800,7 +800,7 @@ class QuoteSystemTest(unittest.TestCase):
                 "iPhone_17(256GB)",
                 "機種変更",
                 "SB光なし",
-                "IPSあり",
+                "IRSあり",
                 "IPSサブスク",
                 "iPhone17(256GB)_50GB.pdf",
             ),
@@ -831,7 +831,7 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(kishu_hyper_path.parts[-1], "iPhone17(256GB)_5GB.pdf")
         self.assertEqual(kishu_hyper_path.parts[3], "SB光なし")
-        self.assertEqual(kishu_hyper_path.parts[4], "IPSあり")
+        self.assertEqual(kishu_hyper_path.parts[4], "IRSあり")
         self.assertEqual(kishu_hyper_path.parts[5], "IPSサブスク")
         self.assertEqual(len(kishu_hyper_path.parts), 7)
         # Bizパッケージ＋ は従来どおりプランフォルダを作る
@@ -913,7 +913,7 @@ class QuoteSystemTest(unittest.TestCase):
                 "iPhone_17(256GB)",
                 "機種変更",
                 "SB光なし",
-                "IPSあり",
+                "IRSあり",
                 "IPS一括表記",
                 "プラチナ36水没",
                 "iPhone17(256GB)_50GB.pdf",
@@ -947,7 +947,7 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        self.assertEqual(kishu_running_path.parts[4], "IPSあり")
+        self.assertEqual(kishu_running_path.parts[4], "IRSあり")
         self.assertEqual(kishu_running_path.parts[5], "通常IPSランニングコスト表記")
         self.assertEqual(kishu_running_path.parts[6], "ゴールド24")
         self.assertNotIn("ハイパーライト", str(kishu_running_path))
@@ -1318,7 +1318,7 @@ class QuoteSystemTest(unittest.TestCase):
         from unittest.mock import patch
         from quote_system.batch_service import run_individual
 
-        # サブスク＋ハイパー（MNP）→ IPSあり/IPSサブスク
+        # サブスク＋ハイパー（MNP）→ IRSあり/IPSサブスク
         with TemporaryDirectory() as tmp:
             out = Path(tmp)
             with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
@@ -1341,7 +1341,7 @@ class QuoteSystemTest(unittest.TestCase):
             pdf = pdfs[0]
             self.assertEqual(
                 pdf.parts[-4:],
-                ("SB光なし", "IPSあり", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
+                ("SB光なし", "IRSあり", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
             )
             with pdfplumber.open(pdf) as doc:
                 self.assertEqual(len(doc.pages), 1)
@@ -1361,7 +1361,7 @@ class QuoteSystemTest(unittest.TestCase):
             else:
                 self.assertNotIn("FAX：", text)
 
-        # 機種変更×スーパー＋通常IPS両方表記 → IPSあり配下の表記フォルダ
+        # 機種変更×スーパー＋通常IPS両方表記 → IRSあり配下の表記フォルダ
         with TemporaryDirectory() as tmp:
             out = Path(tmp)
             with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
@@ -1382,10 +1382,10 @@ class QuoteSystemTest(unittest.TestCase):
             self.assertEqual(result.generated_files, len(pdfs))
             self.assertGreaterEqual(result.generated_files, 3)
             parts_sets = [set(p.parts) for p in pdfs]
-            self.assertTrue(any("IPSサブスク" in s and "IPSあり" in s for s in parts_sets))
-            self.assertTrue(any("IPS一括表記" in s and "IPSあり" in s for s in parts_sets))
+            self.assertTrue(any("IPSサブスク" in s and "IRSあり" in s for s in parts_sets))
+            self.assertTrue(any("IPS一括表記" in s and "IRSあり" in s for s in parts_sets))
             self.assertTrue(
-                any("通常IPSランニングコスト表記" in s and "IPSあり" in s for s in parts_sets)
+                any("通常IPSランニングコスト表記" in s and "IRSあり" in s for s in parts_sets)
             )
             self.assertFalse(any("Bizパッケージ" in str(p) for p in pdfs))
             for pdf in pdfs[:3]:

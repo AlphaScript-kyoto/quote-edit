@@ -1,4 +1,4 @@
-# Agent change & decision history
+﻿# Agent change & decision history
 
 **Audience:** coding agents / future AI sessions  
 **Language:** English (product UI strings stay Japanese)  
@@ -140,14 +140,17 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 - Do **not** merge `light` (容量 overlap with both) — keeps `Bizパッケージ＋ライト`.
 - `biz_plus` unchanged. Capacity uniqueness keeps zero path collisions across ~18k variants.
 
-### 2026-08-07 - IPSあり parent + FAX seed merge
-- Super/hyper under SB光: sibling folders **Bizパッケージ＋** and **IPSあり**; under IPSあり → `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記` (+ plan token). IPSなし stays outside IPSあり.
+### 2026-08-07 - IRSあり parent + FAX seed merge
+- Super/hyper under SB光: sibling folders **Bizパッケージ＋** and **IRSあり**; under IRSあり → `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記` (+ plan token). IPSなし stays outside IRSあり.
 - EXE `company.json`: on launch, fill empty `phone`/`fax`/`postal_address` (incl. department_contacts) from bundled company so field LOCALAPPDATA does not silently drop RT FAX while dev `system/data` still has it.
 - PDF still hides FAX line when fax is empty string (TM etc.).
 
 ### 2026-08-07 - Portable company.json required + individual PDF QA
 - `build_portable_exe.bat` refuses build without `system/data/company.json`; `_check_company_for_portable.py` requires RT/CRM/AQ phone+fax present (values not logged). Arrange step verifies bundled company exists.
-- Expanded individual-quote tests: real PDF one page, RT header, super/hyper `IPSあり` paths, kishu light rejected.
+- Expanded individual-quote tests: real PDF one page, RT header, super/hyper `IRSあり` paths, kishu light rejected.
+
+### 2026-08-07 - Super/hyper parent folder rename IPSあり → IRSあり
+User terminology: **IRS** = 安心保証サービス frame. Super/hyper PDFs live under `IRSあり` (not `IPSあり`). Subfolders for SoftBank repair billing stay `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記`; no-repair stays `IPSなし` outside IRSあり.
 
 ## Release checklist
 1. APP_VERSION
@@ -160,3 +163,4 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 
 ## Anti-patterns
 Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB; inventing attention notes.
+

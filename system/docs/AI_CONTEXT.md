@@ -154,7 +154,7 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
-| 1.3.3 | Initial-fee / support folders only when branching; Biz light -500; super/hyper under IPSあり (サブスク/一括表記/通常ランニング); EXE company empty FAX merge; kishu no light; sales display 機種変更. |
+| 1.3.3 | Initial-fee / support folders only when branching; Biz light -500; super/hyper under IRSあり (サブスク/一括表記/通常ランニング); EXE company empty FAX merge; kishu no light; sales display 機種変更. |
 | 1.3.2 | Upfront IPS plan folders (JP names); running warranty columns 24/36; super_light 50GB only; subscr. filename without tier; PDF extra light discount label `弊社特別割引`; developer spec v1.3; field package ZIP |
 | 1.3.1 | PDF layout polish; company.json gitignored; UTF-8 BOM field texts; release-note encoding incident |
 | 1.3 | Default `special_3000`; optional standard fee via `include_standard_initial_fee` (legacy `include_special_initial_fee` mapped in checkpoints); 「除外する機種」; IPS upfront default off; info (i) → alphascript homepage; masters 20260731; force-all wording |

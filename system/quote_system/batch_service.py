@@ -1007,7 +1007,7 @@ def _merged_ips_branch_folder(
 ) -> str | None:
     """スーパー／ハイパーかつ IPS ありのときの分岐フォルダ名。
 
-    IPSあり/ 直下: IPSサブスク | IPS一括表記 | 通常IPSランニングコスト表記
+    IRSあり/ 直下: IPSサブスク | IPS一括表記 | 通常IPSランニングコスト表記
     """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     if not _is_merged_special_discount(plan_id):
@@ -1089,7 +1089,8 @@ def _quote_relative_path(
     )
     ips = (quote.get("services") or {}).get("ips")
 
-    # スーパー／ハイパー: Bizパッケージ＋と並列に「IPSあり」を置き、その中で分岐
+    # スーパー／ハイパー: Biz＋と並列に「IRSあり」（安心保証サービス／特別割引枠）
+    # その中で修理保証(IPS)の表記分岐を置く
     if _is_merged_special_discount(plan_id):
         if not ips:
             parts.append("IPSなし")
@@ -1098,7 +1099,7 @@ def _quote_relative_path(
             parts.append(_quote_filename(device, variant, quote))
             return Path(*parts)
 
-        parts.append("IPSあり")
+        parts.append("IRSあり")
         branch = _merged_ips_branch_folder(quote, variant)
         if branch:
             parts.append(_safe_name(branch))
