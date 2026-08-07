@@ -101,7 +101,13 @@ def ensure_directories() -> None:
         directory.mkdir(parents=True, exist_ok=True)
     if FROZEN:
         bundled_data = RESOURCE_ROOT / "data"
-        for filename in ("plans.json", "services.json", "company.json", "device_master.json"):
+        for filename in (
+            "plans.json",
+            "services.json",
+            "company.json",
+            "device_master.json",
+            "installment_36_targets.json",
+        ):
             source = bundled_data / filename
             target = DATA_DIR / filename
             if source.exists() and not target.exists():
@@ -116,4 +122,5 @@ def ensure_directories() -> None:
                             save_json(target, local)
                 except (OSError, json.JSONDecodeError, TypeError):
                     pass
+    (UPDATE_DIR / "36回割賦").mkdir(parents=True, exist_ok=True)
 

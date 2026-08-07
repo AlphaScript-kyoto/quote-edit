@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "_comment": "36回割賦プロトタイプ：対象機種。现场で増やし／減らせます。Gitに機密PDFは入れないこと。",
+  "match_categories": [
+    "ケータイ"
+  ],
+  "match_model_key_contains": [
+    "iphone16e",
+    "iphone17e",
+    "aquoswish4",
+    "dignobx3"
+  ],
+  "match_model_keys_exact": [],
+  "notes": [
+    "match_categories: カテゴリ完全一致",
+    "match_model_key_contains: normalize 後の model_key に部分一致",
+    "match_model_keys_exact: model_key 完全一致（任意）"
+  ]
+}

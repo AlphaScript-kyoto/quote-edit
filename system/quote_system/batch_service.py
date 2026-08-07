@@ -26,7 +26,12 @@ INCLUDED_MODELS_PATH = DATA_DIR / "included_models.json"
 EXCLUDED_MODELS_PATH = DATA_DIR / "excluded_models.json"  # 移行用
 CHECKPOINT_PATH = DATA_DIR / "batch_checkpoint.json"
 QUOTE_OUTPUT_ROOT = OUTPUT_DIR / "見積PDF"
+QUOTE_OUTPUT_ROOT_36 = OUTPUT_DIR / "見積PDF_36回"
 ProgressCallback = Callable[[int, int, str], None]
+
+
+def quote_output_root(installment_months: int = 48) -> Path:
+    return QUOTE_OUTPUT_ROOT_36 if int(installment_months) == 36 else QUOTE_OUTPUT_ROOT
 
 
 @dataclass(frozen=True)
@@ -71,6 +76,12 @@ def latest_price_pdf() -> Path | None:
     UPDATE_DIR.mkdir(parents=True, exist_ok=True)
     pdfs = list(UPDATE_DIR.glob("*.pdf"))
     return max(pdfs, key=lambda path: path.stat().st_mtime) if pdfs else None
+
+
+def latest_installment_36_pdf() -> Path | None:
+    from .installment_36 import latest_installment_36_pdf as _latest
+
+    return _latest()
 
 
 def load_excluded_model_keys() -> set[str]:
@@ -277,7 +288,20 @@ def run_batch(
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
+    installment_months: int = 48,
 ) -> BatchResult:
+    if int(installment_months) == 36:
+        return _run_batch_36(
+            force_all=force_all,
+            include_upfront_ips=include_upfront_ips,
+            include_no_ips=include_no_ips,
+            include_no_support=include_no_support,
+            include_standard_initial_fee=include_standard_initial_fee,
+            department=department,
+            progress=progress,
+            control=control,
+        )
+
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")
@@ -344,6 +368,92 @@ def run_batch(
         update_state=True,
         control=control,
         department=department,
+        installment_months=48,
+    )
+
+
+def _run_batch_36(
+    *,
+    force_all: bool = False,
+    include_upfront_ips: bool = False,
+    include_no_ips: bool = False,
+    include_no_support: bool = False,
+    include_standard_initial_fee: bool = False,
+    department: str | None = None,
+    progress: ProgressCallback | None = None,
+    control: BatchControl | None = None,
+) -> BatchResult:
+    from .installment_36 import (
+        filter_36_target_devices,
+        import_installment_36_master,
+        latest_installment_36_pdf,
+        load_installment_36_targets,
+    )
+
+    del force_all  # 36回プロトタイプは毎回対象機種を全件（対象JSON＋PDF）
+    pdf_path = latest_installment_36_pdf()
+    if pdf_path is None:
+        raise FileNotFoundError(
+            "36回割賦の価格表がありません。"
+            "「機種代金一覧表\\36回割賦」にPDFを入れてください。"
+        )
+    if progress:
+        progress(0, 1, "36回割賦の価格表を読み取り、対象機種を抽出しています…")
+    master_36 = import_installment_36_master(pdf_path)
+    targets = filter_36_target_devices(master_36)
+    if not targets:
+        rules = load_installment_36_targets()
+        raise ValueError(
+            "36回割賦の作成対象機種が0件です。"
+            f"PDF機種数={master_36.get('device_count')}。"
+            "system/data/installment_36_targets.json を確認してください。"
+            f"（categories={rules.get('match_categories')} "
+            f"contains={rules.get('match_model_key_contains')}）"
+        )
+
+    excluded = load_excluded_model_keys()
+    targets = [device for device in targets if device["model_key"] not in excluded]
+    if not targets:
+        raise ValueError(
+            "36回対象機種がすべて除外されています。"
+            "［除外する機種］を確認してください。"
+        )
+
+    plan_master = load_json(DATA_DIR / "plans.json")
+    service_master = load_json(DATA_DIR / "services.json")
+    company = load_json(DATA_DIR / "company.json")
+    if department and department.strip():
+        company["department"] = department.strip()
+
+    device_master = {
+        "schema_version": 1,
+        "installment_months": 36,
+        "source_pdf": master_36.get("source_pdf"),
+        "devices": targets,
+    }
+    source_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
+    mode = "36回割賦・対象機種"
+
+    return _generate_for_devices(
+        targets,
+        device_master=device_master,
+        plan_master=plan_master,
+        service_master=service_master,
+        company=company,
+        mode=mode,
+        source_pdf=pdf_path,
+        source_hash=source_hash,
+        discontinued=(),
+        include_upfront_ips=include_upfront_ips,
+        include_no_ips=include_no_ips,
+        include_no_support=include_no_support,
+        include_standard_initial_fee=include_standard_initial_fee,
+        progress=progress,
+        update_state=False,
+        quote_id_prefix="AUTO36",
+        control=control,
+        department=department,
+        installment_months=36,
     )
 
 
@@ -474,6 +584,7 @@ def resume_batch(
         control=control,
         department=str(department) if department else None,
         resume_from=payload,
+        installment_months=int(payload.get("installment_months") or 48),
     )
 
 
@@ -503,6 +614,7 @@ def _generate_for_devices(
     control: BatchControl | None = None,
     department: str | None = None,
     resume_from: dict[str, Any] | None = None,
+    installment_months: int = 48,
 ) -> BatchResult:
     jobs: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for device in targets:
@@ -522,20 +634,22 @@ def _generate_for_devices(
         stamp = str(resume_from.get("stamp") or datetime.now().strftime("%Y%m%d_%H%M%S"))
         generated = int(resume_from.get("generated_so_far", start_index))
         quote_id_prefix = str(resume_from.get("quote_id_prefix") or quote_id_prefix)
+        installment_months = int(resume_from.get("installment_months") or installment_months)
     else:
         start_index = 0
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         generated = 0
         clear_checkpoint()
 
+    output_dir = quote_output_root(installment_months)
+
     if total > 0 and start_index >= total:
         clear_checkpoint()
         return BatchResult(
-            mode, source_pdf, QUOTE_OUTPUT_ROOT, len(targets), generated,
+            mode, source_pdf, output_dir, len(targets), generated,
             discontinued, False, False, total,
         )
 
-    output_dir = QUOTE_OUTPUT_ROOT
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = output_dir / "見積一覧.csv"
     updated_rows_by_pdf: dict[str, list[str]] = {}
@@ -555,6 +669,7 @@ def _generate_for_devices(
         "quote_id_prefix": quote_id_prefix,
         "stamp": stamp,
         "total": total,
+        "installment_months": int(installment_months),
     }
 
     for index in range(start_index, total):
@@ -588,6 +703,10 @@ def _generate_for_devices(
             "data_plan": variant["data_plan"],
             "initial_fee_mode": variant.get("initial_fee_mode", "special_3000"),
             "ips_display_mode": variant.get("ips_display_mode", "lump"),
+            "installment_months": int(
+                device.get("installment_months") or installment_months or 48
+            ),
+            "payment_36_flat": device.get("payment_36_flat"),
             "services": {
                 "ips": ips,
                 "support_plan_id": variant.get("support_plan_id", "auto"),
@@ -672,16 +791,57 @@ def run_individual(
     department: str | None = None,
     initial_fee_mode: str | None = None,
     initial_fee_modes: list[str] | None = None,
+    installment_months: int = 48,
 ) -> IndividualResult:
-    device_master = load_json(DEVICE_MASTER_PATH)
+    from .installment_36 import (
+        DEVICE_MASTER_36_PATH,
+        filter_36_target_devices,
+        import_installment_36_master,
+        is_installment_36_target,
+        latest_installment_36_pdf,
+    )
+
+    is_36 = int(installment_months) == 36
+    if is_36:
+        pdf36 = latest_installment_36_pdf()
+        if pdf36 is None:
+            raise FileNotFoundError(
+                "36回割賦の価格表がありません。"
+                "「機種代金一覧表\\36回割賦」にPDFを入れてください。"
+            )
+        import_installment_36_master(pdf36)
+        master_36 = load_json(DEVICE_MASTER_36_PATH)
+        targets = filter_36_target_devices(master_36)
+        device_master = {
+            "schema_version": 1,
+            "installment_months": 36,
+            "devices": targets,
+        }
+        try:
+            device = find_device(device_master, model)
+        except KeyError as exc:
+            raise ValueError(
+                f"36回割賦の対象外、または一覧にありません: {model}"
+            ) from exc
+        if not is_installment_36_target(
+            model=device["model"],
+            model_key=device["model_key"],
+            category=str(device.get("category") or ""),
+        ):
+            raise ValueError(f"36回割賦の対象外です: {model}")
+    else:
+        device_master = load_json(DEVICE_MASTER_PATH)
+        device = find_device(device_master, model)
+        if device["status"] != "販売中":
+            raise ValueError(f"取扱終了機種です: {device['model']}")
+
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")
     if department and department.strip():
         company["department"] = department.strip()
 
-    device = find_device(device_master, model)
-    if device["status"] != "販売中":
+    if not is_36 and device["status"] != "販売中":
         raise ValueError(f"取扱終了機種です: {device['model']}")
     plan = plan_master["plans"].get(plan_id)
     if not plan or not plan.get("enabled"):
@@ -732,7 +892,7 @@ def run_individual(
         raise ValueError("修理保証（IPS）の作成パターンを1つ以上選択してください")
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = QUOTE_OUTPUT_ROOT
+    output_dir = quote_output_root(36 if is_36 else 48)
     output_dir.mkdir(parents=True, exist_ok=True)
     updated_rows_by_pdf: dict[str, list[str]] = {}
     generated = 0
@@ -763,6 +923,8 @@ def run_individual(
                         "data_plan": data_plan,
                         "initial_fee_mode": fee_mode,
                         "ips_display_mode": ips_display_mode,
+                        "installment_months": 36 if is_36 else 48,
+                        "payment_36_flat": device.get("payment_36_flat") if is_36 else None,
                         "services": {
                             "ips": ips_selection,
                             "support_plan_id": support_plan_id,

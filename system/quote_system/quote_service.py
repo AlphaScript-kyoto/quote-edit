@@ -159,9 +159,32 @@ def build_quote(
     if sales_type not in device["payment_48"]:
         raise ValueError(f"販売区分が不正です: {sales_type}")
 
-    payments = device["payment_48"][sales_type]
-    if any(value is None for value in payments.values()):
-        raise ValueError(f"選択区分の48回払い設定がありません: {device['model']} / {sales_type}")
+    installment_months = int(
+        request.get("installment_months")
+        or device.get("installment_months")
+        or 48
+    )
+    payment_36_flat = request.get("payment_36_flat")
+    if payment_36_flat is None:
+        payment_36_flat = device.get("payment_36_flat")
+
+    if installment_months == 36:
+        if payment_36_flat is None:
+            raise ValueError(f"36回割賦の月額が一覧にありません: {device['model']}")
+        flat = int(payment_36_flat)
+        payments = {"1_36": flat}
+        period_specs = [("1_36", "分割支払 1～36回目")]
+    else:
+        payments = device["payment_48"][sales_type]
+        if any(value is None for value in payments.values()):
+            raise ValueError(
+                f"選択区分の48回払い設定がありません: {device['model']} / {sales_type}"
+            )
+        period_specs = [
+            ("1_12", "分割支払 1～12回目"),
+            ("13_24", "分割支払 13～24回目"),
+            ("25_48", "分割支払 25～48回目"),
+        ]
 
     plan = plan_master["plans"].get(request["plan_id"])
     if not plan or not plan.get("enabled"):
@@ -277,11 +300,6 @@ def build_quote(
     universal_fee_tax_ex = int(
         request.get("universal_fee_tax_ex", math.floor(universal_fee / (1 + tax_rate)))
     )
-    period_specs = [
-        ("1_12", "分割支払 1～12回目"),
-        ("13_24", "分割支払 13～24回目"),
-        ("25_48", "分割支払 25～48回目"),
-    ]
     periods = []
     for key, label in period_specs:
         device_payment = int(payments[key])
@@ -355,6 +373,7 @@ def build_quote(
         "model": device["model"],
         "device_category": device.get("category", ""),
         "sales_type": sales_type,
+        "installment_months": installment_months,
         "plan_name": plan["name"],
         "data_plan": request["data_plan"],
         "ouchi_discount_applied": bool(ouchi_discount),
@@ -388,7 +407,7 @@ def build_quote(
         },
         "services": services,
         "periods": [period.__dict__ for period in periods],
-        "device_total_tax_in": device["total"],
-        "source_pdf": device_master["source_pdf"],
-        "source_page": device["source_page"],
+        "device_total_tax_in": device.get("total"),
+        "source_pdf": device_master.get("source_pdf"),
+        "source_page": device.get("source_page"),
     }

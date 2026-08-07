@@ -9,12 +9,15 @@ from tkinter import filedialog, messagebox, ttk
 
 from quote_system.batch_service import (
     QUOTE_OUTPUT_ROOT,
+    QUOTE_OUTPUT_ROOT_36,
     UPDATE_DIR,
     BatchControl,
     checkpoint_exists,
     clear_checkpoint,
+    latest_installment_36_pdf,
     latest_price_pdf,
     load_excluded_model_keys,
+    quote_output_root,
     resume_batch,
     run_batch,
     run_individual,
@@ -26,6 +29,12 @@ from quote_system.config import (
     DATA_DIR,
     ensure_directories,
     load_json,
+)
+from quote_system.installment_36 import (
+    UPDATE_36_DIR,
+    filter_36_target_devices,
+    import_installment_36_master,
+    load_installment_36_targets,
 )
 from quote_system.price_pdf_parser import SALES_COLUMNS, find_device
 from quote_system.quote_service import (
@@ -50,6 +59,7 @@ class QuoteApp(tk.Tk):
         self.upfront_var = tk.BooleanVar(value=False)
         self.no_ips_var = tk.BooleanVar(value=False)
         self.standard_fee_var = tk.BooleanVar(value=False)
+        self.installment_mode_var = tk.StringVar(value="48")
         self.exclude_status_var = tk.StringVar(value="")
         self._batch_control: BatchControl | None = None
         self._is_running = False
@@ -58,7 +68,7 @@ class QuoteApp(tk.Tk):
         self.department_var = tk.StringVar(value=company.get("department", self.departments[0]))
         self._build_ui()
         self._fit_window_to_content()
-        self._select_latest()
+        self._on_installment_mode_changed()
         self._refresh_resume_button(log_if_available=True)
 
     def _fit_window_to_content(self) -> None:
@@ -89,16 +99,42 @@ class QuoteApp(tk.Tk):
         self._build_info_button(header).pack(side="right", anchor="ne")
         ttk.Label(
             root,
-            text="価格表PDFを読み取り、初回は全機種、次回以降は価格変更機種の見積もりを全条件で作成します。"
-            "出力は output\\見積PDF に上書き／追加します。",
+            text="価格表PDFを読み取り、見積もりを作成します。"
+            "作成タイプ（通常48回／36回割賦）で入口・出力先が切り替わります。",
             wraplength=720,
-        ).pack(anchor="w", pady=(4, 18))
+        ).pack(anchor="w", pady=(4, 12))
+
+        mode_frame = ttk.LabelFrame(root, text="0. 作成タイプ", padding=12)
+        mode_frame.pack(fill="x", pady=(0, 8))
+        ttk.Radiobutton(
+            mode_frame,
+            text="通常（48回分割）… 機種代金一覧表 の本体PDF",
+            variable=self.installment_mode_var,
+            value="48",
+            command=self._on_installment_mode_changed,
+        ).pack(anchor="w")
+        ttk.Radiobutton(
+            mode_frame,
+            text="36回割賦 … 機種代金一覧表\\36回割賦 のPDF（対象は installment_36_targets.json）",
+            variable=self.installment_mode_var,
+            value="36",
+            command=self._on_installment_mode_changed,
+        ).pack(anchor="w")
+        ttk.Label(
+            mode_frame,
+            text="出力：通常 → output\\見積PDF　／　36回 → output\\見積PDF_36回",
+            foreground="#555555",
+        ).pack(anchor="w", pady=(4, 0))
 
         file_frame = ttk.LabelFrame(root, text="1. 機種代金表PDF", padding=12)
         file_frame.pack(fill="x")
         ttk.Entry(file_frame, textvariable=self.pdf_var, state="readonly").pack(side="left", fill="x", expand=True)
         ttk.Button(file_frame, text="PDFを選ぶ", command=self._choose_pdf).pack(side="left", padx=(8, 0))
-        ttk.Button(file_frame, text="機種代金一覧表を開く", command=lambda: _open_path(UPDATE_DIR)).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            file_frame,
+            text="価格表フォルダを開く",
+            command=self._open_price_folder,
+        ).pack(side="left", padx=(8, 0))
 
         option_frame = ttk.LabelFrame(root, text="2. 作成条件", padding=12)
         option_frame.pack(fill="x", pady=12)
@@ -189,7 +225,7 @@ class QuoteApp(tk.Tk):
             action, text="再開", command=self._resume_batch, state="disabled"
         )
         self.resume_button.pack(side="left", padx=(8, 0), ipadx=12, ipady=8)
-        ttk.Button(action, text="出力フォルダを開く", command=lambda: _open_path(QUOTE_OUTPUT_ROOT)).pack(side="left", padx=10)
+        ttk.Button(action, text="出力フォルダを開く", command=self._open_output_folder).pack(side="left", padx=10)
         ttk.Button(action, text="個別見積作成", command=self._open_individual_window).pack(side="left")
 
         self.progress = ttk.Progressbar(root, mode="determinate")
@@ -202,6 +238,46 @@ class QuoteApp(tk.Tk):
         ttk.Label(root, textvariable=self.status_var, wraplength=720).pack(anchor="w", pady=(8, 4))
         self.log = tk.Text(root, height=9, state="disabled", font=("Yu Gothic UI", 9))
         self.log.pack(fill="both", expand=True)
+
+    def _installment_months(self) -> int:
+        return 36 if self.installment_mode_var.get() == "36" else 48
+
+    def _open_price_folder(self) -> None:
+        if self._installment_months() == 36:
+            UPDATE_36_DIR.mkdir(parents=True, exist_ok=True)
+            _open_path(UPDATE_36_DIR)
+        else:
+            _open_path(UPDATE_DIR)
+
+    def _open_output_folder(self) -> None:
+        root = quote_output_root(self._installment_months())
+        root.mkdir(parents=True, exist_ok=True)
+        _open_path(root)
+
+    def _on_installment_mode_changed(self) -> None:
+        if self._installment_months() == 36:
+            latest = latest_installment_36_pdf()
+            if latest:
+                self.pdf_var.set(str(latest))
+                self._write_log(f"36回割賦の価格表を検出しました：{latest.name}")
+            else:
+                self.pdf_var.set("")
+                self._write_log(
+                    "「機種代金一覧表\\36回割賦」にPDFがありません。"
+                    "PDFを入れてから作成してください。"
+                )
+            try:
+                rules = load_installment_36_targets()
+                self._write_log(
+                    "36回対象JSON："
+                    f"categories={rules.get('match_categories')} "
+                    f"contains={rules.get('match_model_key_contains')}"
+                )
+            except Exception as exc:
+                self._write_log(f"対象JSONの読込に失敗：{exc}")
+            self.force_all_var.set(True)
+        else:
+            self._select_latest()
 
     def _select_latest(self) -> None:
         latest = latest_price_pdf()
@@ -366,39 +442,67 @@ class QuoteApp(tk.Tk):
         ttk.Button(frame, text="保存", command=save).pack(anchor="w", pady=(12, 0), ipadx=20, ipady=4)
 
     def _open_individual_window(self) -> None:
-        if not (DATA_DIR / "device_master.json").exists():
-            messagebox.showerror("機種マスターがありません", "先に価格表PDFから一括作成を実行してください。")
-            return
-        device_master = load_json(DATA_DIR / "device_master.json")
+        months = self._installment_months()
         plan_master = load_json(DATA_DIR / "plans.json")
         excluded = load_excluded_model_keys()
-        devices = [
-            d for d in device_master["devices"]
-            if d["status"] == "販売中" and d.get("model_key") not in excluded
-        ]
+        if months == 36:
+            try:
+                pdf36 = latest_installment_36_pdf()
+                if pdf36 is None:
+                    raise FileNotFoundError("36回PDFなし")
+                master_36 = import_installment_36_master(pdf36)
+                devices = [
+                    d
+                    for d in filter_36_target_devices(master_36)
+                    if d.get("model_key") not in excluded
+                ]
+            except Exception as exc:
+                messagebox.showerror(
+                    "36回割賦を開けません",
+                    f"{exc}\n「機種代金一覧表\\36回割賦」と installment_36_targets.json を確認してください。",
+                )
+                return
+            device_master = {
+                "schema_version": 1,
+                "installment_months": 36,
+                "devices": devices,
+            }
+            mode_label = "個別見積作成（36回割賦）"
+        else:
+            if not (DATA_DIR / "device_master.json").exists():
+                messagebox.showerror(
+                    "機種マスターがありません",
+                    "先に価格表PDFから一括作成を実行してください。",
+                )
+                return
+            device_master = load_json(DATA_DIR / "device_master.json")
+            devices = [
+                d for d in device_master["devices"]
+                if d["status"] == "販売中" and d.get("model_key") not in excluded
+            ]
+            mode_label = "個別見積作成（通常48回）"
         models = [d["model"] for d in devices]
         if not models:
             messagebox.showerror(
                 "選択できる機種がありません",
-                "［除外する機種］ですべて除外されている可能性があります。"
-                "除外を解除してから、もう一度開いてください。",
+                "対象機種が0件です。除外設定・対象JSON・価格表を確認してください。",
             )
             return
 
         win = tk.Toplevel(self)
-        win.title("個別見積作成")
+        win.title(mode_label)
         win.geometry("680x780")
         win.minsize(620, 720)
         frame = ttk.Frame(win, padding=18)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="個別見積作成", font=("Yu Gothic UI", 17, "bold")).pack(anchor="w")
+        ttk.Label(frame, text=mode_label, font=("Yu Gothic UI", 17, "bold")).pack(anchor="w")
         ttk.Label(
             frame,
-            text="最終取込済みの機種マスターから、選択した条件だけを作成します。",
+            text="メイン画面の作成タイプに連動します。選択した条件だけを作成します。",
         ).pack(anchor="w", pady=(2, 2))
         ttk.Label(
             frame,
-            text="※［除外する機種］で除外していない機種が一覧に出ます（一括作成と連動）。",
+            text="※［除外する機種］で除外していない機種が一覧に出ます。",
             wraplength=620,
         ).pack(anchor="w", pady=(0, 12))
 
@@ -577,6 +681,7 @@ class QuoteApp(tk.Tk):
                     support_plan_id=support_display[support_var.get()],
                     department=self.department_var.get(),
                     initial_fee_modes=fee_modes,
+                    installment_months=months,
                 )
             except Exception as exc:
                 self.after(0, failed, str(exc))
@@ -622,23 +727,37 @@ class QuoteApp(tk.Tk):
     def _start(self) -> None:
         if self._is_running:
             return
-        if (DATA_DIR / "device_master.json").exists():
-            master = load_json(DATA_DIR / "device_master.json")
-            on_sale = [
-                d for d in master.get("devices", []) if d.get("status") == "販売中"
-            ]
-            excluded = load_excluded_model_keys()
-            if on_sale and all(d["model_key"] in excluded for d in on_sale):
+        months = self._installment_months()
+        if months == 36:
+            pdf36 = latest_installment_36_pdf()
+            if pdf36 is None:
                 messagebox.showerror(
-                    "作成対象がありません",
-                    "すべての機種が除外されています。"
-                    "［除外する機種］で除外を減らしてください。",
+                    "価格表がありません",
+                    "「機種代金一覧表\\36回割賦」フォルダに36回用PDFを入れてください。",
                 )
                 return
-        pdf = Path(self.pdf_var.get())
-        if not pdf.exists():
-            messagebox.showerror("価格表がありません", "「機種代金一覧表」フォルダに価格表PDFを入れてください。")
-            return
+            self.pdf_var.set(str(pdf36))
+        else:
+            if (DATA_DIR / "device_master.json").exists():
+                master = load_json(DATA_DIR / "device_master.json")
+                on_sale = [
+                    d for d in master.get("devices", []) if d.get("status") == "販売中"
+                ]
+                excluded = load_excluded_model_keys()
+                if on_sale and all(d["model_key"] in excluded for d in on_sale):
+                    messagebox.showerror(
+                        "作成対象がありません",
+                        "すべての機種が除外されています。"
+                        "［除外する機種］で除外を減らしてください。",
+                    )
+                    return
+            pdf = Path(self.pdf_var.get())
+            if not pdf.exists():
+                messagebox.showerror(
+                    "価格表がありません",
+                    "「機種代金一覧表」フォルダに価格表PDFを入れてください。",
+                )
+                return
         if checkpoint_exists():
             if not messagebox.askyesno(
                 "中断データがあります",
@@ -652,8 +771,30 @@ class QuoteApp(tk.Tk):
         self._set_running_ui(True)
         self.progress.configure(value=0, maximum=1)
         self.status_var.set("開始しています…")
-        self._write_log("価格表の取込と検算を開始します。")
-        threading.Thread(target=self._worker, args=(pdf,), daemon=True).start()
+        if months == 36:
+            self._write_log("36回割賦モードで価格表の取込と作成を開始します。")
+        else:
+            self._write_log("価格表の取込と検算を開始します。")
+        pdf = Path(self.pdf_var.get()) if self.pdf_var.get() else Path(".")
+        threading.Thread(target=self._worker, args=(pdf, months), daemon=True).start()
+
+    def _worker(self, pdf: Path, installment_months: int) -> None:
+        try:
+            result = run_batch(
+                pdf,
+                force_all=self.force_all_var.get(),
+                include_upfront_ips=self.upfront_var.get(),
+                include_no_ips=self.no_ips_var.get(),
+                include_standard_initial_fee=self.standard_fee_var.get(),
+                department=self.department_var.get(),
+                control=self._batch_control,
+                installment_months=installment_months,
+                progress=lambda done, total, message: self.after(0, self._progress, done, total, message),
+            )
+        except Exception as exc:
+            self.after(0, self._failed, str(exc))
+            return
+        self.after(0, self._completed, result)
 
     def _resume_batch(self) -> None:
         if self._is_running:
@@ -667,23 +808,6 @@ class QuoteApp(tk.Tk):
         self.status_var.set("中断した場所から再開しています…")
         self._write_log("中断チェックポイントから再開します。")
         threading.Thread(target=self._worker_resume, daemon=True).start()
-
-    def _worker(self, pdf: Path) -> None:
-        try:
-            result = run_batch(
-                pdf,
-                force_all=self.force_all_var.get(),
-                include_upfront_ips=self.upfront_var.get(),
-                include_no_ips=self.no_ips_var.get(),
-                include_standard_initial_fee=self.standard_fee_var.get(),
-                department=self.department_var.get(),
-                control=self._batch_control,
-                progress=lambda done, total, message: self.after(0, self._progress, done, total, message),
-            )
-        except Exception as exc:
-            self.after(0, self._failed, str(exc))
-            return
-        self.after(0, self._completed, result)
 
     def _worker_resume(self) -> None:
         try:
@@ -703,11 +827,12 @@ class QuoteApp(tk.Tk):
     def _completed(self, result) -> None:
         self._batch_control = None
         self._set_running_ui(False)
+        out_root = result.output_dir or quote_output_root(self._installment_months())
         if result.paused:
             text = (
                 f"作成を中断しました。{result.generated_files:,} / "
                 f"{result.total_planned:,} 件まで完了しています。\n"
-                f"［再開］で続きから作成できます。\n出力先：{QUOTE_OUTPUT_ROOT}"
+                f"［再開］で続きから作成できます。\n出力先：{out_root}"
             )
             self.status_var.set(text)
             self._write_log(text)
@@ -718,7 +843,7 @@ class QuoteApp(tk.Tk):
             text = "価格変更のある販売中機種はありませんでした。PDFは作成していません。"
         else:
             text = f"{result.mode}：{result.target_models}機種、{result.generated_files:,}件の見積PDFを作成しました。"
-            text += f"\n出力先：{QUOTE_OUTPUT_ROOT}"
+            text += f"\n出力先：{out_root}"
         if result.discontinued_models:
             text += f"\n取扱終了：{len(result.discontinued_models)}機種（見積作成対象外）"
         self.status_var.set(text)

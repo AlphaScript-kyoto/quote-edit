@@ -159,6 +159,13 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 - Batch default variants: 78 → 57 (iPhone example); full-pattern 3556 → 2380.
 - Bump `APP_VERSION` 1.3.4; field release note UTF-8 BOM.
 
+### 2026-08-07 - 1.3.4 prototype: 36回割賦 mode (case R)
+- UI radio: 通常48 / 36回割賦; open folder + output split (`見積PDF` vs `見積PDF_36回`).
+- PDF dir: `機種代金一覧表/36回割賦/`; parse flat monthly (`payment_36_flat`), validate monthly*36=total.
+- Target filter: `data/installment_36_targets.json` (categories e.g. ケータイ + model_key contains: 16e/17e/wish4/bx3). Field-editable.
+- Quote periods: single column `分割支払 1～36回目` when installment_months=36.
+- Confidential 36 PDF must stay local (not git).
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
@@ -167,6 +174,7 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 5. Append this file + sync AI_CONTEXT/AGENTS/Japanese spec
 6. Never commit real company.json
 7. Portable ZIP build only after local company.json has field FAXes
+8. Never commit confidential 36 price PDFs
 
 ## Anti-patterns
 Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB; inventing attention notes.
