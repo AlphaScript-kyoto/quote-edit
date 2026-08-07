@@ -353,7 +353,7 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 57)
+        self.assertEqual(len(variants), 85)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
@@ -378,12 +378,24 @@ class QuoteSystemTest(unittest.TestCase):
             and item["data_plan"] == "5GB"
         }
         self.assertEqual(kishu_five, {"biz_plus", "hyper_light"})
-        # スーパー／ハイパーは機種変更のみ
-        self.assertTrue(all(
-            item["sales_type"] == "機種変更・移動機物品販売"
-            for item in variants
-            if item["plan_id"] in {"super_light", "hyper_light"}
-        ))
+        # スーパー／ハイパーは機種変更・MNP・新規（番号移行では作らない）
+        self.assertEqual(
+            {
+                item["sales_type"]
+                for item in variants
+                if item["plan_id"] in {"super_light", "hyper_light"}
+            },
+            {"機種変更・移動機物品販売", "MNP", "新規"},
+        )
+        # IRS（安心サポート）なし＋割引あり版は新規・MNPのスーパー／ハイパーのみ標準作成
+        no_irs = [item for item in variants if item["support_plan_id"] is None]
+        self.assertTrue(no_irs)
+        self.assertEqual(
+            {item["sales_type"] for item in no_irs}, {"MNP", "新規"}
+        )
+        self.assertEqual(
+            {item["plan_id"] for item in no_irs}, {"super_light", "hyper_light"}
+        )
         # スーパーライトは50GBのみ
         self.assertTrue(
             all(
@@ -417,13 +429,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 114)
+        self.assertEqual(len(with_no_ips), 170)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 114)
+        self.assertEqual(len(with_standard_fee), 170)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -451,15 +463,15 @@ class QuoteSystemTest(unittest.TestCase):
                 self.service_master,
             )
 
-        # MNP ではハイパー自体を作らない
-        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+        # 番号移行ではハイパー自体を作らない
+        with self.assertRaisesRegex(ValueError, "番号移行では作成しません"):
             build_quote(
                 {
                     **self.request,
                     "model": device["model"],
                     "plan_id": "hyper_light",
                     "data_plan": "5GB",
-                    "sales_type": "MNP",
+                    "sales_type": "番号移行",
                 },
                 self.device_master,
                 self.plan_master,
@@ -605,7 +617,7 @@ class QuoteSystemTest(unittest.TestCase):
         relative = _quote_relative_path(
             device, variant, quote, "subscription", "SB光なし"
         )
-        # スーパー／ハイパー（機種変更のみ）: Biz＋と並ぶ IRSあり / IPSサブスク
+        # スーパー／ハイパー: Biz＋と並ぶ IRSあり / IPSサブスク
         self.assertEqual(relative.parts, (
             "iPhone", "iPhone_17(256GB)", "機種変更", "SB光なし",
             "IRSあり", "IPSサブスク",
@@ -617,12 +629,12 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertNotIn("初期費用", str(relative))
         self.assertNotIn("事務手数料", str(relative))
 
-        # MNP ではスーパー／ハイパー不可（Biz・ライトのみ）
-        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+        # 番号移行ではスーパー／ハイパー不可（Biz・ライトのみ）
+        with self.assertRaisesRegex(ValueError, "番号移行では作成しません"):
             build_quote(
                 {
                     **self.request,
-                    "sales_type": "MNP",
+                    "sales_type": "番号移行",
                     "plan_id": "hyper_light",
                     "data_plan": "5GB",
                 },
@@ -706,12 +718,12 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        self.assertEqual(gold24_relative.parts[4], "IRSあり")
+        # IRS（安心サポート）なしは「IRSなし」枠に入る（安心サポートフォルダは重複させない）
+        self.assertEqual(gold24_relative.parts[4], "IRSなし")
         self.assertEqual(gold24_relative.parts[5], "IPS一括表記")
         self.assertEqual(gold24_relative.parts[6], "ゴールド24")
-        # 強制加入プランでサポートなしを選んだときだけサポートフォルダを付ける
-        self.assertEqual(gold24_relative.parts[7], "安心サポートなし")
         self.assertEqual(gold24_relative.name, "iPhone17(256GB)_50GB.pdf")
+        self.assertNotIn("安心サポート", str(gold24_relative))
 
         none_request = deepcopy(self.request)
         none_request["services"] = {"ips": {"type": "none"}, "support_plan_id": None}
@@ -729,15 +741,31 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertNotIn("IRSあり", str(none_relative))
 
-        # サポートなしバリアントも作る場合はあり側にもフォルダを付ける
+        # サポートなしバリアントも作る場合でも IRSあり/IRSなし で枠が分かれるだけ
         branched = _quote_relative_path(
             device, variant, quote, "subscription", "SB光なし",
             include_no_support=True,
         )
-        self.assertEqual(branched.parts[-2], "安心サポートあり")
+        self.assertEqual(branched.parts[-2], "IPSサブスク")
         self.assertEqual(branched.name, "iPhone17(256GB)_5GB.pdf")
         self.assertIn("IRSあり", branched.parts)
-        self.assertIn("IPSサブスク", branched.parts)
+        self.assertNotIn("安心サポートあり", branched.parts)
+
+        # サブスクIPS＋IRSなし → IRSなし/IPSサブスク
+        no_irs_request = deepcopy(self.request)
+        no_irs_request["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": None,
+        }
+        no_irs_quote = build_quote(
+            no_irs_request, self.device_master, self.plan_master, self.service_master
+        )
+        no_irs_relative = _quote_relative_path(
+            device, variant, no_irs_quote, "subscription", "SB光なし"
+        )
+        self.assertEqual(no_irs_relative.parts[4], "IRSなし")
+        self.assertEqual(no_irs_relative.parts[5], "IPSサブスク")
+        self.assertEqual(no_irs_relative.name, "iPhone17(256GB)_5GB.pdf")
 
         # 事務手数料あり版との同時生成時は標準側にも初期費用フォルダを付ける
         fee_branched = _quote_relative_path(
@@ -1083,7 +1111,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         ))
         # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 2380)
+        self.assertEqual(len(variants), 3164)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},
@@ -1418,16 +1446,44 @@ class QuoteSystemTest(unittest.TestCase):
             else:
                 self.assertNotIn("FAX：", text)
 
-        # MNP ではハイパーを拒否
-        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+        # 番号移行ではハイパーを拒否
+        with self.assertRaisesRegex(ValueError, "番号移行では作成しません"):
             run_individual(
                 model="iPhone 17 256GB",
-                sales_type="MNP",
+                sales_type="番号移行",
                 plan_id="hyper_light",
                 data_plans=["5GB"],
                 ouchi_options=[False],
                 include_ips_subscription=True,
             )
+
+        # MNP×ハイパー（復活）＋IRS（安心サポート）なし → IRSなし/IPSサブスク
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    model="iPhone 17 256GB",
+                    sales_type="MNP",
+                    plan_id="hyper_light",
+                    data_plans=["5GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    support_plan_id=None,
+                    department="RT事業部",
+                )
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+            self.assertEqual(
+                pdfs[0].parts[-4:],
+                ("SB光なし", "IRSなし", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
+            )
+            with pdfplumber.open(pdfs[0]) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = doc.pages[0].extract_text() or ""
+            # 割引は入るが、IRS（安心保証サービス）行と安心サポート注記は出ない
+            self.assertIn("弊社特別割引", text)
+            self.assertNotIn("安心保証サービス", text)
+            self.assertNotIn("携帯電話機安心サポート", text)
 
         # 機種変更×スーパー＋通常IPS両方表記 → IRSあり配下の表記フォルダ
         with TemporaryDirectory() as tmp:

@@ -217,8 +217,16 @@ def quote_variants(
             if not is_sales_plan_allowed(sales_type, plan_id):
                 continue
             support_options: list[str | None] = ["auto"]
-            if include_no_support and plan_id in _SUPPORT_AUTO_PLAN_IDS:
-                support_options.append(None)
+            if plan_id in _SUPPORT_AUTO_PLAN_IDS:
+                if include_no_support:
+                    support_options.append(None)
+                elif (
+                    plan_id in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS
+                    and sales_type in _NO_IRS_DEFAULT_SALES_TYPES
+                ):
+                    # 新規・MNPは安心サポート(IRS)を外しても特別割引が入る運用があるため、
+                    # IRSなし版も標準で作成する
+                    support_options.append(None)
             for data_plan in plan["data_plans"]:
                 if not is_plan_data_plan_allowed(plan_id, data_plan):
                     continue
@@ -847,8 +855,8 @@ def run_individual(
             )
         if plan_id in {"super_light", "hyper_light"}:
             raise ValueError(
-                "スーパーライト／ハイパーライトは機種変更のみ作成します"
-                "（MNP／新規／番号移行では作成しません）"
+                "スーパーライト／ハイパーライトは機種変更・MNP・新規で作成します"
+                "（番号移行では作成しません）"
             )
         raise ValueError(f"販売区分と料金プランの組み合わせが不正です: {sales_type} / {plan_id}")
 
@@ -1140,6 +1148,8 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
 _SUPPORT_AUTO_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
 # スーパー／ハイパーは容量が重ならないため、全販売区分でプラン名フォルダを統合する
 _MERGED_SPECIAL_DISCOUNT_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+# スーパー／ハイパーで「IRS（安心サポート）なし＋割引あり」版を標準作成する販売区分
+_NO_IRS_DEFAULT_SALES_TYPES = frozenset({"MNP", "新規"})
 
 
 def _is_merged_special_discount(plan_id: str) -> bool:
@@ -1249,7 +1259,7 @@ def _quote_relative_path(
     )
     ips = (quote.get("services") or {}).get("ips")
 
-    # スーパー／ハイパー: Biz＋と並列に「IRSあり」（安心保証サービス／特別割引枠）
+    # スーパー／ハイパー: Biz＋と並列に IRS（安心サポート）あり／なしの枠を置き、
     # その中で修理保証(IPS)の表記分岐を置く
     if _is_merged_special_discount(plan_id):
         if not ips:
@@ -1259,15 +1269,15 @@ def _quote_relative_path(
             parts.append(_quote_filename(device, variant, quote))
             return Path(*parts)
 
-        parts.append("IRSあり")
+        has_support = bool((quote.get("services") or {}).get("support"))
+        parts.append("IRSあり" if has_support else "IRSなし")
         branch = _merged_ips_branch_folder(quote, variant)
         if branch:
             parts.append(_safe_name(branch))
         plan_token_folder = _upfront_ips_plan_folder(quote)
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
-        if support_folder:
-            parts.append(support_folder)
+        # IRSあり／なしで枠が分かれるため、安心サポートあり/なしフォルダは重複させない
         parts.append(_quote_filename(device, variant, quote))
         return Path(*parts)
 
