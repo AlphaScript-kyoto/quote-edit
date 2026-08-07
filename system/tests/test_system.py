@@ -868,7 +868,7 @@ class QuoteSystemTest(unittest.TestCase):
                 "iPhone_17(256GB)",
                 "機種変更",
                 "SB光なし",
-                "一括表記",
+                "IPS一括表記",
                 "プラチナ36水没",
                 "iPhone17(256GB)_50GB.pdf",
             ),
@@ -901,7 +901,7 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        self.assertEqual(kishu_running_path.parts[4], "ランニングコスト表記")
+        self.assertEqual(kishu_running_path.parts[4], "IPSランニングコスト表記")
         self.assertEqual(kishu_running_path.parts[5], "ゴールド24")
         self.assertNotIn("ハイパーライト", str(kishu_running_path))
         self.assertNotIn("IPS一括型", str(kishu_running_path))

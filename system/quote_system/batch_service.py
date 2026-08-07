@@ -1013,7 +1013,7 @@ def _kishu_upfront_display_folder(
     quote: dict[str, Any],
     variant: dict[str, Any],
 ) -> str | None:
-    """機種変更の特別割引＋通常IPSを、一括表記／ランニングコスト表記で分ける。"""
+    """機種変更の特別割引＋通常IPSを、IPS一括表記／IPSランニングコスト表記で分ける。"""
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
     if not _is_kishu_special_discount(sales_type, plan_id):
@@ -1027,8 +1027,8 @@ def _kishu_upfront_display_folder(
         or "lump"
     )
     if display_mode == "monthly_as_running":
-        return "ランニングコスト表記"
-    return "一括表記"
+        return "IPSランニングコスト表記"
+    return "IPS一括表記"
 
 
 def _support_folder_name(
@@ -1102,7 +1102,7 @@ def _quote_relative_path(
         parts.append(_quote_filename(device, variant, quote))
         return Path(*parts)
 
-    # 機種変更の通常IPS: スーパー／ハイパー統合 → 一括表記 / ランニングコスト表記 → IPSプラン
+    # 機種変更の通常IPS: スーパー／ハイパー統合 → IPS一括表記 / IPSランニングコスト表記 → IPSプラン
     kishu_upfront_display = _kishu_upfront_display_folder(quote, variant)
     if kishu_upfront_display:
         parts.append(_safe_name(kishu_upfront_display))
