@@ -729,7 +729,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(kishu_relative.parts[2], "機種変更")
         self.assertNotIn("移動機物品販売", str(kishu_relative))
 
-        # 機種変更×IPSサブスクのスーパー／ハイパーは同一フォルダ名に寄せる
+        # 機種変更×スーパー／ハイパー（標準）は SB光直下に PDF
         kishu_super = deepcopy(self.request)
         kishu_super.update({
             "sales_type": "機種変更・移動機物品販売",
@@ -752,7 +752,18 @@ class QuoteSystemTest(unittest.TestCase):
             "subscription",
             "SB光なし",
         )
-        self.assertEqual(kishu_super_path.parts[4], "Bizパッケージ＋特別割引")
+        self.assertEqual(
+            kishu_super_path.parts,
+            (
+                "iPhone",
+                "iPhone_17(256GB)",
+                "機種変更",
+                "SB光なし",
+                "iPhone17(256GB)_50GB.pdf",
+            ),
+        )
+        self.assertNotIn("特別割引", str(kishu_super_path))
+        self.assertNotIn("Bizパッケージ", str(kishu_super_path))
         kishu_hyper = deepcopy(self.request)
         kishu_hyper.update({
             "sales_type": "機種変更・移動機物品販売",
@@ -775,7 +786,53 @@ class QuoteSystemTest(unittest.TestCase):
             "subscription",
             "SB光なし",
         )
-        self.assertEqual(kishu_hyper_path.parts[4], "Bizパッケージ＋特別割引")
+        self.assertEqual(kishu_hyper_path.parts[-1], "iPhone17(256GB)_5GB.pdf")
+        self.assertEqual(kishu_hyper_path.parts[3], "SB光なし")
+        self.assertEqual(len(kishu_hyper_path.parts), 5)
+        # Bizパッケージ＋ は従来どおりプランフォルダを作る
+        kishu_biz = deepcopy(self.request)
+        kishu_biz.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "biz_plus",
+            "data_plan": "5GB",
+        })
+        kishu_biz_quote = build_quote(
+            kishu_biz, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_biz_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_biz["sales_type"],
+                "plan_id": "biz_plus",
+                "data_plan": "5GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            kishu_biz_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(kishu_biz_path.parts[4], "Bizパッケージ＋")
+        # 機種変更で IPS なしなど分岐があるときは IPS フォルダを付ける
+        kishu_no_ips = deepcopy(kishu_hyper)
+        kishu_no_ips["services"] = {"ips": {"type": "none"}, "support_plan_id": "auto"}
+        kishu_no_ips_quote = build_quote(
+            kishu_no_ips, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_no_ips_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_no_ips["sales_type"],
+                "plan_id": "hyper_light",
+                "data_plan": "5GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            kishu_no_ips_quote,
+            "none",
+            "SB光なし",
+        )
+        self.assertIn("IPSなし", kishu_no_ips_path.parts)
 
         # 機種変更ではライト不可
         kishu_light = deepcopy(self.request)

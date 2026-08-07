@@ -125,6 +125,9 @@ Omit `安心サポートあり/なし` when that plan has a single support outco
 ### 2026-08-07 - Biz light plan + kishu rules
 Add light (Bizパッケージ＋ライト, additional -500 yen; not 1GB). Forced support XS like super. **Not used for 機種変更**. On 機種変更 + IPS subscription, super/hyper share folder Bizパッケージ＋特別割引. PDF shows ライト割 as 弊社特別割引.
 
+### 2026-08-07 - Kishu super/hyper PDFs under SB光
+For 機種変更 + super/hyper standard path, omit plan folder (特別割引) and place PDF directly under SB光なし/あり. Biz+ keeps its folder. Branched IPS/fee still get intermediate folders.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

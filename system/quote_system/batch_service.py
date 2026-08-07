@@ -979,25 +979,33 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
 # auto_mapping で安心サポートが付くプラン（services.json と揃える）
 _SUPPORT_AUTO_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
 _KISHU_SALES_TYPE = "機種変更・移動機物品販売"
-# 機種変更×IPSサブスクでは 50GB=スーパー／他=ハイパーのためプラン名フォルダを共通化
-_KISHU_SUBSCRIPTION_PLAN_FOLDER = "Bizパッケージ＋特別割引"
+_KISHU_SPECIAL_DISCOUNT_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+
+
+def _is_kishu_special_discount(
+    sales_type: str,
+    plan_id: str,
+) -> bool:
+    """機種変更のスーパー／ハイパー（特別割引）見積かどうか。"""
+    return (
+        str(sales_type or "").strip() == _KISHU_SALES_TYPE
+        and str(plan_id or "").strip() in _KISHU_SPECIAL_DISCOUNT_PLAN_IDS
+    )
 
 
 def _plan_folder_name(
     quote: dict[str, Any],
     variant: dict[str, Any],
-) -> str:
-    """料金プラン用フォルダ名。機種変更＋IPSサブスクのスーパー／ハイパーは統合。"""
+) -> str | None:
+    """料金プラン用フォルダ名。
+
+    機種変更のスーパー／ハイパーはプラン名フォルダを作らず、SB光直下に PDF を置く
+    （Bizパッケージ＋ はそのままフォルダ分け）。
+    """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
-    ips = (quote.get("services") or {}).get("ips")
-    if (
-        sales_type == _KISHU_SALES_TYPE
-        and ips
-        and ips.get("billing_type") == "subscription"
-        and plan_id in {"super_light", "hyper_light"}
-    ):
-        return _KISHU_SUBSCRIPTION_PLAN_FOLDER
+    if _is_kishu_special_discount(sales_type, plan_id):
+        return None
     return str(quote.get("plan_name") or plan_id)
 
 
@@ -1038,27 +1046,44 @@ def _quote_relative_path(
     include_standard_initial_fee: bool = False,
 ) -> Path:
     del ips_key
-    plan_folder = _safe_name(_plan_folder_name(quote, variant))
+    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),
         _safe_name(sales_type_display_name(variant["sales_type"])),
         _safe_name(ouchi_key),
-        plan_folder,
     ]
+    plan_folder = _plan_folder_name(quote, variant)
+    if plan_folder:
+        parts.append(_safe_name(plan_folder))
+
     fee_folder = _fee_folder_name(
         quote, include_standard_initial_fee=include_standard_initial_fee
     )
     if fee_folder:
         parts.append(fee_folder)
-    parts.append(_ips_folder_name(quote, variant))
-    plan_token_folder = _upfront_ips_plan_folder(quote)
-    if plan_token_folder:
-        parts.append(_safe_name(plan_token_folder))
+
     support_folder = _support_folder_name(
         quote, variant, include_no_support=include_no_support
     )
-    if support_folder:
-        parts.append(support_folder)
+    ips = (quote.get("services") or {}).get("ips")
+    # 機種変更のスーパー／ハイパー標準パス（IPSサブスク・追加分岐なし）は
+    # SB光直下に PDF を置く（使う側は容量付き PDF を直接ピック）
+    kishu_flat = (
+        _is_kishu_special_discount(sales_type, plan_id)
+        and not fee_folder
+        and not support_folder
+        and bool(ips)
+        and ips.get("billing_type") == "subscription"
+    )
+    if not kishu_flat:
+        parts.append(_ips_folder_name(quote, variant))
+        plan_token_folder = _upfront_ips_plan_folder(quote)
+        if plan_token_folder:
+            parts.append(_safe_name(plan_token_folder))
+        if support_folder:
+            parts.append(support_folder)
+
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)
