@@ -545,7 +545,18 @@ class QuoteApp(tk.Tk):
             win.minsize(620, 720)
         frame = ttk.Frame(win, padding=18)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text=mode_label, font=("Yu Gothic UI", 17, "bold")).pack(anchor="w")
+        status_var = tk.StringVar(value="条件を選択して［PDF作成］を押してください。")
+        # 作成ボタンは右上に固定表示（ウィンドウが縦に長くても隠れない）
+        header = ttk.Frame(frame)
+        header.pack(fill="x")
+        ttk.Label(header, text=mode_label, font=("Yu Gothic UI", 17, "bold")).pack(side="left")
+        create_button = ttk.Button(
+            header,
+            text="PDF作成",
+            command=lambda: start(),
+            style="Accent.TButton",
+        )
+        create_button.pack(side="right", ipadx=24, ipady=6)
         ttk.Label(
             frame,
             text="選択した条件だけを作成します。",
@@ -558,6 +569,12 @@ class QuoteApp(tk.Tk):
             frame,
             text=note_text,
             wraplength=620,
+        ).pack(anchor="w", pady=(0, 4))
+        ttk.Label(
+            frame,
+            textvariable=status_var,
+            wraplength=620,
+            foreground="#2B6CB0",
         ).pack(anchor="w", pady=(0, 12))
 
         # 36回割賦：機種はプルダウンではなくチェックボックスで複数選択する
@@ -692,8 +709,6 @@ class QuoteApp(tk.Tk):
         ttk.Checkbutton(
             fee_box, text="事務手数料あり（税抜4,500円）", variable=fee_standard_var
         ).pack(anchor="w")
-
-        status_var = tk.StringVar(value="条件を選択して［PDF作成］を押してください。")
 
         def refresh_plans(*_args) -> None:
             nonlocal plan_name_to_id
@@ -834,9 +849,6 @@ class QuoteApp(tk.Tk):
         sales_combo.bind("<<ComboboxSelected>>", refresh_plans)
         plan_combo.bind("<<ComboboxSelected>>", refresh_capacities)
         refresh_plans()
-        ttk.Label(frame, textvariable=status_var, wraplength=620).pack(anchor="w", pady=(12, 6))
-        create_button = ttk.Button(frame, text="PDF作成", command=start)
-        create_button.pack(anchor="w", ipadx=28, ipady=7)
 
     def _set_running_ui(self, running: bool) -> None:
         self._is_running = running

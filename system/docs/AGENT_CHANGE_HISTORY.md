@@ -185,6 +185,9 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 ### 2026-08-07 - 36-mode: individual buttons follow mode
 - Main window: the two individual-quote buttons are mode-gated. 36 mode disables the 48 button; 48 mode disables the 36 button. Prevents pressing the wrong-mode entry.
 
+### 2026-08-07 - Individual window: create button moved to header
+- Both individual windows (48 and 36): the PDF-create button now sits top-right next to the window title, and the status text moved under the header, so they are always visible regardless of window height (previously hidden below the fold on small screens).
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
