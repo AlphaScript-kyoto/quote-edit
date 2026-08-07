@@ -122,6 +122,9 @@ Default `special_3000` (PDF tax-in ¥3,300) omits fee folder. Folder only for `s
 ### 2026-08-06 - Support folder only when branching
 Omit `安心サポートあり/なし` when that plan has a single support outcome (forced auto support for light plans; no support for biz+). Add folders when both variants are generated (`include_no_support`) or light plan explicitly has no support / non-auto plan has support.
 
+### 2026-08-07 - Biz light plan + kishu rules
+Add light (Bizパッケージ＋ライト, additional -500 yen; not 1GB). Forced support XS like super. **Not used for 機種変更**. On 機種変更 + IPS subscription, super/hyper share folder Bizパッケージ＋特別割引. PDF shows ライト割 as 弊社特別割引.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

@@ -300,6 +300,12 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["services"]["support"]["monthly_fee_tax_ex"], 980)
         self.assertEqual(quote["services"]["support"]["monthly_fee_tax_in"], 1078)
 
+        light = {**self.request, "plan_id": "light", "data_plan": "20GB"}
+        light_quote = build_quote(
+            light, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(light_quote["services"]["support"]["plan_id"], "support_xs")
+
         biz_plus = {**self.request, "plan_id": "biz_plus"}
         quote = build_quote(
             biz_plus, self.device_master, self.plan_master, self.service_master
@@ -309,7 +315,7 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 56)
+        self.assertEqual(len(variants), 77)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
@@ -322,6 +328,18 @@ class QuoteSystemTest(unittest.TestCase):
                 if item["plan_id"] == "super_light"
             )
         )
+        # ライトは1GB以外・機種変更では使わない
+        self.assertTrue(
+            all(
+                item["data_plan"] != "1GB"
+                for item in variants
+                if item["plan_id"] == "light"
+            )
+        )
+        self.assertFalse(any(
+            item["plan_id"] == "light" and item["sales_type"] == "機種変更・移動機物品販売"
+            for item in variants
+        ))
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False, True})
         self.assertFalse(any(
             item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
@@ -331,13 +349,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 112)
+        self.assertEqual(len(with_no_ips), 154)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 112)
+        self.assertEqual(len(with_standard_fee), 154)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -676,6 +694,75 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(kishu_relative.parts[2], "機種変更")
         self.assertNotIn("移動機物品販売", str(kishu_relative))
 
+        # 機種変更×IPSサブスクのスーパー／ハイパーは同一フォルダ名に寄せる
+        kishu_super = deepcopy(self.request)
+        kishu_super.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "super_light",
+            "data_plan": "50GB",
+        })
+        kishu_super_quote = build_quote(
+            kishu_super, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_super_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_super["sales_type"],
+                "plan_id": "super_light",
+                "data_plan": "50GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            kishu_super_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(kishu_super_path.parts[4], "Bizパッケージ＋特別割引")
+        kishu_hyper = deepcopy(self.request)
+        kishu_hyper.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "hyper_light",
+            "data_plan": "5GB",
+        })
+        kishu_hyper_quote = build_quote(
+            kishu_hyper, self.device_master, self.plan_master, self.service_master
+        )
+        kishu_hyper_path = _quote_relative_path(
+            device,
+            {
+                "sales_type": kishu_hyper["sales_type"],
+                "plan_id": "hyper_light",
+                "data_plan": "5GB",
+                "initial_fee_mode": "special_3000",
+                "ips_display_mode": "lump",
+            },
+            kishu_hyper_quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertEqual(kishu_hyper_path.parts[4], "Bizパッケージ＋特別割引")
+
+        # 機種変更ではライト不可
+        kishu_light = deepcopy(self.request)
+        kishu_light.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "light",
+            "data_plan": "20GB",
+        })
+        with self.assertRaisesRegex(ValueError, "機種変更では"):
+            build_quote(
+                kishu_light, self.device_master, self.plan_master, self.service_master
+            )
+        # MNPではライト可（割引 -500）
+        mnp_light = deepcopy(self.request)
+        mnp_light.update({"plan_id": "light", "data_plan": "20GB"})
+        light_quote = build_quote(
+            mnp_light, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(light_quote["components"]["additional_discount_tax_ex"], -500)
+        self.assertEqual(light_quote["components"]["additional_discount_name"], "ライト割")
+        self.assertEqual(light_quote["services"]["support"]["plan_id"], "support_xs")
+
     def test_kishu_henko_pdf_heading_short(self):
         import pdfplumber
         from tempfile import TemporaryDirectory
@@ -728,7 +815,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         ))
         # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 2352)
+        self.assertEqual(len(variants), 3528)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},

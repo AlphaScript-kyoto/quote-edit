@@ -49,6 +49,18 @@
         "無制限": {"data_before_tax_ex": 8000, "data_after_tax_ex": 3500, "package_discount_tax_ex": -6300}
       }
     },
+    "light": {
+      "name": "Bizパッケージ＋ライト",
+      "additional_discount_name": "ライト割",
+      "additional_discount_tax_ex": -500,
+      "enabled": true,
+      "data_plans": {
+        "5GB": {"data_before_tax_ex": 5000, "data_after_tax_ex": 2000, "package_discount_tax_ex": -4800},
+        "20GB": {"data_before_tax_ex": 6000, "data_after_tax_ex": 2500, "package_discount_tax_ex": -5300},
+        "50GB": {"data_before_tax_ex": 6500, "data_after_tax_ex": 3000, "package_discount_tax_ex": -5300},
+        "無制限": {"data_before_tax_ex": 8000, "data_after_tax_ex": 4000, "package_discount_tax_ex": -5800}
+      }
+    },
     "hyper_light": {
       "name": "Bizパッケージ＋ハイパーライト",
       "additional_discount_name": "ハイパーライト割",

@@ -13,7 +13,12 @@ from typing import Any, Callable, Iterable
 from .config import DATA_DIR, OUTPUT_DIR, UPDATE_DIR, load_json, save_json
 from .pdf_renderer import render_quote
 from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf, sales_type_display_name
-from .quote_service import build_quote, is_device_data_plan_allowed, is_plan_data_plan_allowed
+from .quote_service import (
+    build_quote,
+    is_device_data_plan_allowed,
+    is_plan_data_plan_allowed,
+    is_sales_plan_allowed,
+)
 
 STATE_PATH = DATA_DIR / "app_state.json"
 DEVICE_MASTER_PATH = DATA_DIR / "device_master.json"
@@ -198,8 +203,10 @@ def quote_variants(
         for plan_id, plan in plan_master["plans"].items():
             if not plan.get("enabled"):
                 continue
+            if not is_sales_plan_allowed(sales_type, plan_id):
+                continue
             support_options: list[str | None] = ["auto"]
-            if include_no_support and plan_id in {"super_light", "hyper_light"}:
+            if include_no_support and plan_id in _SUPPORT_AUTO_PLAN_IDS:
                 support_options.append(None)
             for data_plan in plan["data_plans"]:
                 if not is_plan_data_plan_allowed(plan_id, data_plan):
@@ -679,6 +686,13 @@ def run_individual(
     plan = plan_master["plans"].get(plan_id)
     if not plan or not plan.get("enabled"):
         raise ValueError("利用できない料金プランです")
+    if not is_sales_plan_allowed(sales_type, plan_id):
+        if plan_id == "light":
+            raise ValueError(
+                "機種変更では Bizパッケージ＋ライト は作成しません"
+                "（50GBはスーパーライト、それ以外はハイパーライトを使用）"
+            )
+        raise ValueError(f"販売区分と料金プランの組み合わせが不正です: {sales_type} / {plan_id}")
 
     selected_data = [
         value for value in data_plans
@@ -963,7 +977,28 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
 
 
 # auto_mapping で安心サポートが付くプラン（services.json と揃える）
-_SUPPORT_AUTO_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+_SUPPORT_AUTO_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
+_KISHU_SALES_TYPE = "機種変更・移動機物品販売"
+# 機種変更×IPSサブスクでは 50GB=スーパー／他=ハイパーのためプラン名フォルダを共通化
+_KISHU_SUBSCRIPTION_PLAN_FOLDER = "Bizパッケージ＋特別割引"
+
+
+def _plan_folder_name(
+    quote: dict[str, Any],
+    variant: dict[str, Any],
+) -> str:
+    """料金プラン用フォルダ名。機種変更＋IPSサブスクのスーパー／ハイパーは統合。"""
+    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
+    ips = (quote.get("services") or {}).get("ips")
+    if (
+        sales_type == _KISHU_SALES_TYPE
+        and ips
+        and ips.get("billing_type") == "subscription"
+        and plan_id in {"super_light", "hyper_light"}
+    ):
+        return _KISHU_SUBSCRIPTION_PLAN_FOLDER
+    return str(quote.get("plan_name") or plan_id)
 
 
 def _support_folder_name(
@@ -974,7 +1009,7 @@ def _support_folder_name(
 ) -> str | None:
     """安心サポートのフォルダ名。あり／なしの分岐があるときだけ返す。
 
-    - スーパー／ハイパーライト: 標準は強制加入のためフォルダ省略。
+    - ライト／スーパー／ハイパー: 標準は強制加入のためフォルダ省略。
       「なし」バリアントも作るとき（include_no_support）や、個別でなしを選んだときは
       あり／なしフォルダを付ける（パス衝突防止）。
     - その他プラン: 標準はなし固定のため省略。サポート付きだけ「安心サポートあり」。
@@ -1003,7 +1038,7 @@ def _quote_relative_path(
     include_standard_initial_fee: bool = False,
 ) -> Path:
     del ips_key
-    plan_folder = _safe_name(quote.get("plan_name") or variant["plan_id"])
+    plan_folder = _safe_name(_plan_folder_name(quote, variant))
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),

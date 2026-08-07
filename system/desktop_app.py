@@ -28,7 +28,11 @@ from quote_system.config import (
     load_json,
 )
 from quote_system.price_pdf_parser import SALES_COLUMNS, find_device
-from quote_system.quote_service import is_device_data_plan_allowed, is_plan_data_plan_allowed
+from quote_system.quote_service import (
+    is_device_data_plan_allowed,
+    is_plan_data_plan_allowed,
+    is_sales_plan_allowed,
+)
 
 
 # 情報ボタン（右上「i」）で開く紹介ページ
@@ -404,14 +408,15 @@ class QuoteApp(tk.Tk):
         # SALES_COLUMNS は {販売区分名: PDF列Index} の辞書。選択肢はキー一覧を使う。
         sales_types = list(SALES_COLUMNS.keys())
         sales_var = tk.StringVar(value=sales_types[0])
-        plan_name_to_id = {
+        all_plan_name_to_id = {
             plan["name"]: plan_id
             for plan_id, plan in plan_master["plans"].items() if plan.get("enabled")
         }
-        if not plan_name_to_id:
+        if not all_plan_name_to_id:
             messagebox.showerror("料金プランがありません", "plans.json の有効プランを確認してください。", parent=win)
             win.destroy()
             return
+        plan_name_to_id = dict(all_plan_name_to_id)
         plan_var = tk.StringVar(value=next(iter(plan_name_to_id)))
 
         def add_row(row: int, label: str, widget) -> None:
@@ -420,11 +425,10 @@ class QuoteApp(tk.Tk):
 
         model_combo = ttk.Combobox(fields, textvariable=model_var, values=models, state="normal")
         add_row(0, "機種", model_combo)
-        add_row(
-            1,
-            "販売区分",
-            ttk.Combobox(fields, textvariable=sales_var, values=sales_types, state="readonly"),
+        sales_combo = ttk.Combobox(
+            fields, textvariable=sales_var, values=sales_types, state="readonly"
         )
+        add_row(1, "販売区分", sales_combo)
         plan_combo = ttk.Combobox(
             fields, textvariable=plan_var, values=list(plan_name_to_id), state="readonly"
         )
@@ -499,6 +503,23 @@ class QuoteApp(tk.Tk):
 
         status_var = tk.StringVar(value="条件を選択して［PDF作成］を押してください。")
 
+        def refresh_plans(*_args) -> None:
+            nonlocal plan_name_to_id
+            sales = sales_var.get()
+            plan_name_to_id = {
+                name: plan_id
+                for name, plan_id in all_plan_name_to_id.items()
+                if is_sales_plan_allowed(sales, plan_id)
+            }
+            names = list(plan_name_to_id)
+            plan_combo.configure(values=names)
+            if not names:
+                plan_var.set("")
+                return
+            if plan_var.get() not in plan_name_to_id:
+                plan_var.set(names[0])
+            refresh_capacities()
+
         def refresh_capacities(*_args) -> None:
             try:
                 device = find_device(device_master, model_var.get())
@@ -568,9 +589,10 @@ class QuoteApp(tk.Tk):
             threading.Thread(target=worker, daemon=True).start()
 
         model_combo.bind("<<ComboboxSelected>>", refresh_capacities)
+        sales_combo.bind("<<ComboboxSelected>>", refresh_plans)
         plan_combo.bind("<<ComboboxSelected>>", refresh_capacities)
         model_combo.bind("<FocusOut>", refresh_capacities)
-        refresh_capacities()
+        refresh_plans()
         ttk.Label(frame, textvariable=status_var, wraplength=620).pack(anchor="w", pady=(12, 6))
         create_button = ttk.Button(frame, text="PDF作成", command=start)
         create_button.pack(anchor="w", ipadx=28, ipady=7)

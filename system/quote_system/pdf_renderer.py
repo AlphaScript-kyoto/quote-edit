@@ -48,9 +48,9 @@ def yen(value: int) -> str:
 
 
 def _pdf_additional_discount_label(name: Any) -> str:
-    """PDF上だけスーパーライト割／ハイパーライト割を「弊社特別割引」と表記する。"""
+    """PDF上だけライト系割引名を「弊社特別割引」と表記する。"""
     text = str(name or "").strip()
-    if text in {"スーパーライト割", "ハイパーライト割", "特別割引"}:
+    if text in {"ライト割", "スーパーライト割", "ハイパーライト割", "特別割引"}:
         return "弊社特別割引"
     return text or "弊社特別割引"
 

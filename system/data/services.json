@@ -207,6 +207,7 @@
     "description": "遠隔サポート、業務支援、通信端末レンタル、携帯電話契約内容照会を提供。契約開始から解約まで月額徴収。",
     "billing": "クレジットカードまたは口座振替。毎月1日が請求日。",
     "auto_mapping": {
+      "light": "support_xs",
       "super_light": "support_xs",
       "hyper_light": "support_s"
     },

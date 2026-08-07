@@ -23,9 +23,26 @@ def is_device_data_plan_allowed(device: dict[str, Any], data_plan: str) -> bool:
 
 def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
     """Return whether the tariff plan may offer the packet size."""
+    plan = str(plan_id).strip()
+    capacity = str(data_plan).strip()
     # Bizパッケージ＋スーパーライトはパケット50GBのみ（現場ルール）
-    if str(plan_id).strip() == "super_light":
-        return str(data_plan).strip() == "50GB"
+    if plan == "super_light":
+        return capacity == "50GB"
+    # ライト割は1GB以外（5GB以上／無制限）
+    if plan == "light":
+        return capacity != "1GB"
+    return True
+
+
+def is_sales_plan_allowed(sales_type: str, plan_id: str) -> bool:
+    """販売区分と料金プランの組合せ可否。
+
+    機種変更では Bizパッケージ＋ライト は使わない（50GB→スーパー／それ以外→ハイパー）。
+    """
+    sales = str(sales_type or "").strip()
+    plan = str(plan_id or "").strip()
+    if plan == "light" and sales == "機種変更・移動機物品販売":
+        return False
     return True
 
 
@@ -130,6 +147,16 @@ def build_quote(
     plan = plan_master["plans"].get(request["plan_id"])
     if not plan or not plan.get("enabled"):
         raise ValueError(f"利用できないプランです: {request['plan_id']}")
+    if not is_sales_plan_allowed(sales_type, request["plan_id"]):
+        if str(request["plan_id"]).strip() == "light":
+            raise ValueError(
+                "機種変更では Bizパッケージ＋ライト は作成しません"
+                "（50GBはスーパーライト、それ以外はハイパーライトを使用）"
+            )
+        raise ValueError(
+            f"販売区分と料金プランの組み合わせが不正です: "
+            f"{sales_type} / {request['plan_id']}"
+        )
     data_plan = plan["data_plans"].get(request["data_plan"])
     if not data_plan:
         raise ValueError(f"プランとデータ容量の組み合わせが不正です: {request['data_plan']}")
@@ -137,6 +164,10 @@ def build_quote(
         if str(request["plan_id"]).strip() == "super_light":
             raise ValueError(
                 "Bizパッケージ＋スーパーライトはパケット50GBのみ作成します"
+            )
+        if str(request["plan_id"]).strip() == "light":
+            raise ValueError(
+                "Bizパッケージ＋ライトは1GB以外のデータ容量のみ作成します"
             )
         raise ValueError(
             f"料金プランとデータ容量の組み合わせが不正です: "
