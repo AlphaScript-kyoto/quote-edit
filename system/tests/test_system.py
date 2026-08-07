@@ -315,11 +315,31 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 77)
+        self.assertEqual(len(variants), 78)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
-        self.assertNotIn("1GB", {item["data_plan"] for item in variants})
+        # ライト系割引プランでは1GBを作らない（Bizは機種変更のみ1GB可）
+        self.assertFalse(any(
+            item["data_plan"] == "1GB"
+            and item["plan_id"] in {"light", "super_light", "hyper_light"}
+            for item in variants
+        ))
+        ones = [item for item in variants if item["data_plan"] == "1GB"]
+        self.assertTrue(ones)
+        self.assertTrue(all(
+            item["plan_id"] == "biz_plus"
+            and item["sales_type"] == "機種変更・移動機物品販売"
+            for item in ones
+        ))
+        # 機種変更では Biz＋ とハイパーに 5GB がある
+        kishu_five = {
+            item["plan_id"]
+            for item in variants
+            if item["sales_type"] == "機種変更・移動機物品販売"
+            and item["data_plan"] == "5GB"
+        }
+        self.assertEqual(kishu_five, {"biz_plus", "hyper_light"})
         # スーパーライトは50GBのみ
         self.assertTrue(
             all(
@@ -349,13 +369,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 154)
+        self.assertEqual(len(with_no_ips), 156)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 154)
+        self.assertEqual(len(with_standard_fee), 156)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -367,6 +387,21 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual({item["data_plan"] for item in variants}, {"1GB"})
         self.assertEqual({item["plan_id"] for item in variants}, {"biz_plus"})
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False})
+
+        # ライト系プランは1GBを対象としない（ケータイでもハイパーを作らない）
+        with self.assertRaisesRegex(ValueError, "1GB|50GBのみ"):
+            build_quote(
+                {
+                    **self.request,
+                    "model": device["model"],
+                    "plan_id": "hyper_light",
+                    "data_plan": "1GB",
+                    "sales_type": "MNP",
+                },
+                self.device_master,
+                self.plan_master,
+                self.service_master,
+            )
 
         request = deepcopy(self.request)
         request.update({"model": device["model"], "plan_id": "biz_plus", "data_plan": "1GB"})
@@ -815,7 +850,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         ))
         # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 3528)
+        self.assertEqual(len(variants), 3556)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},

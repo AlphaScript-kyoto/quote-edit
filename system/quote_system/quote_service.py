@@ -9,12 +9,24 @@ from typing import Any
 from .price_pdf_parser import find_device
 
 
-def is_device_data_plan_allowed(device: dict[str, Any], data_plan: str) -> bool:
-    """Return whether the price-list device category can use the data plan."""
+def is_device_data_plan_allowed(
+    device: dict[str, Any],
+    data_plan: str,
+    sales_type: str | None = None,
+) -> bool:
+    """Return whether the price-list device category can use the data plan.
+
+    機種変更では通常機種でもパケット1GBを許可する（5GB以上は従来どおり）。
+    ケータイは引き続き1GBのみ。
+    """
     category = str(device.get("category", "")).strip()
     normalized_plan = str(data_plan).strip()
+    sales = str(sales_type or "").strip()
     if category == "ケータイ":
         return normalized_plan == "1GB"
+    # 機種変更のみ：通常機種でも1GB見積を作成する
+    if sales == "機種変更・移動機物品販売" and normalized_plan == "1GB":
+        return True
     if normalized_plan == "無制限":
         return True
     match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*GB", normalized_plan, flags=re.IGNORECASE)
@@ -25,10 +37,13 @@ def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
     """Return whether the tariff plan may offer the packet size."""
     plan = str(plan_id).strip()
     capacity = str(data_plan).strip()
+    # ライト／スーパーライト／ハイパーライトは1GB非対象（追加割引があるプラン）
+    if plan in {"light", "super_light", "hyper_light"} and capacity == "1GB":
+        return False
     # Bizパッケージ＋スーパーライトはパケット50GBのみ（現場ルール）
     if plan == "super_light":
         return capacity == "50GB"
-    # ライト割は1GB以外（5GB以上／無制限）
+    # ライトは plans 上も1GB以外（5GB以上／無制限）
     if plan == "light":
         return capacity != "1GB"
     return True
@@ -161,11 +176,17 @@ def build_quote(
     if not data_plan:
         raise ValueError(f"プランとデータ容量の組み合わせが不正です: {request['data_plan']}")
     if not is_plan_data_plan_allowed(request["plan_id"], request["data_plan"]):
-        if str(request["plan_id"]).strip() == "super_light":
+        plan_key = str(request["plan_id"]).strip()
+        capacity = str(request["data_plan"]).strip()
+        if plan_key == "super_light":
             raise ValueError(
                 "Bizパッケージ＋スーパーライトはパケット50GBのみ作成します"
             )
-        if str(request["plan_id"]).strip() == "light":
+        if plan_key in {"light", "super_light", "hyper_light"} and capacity == "1GB":
+            raise ValueError(
+                "ライト／スーパーライト／ハイパーライトではパケット1GBは作成しません"
+            )
+        if plan_key == "light":
             raise ValueError(
                 "Bizパッケージ＋ライトは1GB以外のデータ容量のみ作成します"
             )
@@ -173,9 +194,11 @@ def build_quote(
             f"料金プランとデータ容量の組み合わせが不正です: "
             f"{request['plan_id']} / {request['data_plan']}"
         )
-    if not is_device_data_plan_allowed(device, request["data_plan"]):
+    if not is_device_data_plan_allowed(device, request["data_plan"], sales_type):
         if str(device.get("category", "")).strip() == "ケータイ":
             condition = "1GBのみ"
+        elif sales_type == "機種変更・移動機物品販売":
+            condition = "1GB以上"
         else:
             condition = "5GB以上"
         raise ValueError(
