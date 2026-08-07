@@ -15,7 +15,7 @@ ROOT = SYSTEM_DIR.parent
 DIST = ROOT / "portable"
 BUILD_NAME = "QuoteBatchApp"
 APP_NAME = APP_DISPLAY_NAME
-# 配布フォルダ名例: 見積もり一括作成ver1.3.2
+# 配布フォルダ名例: 見積もり一括作成ver1.3.3
 PACKAGE_DIR_NAME = f"{APP_NAME}ver{APP_VERSION}"
 UPDATE_NAME = "機種代金一覧表"
 

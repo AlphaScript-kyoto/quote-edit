@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.2**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.3**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -130,6 +130,9 @@ For 機種変更 + super/hyper standard path, omit plan folder (特別割引) an
 
 ### 2026-08-07 - Kishu upfront IPS display folders
 機種変更 super/hyper: no plan folders; under SB光 use 一括表記 / ランニングコスト表記 then IPS plan (ゴールド24 etc.). Biz+ unchanged.
+
+### 2026-08-07 - Release ver.1.3.3
+Ship 1.3.3: branching fee/support folders; Biz light plan; kishu path layout (IPS一括表記 / IPSランニングコスト表記); display 機種変更 short name.
 
 ## Release checklist
 1. APP_VERSION
