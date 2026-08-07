@@ -532,7 +532,7 @@ class QuoteApp(tk.Tk):
                 allowed = (
                     name in plan["data_plans"]
                     and is_plan_data_plan_allowed(plan_id, name)
-                    and is_device_data_plan_allowed(device, name)
+                    and is_device_data_plan_allowed(device, name, sales_var.get())
                 )
                 check.configure(state="normal" if allowed else "disabled")
                 if not allowed:

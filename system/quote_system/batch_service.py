@@ -211,7 +211,7 @@ def quote_variants(
             for data_plan in plan["data_plans"]:
                 if not is_plan_data_plan_allowed(plan_id, data_plan):
                     continue
-                if not is_device_data_plan_allowed(device, data_plan):
+                if not is_device_data_plan_allowed(device, data_plan, sales_type):
                     continue
                 ouchi_amount = int(
                     plan_master["common"]
@@ -698,7 +698,7 @@ def run_individual(
         value for value in data_plans
         if value in plan["data_plans"]
         and is_plan_data_plan_allowed(plan_id, value)
-        and is_device_data_plan_allowed(device, value)
+        and is_device_data_plan_allowed(device, value, sales_type)
     ]
     if not selected_data:
         raise ValueError("機種と料金プランに対応するデータ容量を選択してください")
