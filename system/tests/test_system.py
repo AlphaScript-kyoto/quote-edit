@@ -60,11 +60,11 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["services"]["support"]["name"], "携帯電話安心サポートS")
         self.assertEqual(
             [period["monthly_total_tax_in"] for period in quote["periods"]],
-            [5351, 5351, 12879],
+            [9050, 9050, 9180],
         )
         self.assertEqual(
             [period["monthly_total_display_tax_ex"] for period in quote["periods"]],
-            [4865, 4865, 12393],
+            [8564, 8564, 8694],
         )
 
     def test_upfront_ips_monthly_equivalent(self):
@@ -78,8 +78,8 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(quote["initial_total_tax_in"], 45320)
         self.assertEqual(quote["services"]["ips"]["monthly_equivalent_tax_in"], 1683)
-        self.assertEqual(quote["periods"][0]["monthly_total_tax_in"], 3833)
-        self.assertEqual(quote["periods"][0]["monthly_equivalent_total_tax_in"], 5516)
+        self.assertEqual(quote["periods"][0]["monthly_total_tax_in"], 7532)
+        self.assertEqual(quote["periods"][0]["monthly_equivalent_total_tax_in"], 9215)
 
     def test_upfront_ips_keeps_plan_support_mapping(self):
         request = deepcopy(self.request)
@@ -116,7 +116,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertIsNone(quote["services"]["ips"])
         self.assertEqual(quote["components"]["biz_package_discount_tax_ex"], -4300)
         self.assertEqual(quote["components"]["additional_discount_tax_ex"], -1500)
-        self.assertEqual(quote["periods"][0]["monthly_total_display_tax_ex"], 3465)
+        self.assertEqual(quote["periods"][0]["monthly_total_display_tax_ex"], 7164)
 
     def test_iphone_category_is_available_for_notes(self):
         quote = build_quote(
@@ -318,10 +318,14 @@ class QuoteSystemTest(unittest.TestCase):
                     if expect["not_address"]:
                         self.assertNotIn(expect["not_address"], text)
                     self.assertIn("届出番号：G1901279", text)
-                    self.assertIn("MNPお見積り", text)
+                    self.assertIn("機種変更お見積り", text)
 
     def test_support_auto_mapping(self):
-        super_light = {**self.request, "plan_id": "super_light", "data_plan": "50GB"}
+        super_light = {
+            **self.request,
+            "plan_id": "super_light",
+            "data_plan": "50GB",
+        }
         quote = build_quote(
             super_light, self.device_master, self.plan_master, self.service_master
         )
@@ -329,7 +333,12 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["services"]["support"]["monthly_fee_tax_ex"], 980)
         self.assertEqual(quote["services"]["support"]["monthly_fee_tax_in"], 1078)
 
-        light = {**self.request, "plan_id": "light", "data_plan": "20GB"}
+        light = {
+            **self.request,
+            "sales_type": "MNP",
+            "plan_id": "light",
+            "data_plan": "20GB",
+        }
         light_quote = build_quote(
             light, self.device_master, self.plan_master, self.service_master
         )
@@ -344,7 +353,7 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 78)
+        self.assertEqual(len(variants), 57)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
@@ -369,6 +378,12 @@ class QuoteSystemTest(unittest.TestCase):
             and item["data_plan"] == "5GB"
         }
         self.assertEqual(kishu_five, {"biz_plus", "hyper_light"})
+        # スーパー／ハイパーは機種変更のみ
+        self.assertTrue(all(
+            item["sales_type"] == "機種変更・移動機物品販売"
+            for item in variants
+            if item["plan_id"] in {"super_light", "hyper_light"}
+        ))
         # スーパーライトは50GBのみ
         self.assertTrue(
             all(
@@ -377,7 +392,7 @@ class QuoteSystemTest(unittest.TestCase):
                 if item["plan_id"] == "super_light"
             )
         )
-        # ライトは1GB以外・機種変更では使わない
+        # ライトは1GB以外・機種変更では使わない（MNP／新規／番号移行のみ）
         self.assertTrue(
             all(
                 item["data_plan"] != "1GB"
@@ -389,6 +404,10 @@ class QuoteSystemTest(unittest.TestCase):
             item["plan_id"] == "light" and item["sales_type"] == "機種変更・移動機物品販売"
             for item in variants
         ))
+        self.assertEqual(
+            {item["sales_type"] for item in variants if item["plan_id"] == "light"},
+            {"MNP", "新規", "番号移行"},
+        )
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False, True})
         self.assertFalse(any(
             item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
@@ -398,13 +417,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 156)
+        self.assertEqual(len(with_no_ips), 114)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 156)
+        self.assertEqual(len(with_standard_fee), 114)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -425,6 +444,21 @@ class QuoteSystemTest(unittest.TestCase):
                     "model": device["model"],
                     "plan_id": "hyper_light",
                     "data_plan": "1GB",
+                    "sales_type": "機種変更・移動機物品販売",
+                },
+                self.device_master,
+                self.plan_master,
+                self.service_master,
+            )
+
+        # MNP ではハイパー自体を作らない
+        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+            build_quote(
+                {
+                    **self.request,
+                    "model": device["model"],
+                    "plan_id": "hyper_light",
+                    "data_plan": "5GB",
                     "sales_type": "MNP",
                 },
                 self.device_master,
@@ -442,8 +476,13 @@ class QuoteSystemTest(unittest.TestCase):
             build_quote(request, self.device_master, self.plan_master, self.service_master)
 
     def test_non_feature_phone_cannot_use_1gb(self):
+        # MNPなど機種変更以外では通常機種の1GBは不可（機種変更ではBiz＋1GB可）
         request = deepcopy(self.request)
-        request.update({"plan_id": "biz_plus", "data_plan": "1GB"})
+        request.update({
+            "sales_type": "MNP",
+            "plan_id": "biz_plus",
+            "data_plan": "1GB",
+        })
         with self.assertRaisesRegex(ValueError, "5GB以上"):
             build_quote(request, self.device_master, self.plan_master, self.service_master)
 
@@ -566,9 +605,9 @@ class QuoteSystemTest(unittest.TestCase):
         relative = _quote_relative_path(
             device, variant, quote, "subscription", "SB光なし"
         )
-        # スーパー／ハイパー: Biz＋と並ぶ IRSあり / IPSサブスク
+        # スーパー／ハイパー（機種変更のみ）: Biz＋と並ぶ IRSあり / IPSサブスク
         self.assertEqual(relative.parts, (
-            "iPhone", "iPhone_17(256GB)", "MNP", "SB光なし",
+            "iPhone", "iPhone_17(256GB)", "機種変更", "SB光なし",
             "IRSあり", "IPSサブスク",
             "iPhone17(256GB)_5GB.pdf",
         ))
@@ -577,6 +616,20 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertNotIn("安心サポート", str(relative))
         self.assertNotIn("初期費用", str(relative))
         self.assertNotIn("事務手数料", str(relative))
+
+        # MNP ではスーパー／ハイパー不可（Biz・ライトのみ）
+        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+            build_quote(
+                {
+                    **self.request,
+                    "sales_type": "MNP",
+                    "plan_id": "hyper_light",
+                    "data_plan": "5GB",
+                },
+                self.device_master,
+                self.plan_master,
+                self.service_master,
+            )
 
         upfront_request = deepcopy(self.request)
         upfront_request.update({
@@ -966,7 +1019,11 @@ class QuoteSystemTest(unittest.TestCase):
             )
         # MNPではライト可（割引 -500）
         mnp_light = deepcopy(self.request)
-        mnp_light.update({"plan_id": "light", "data_plan": "20GB"})
+        mnp_light.update({
+            "sales_type": "MNP",
+            "plan_id": "light",
+            "data_plan": "20GB",
+        })
         light_quote = build_quote(
             mnp_light, self.device_master, self.plan_master, self.service_master
         )
@@ -1026,7 +1083,7 @@ class QuoteSystemTest(unittest.TestCase):
             include_standard_initial_fee=True,
         ))
         # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 3556)
+        self.assertEqual(len(variants), 2380)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},
@@ -1127,7 +1184,7 @@ class QuoteSystemTest(unittest.TestCase):
             self.assertTrue(
                 0 <= device_pos < ips_pos < support_pos < uni < total_pos
             )
-            self.assertIn("MNPお見積り", text)  # worst case uses test request sales_type
+            self.assertIn("機種変更お見積り", text)
 
     def test_attention_notes_conditions(self):
         from quote_system.pdf_renderer import _attention_notes
@@ -1318,13 +1375,13 @@ class QuoteSystemTest(unittest.TestCase):
         from unittest.mock import patch
         from quote_system.batch_service import run_individual
 
-        # サブスク＋ハイパー（MNP）→ IRSあり/IPSサブスク
+        # サブスク＋ハイパー（機種変更）→ IRSあり/IPSサブスク
         with TemporaryDirectory() as tmp:
             out = Path(tmp)
             with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
                 result = run_individual(
                     model="iPhone 17 256GB",
-                    sales_type="MNP",
+                    sales_type="機種変更・移動機物品販売",
                     plan_id="hyper_light",
                     data_plans=["5GB"],
                     ouchi_options=[False],
@@ -1347,7 +1404,7 @@ class QuoteSystemTest(unittest.TestCase):
                 self.assertEqual(len(doc.pages), 1)
                 text = "\n".join(page.extract_text() or "" for page in doc.pages)
             self.assertIn("RT事業部", text)
-            self.assertIn("MNPお見積り", text)
+            self.assertIn("機種変更お見積り", text)
             # company.json の RT に FAX があれば表記（ローカル専用マスタ）
             company = load_json(DATA_DIR / "company.json")
             rt_fax = str(
@@ -1360,6 +1417,17 @@ class QuoteSystemTest(unittest.TestCase):
                 self.assertRegex(text, rf"FAX：\s*{re.escape(rt_fax)}")
             else:
                 self.assertNotIn("FAX：", text)
+
+        # MNP ではハイパーを拒否
+        with self.assertRaisesRegex(ValueError, "機種変更のみ"):
+            run_individual(
+                model="iPhone 17 256GB",
+                sales_type="MNP",
+                plan_id="hyper_light",
+                data_plans=["5GB"],
+                ouchi_options=[False],
+                include_ips_subscription=True,
+            )
 
         # 機種変更×スーパー＋通常IPS両方表記 → IRSあり配下の表記フォルダ
         with TemporaryDirectory() as tmp:

@@ -52,11 +52,15 @@ def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
 def is_sales_plan_allowed(sales_type: str, plan_id: str) -> bool:
     """販売区分と料金プランの組合せ可否。
 
-    機種変更では Bizパッケージ＋ライト は使わない（50GB→スーパー／それ以外→ハイパー）。
+    - Bizパッケージ＋ライト: 機種変更では使わない（MNP／新規／番号移行のみ）
+    - スーパー／ハイパー: 機種変更のみ（MNP／新規／番号移行では加入なし）
     """
     sales = str(sales_type or "").strip()
     plan = str(plan_id or "").strip()
-    if plan == "light" and sales == "機種変更・移動機物品販売":
+    kishu = "機種変更・移動機物品販売"
+    if plan == "light" and sales == kishu:
+        return False
+    if plan in {"super_light", "hyper_light"} and sales != kishu:
         return False
     return True
 
@@ -163,10 +167,16 @@ def build_quote(
     if not plan or not plan.get("enabled"):
         raise ValueError(f"利用できないプランです: {request['plan_id']}")
     if not is_sales_plan_allowed(sales_type, request["plan_id"]):
-        if str(request["plan_id"]).strip() == "light":
+        plan_key = str(request["plan_id"]).strip()
+        if plan_key == "light":
             raise ValueError(
                 "機種変更では Bizパッケージ＋ライト は作成しません"
                 "（50GBはスーパーライト、それ以外はハイパーライトを使用）"
+            )
+        if plan_key in {"super_light", "hyper_light"}:
+            raise ValueError(
+                "スーパーライト／ハイパーライトは機種変更のみ作成します"
+                "（MNP／新規／番号移行では作成しません）"
             )
         raise ValueError(
             f"販売区分と料金プランの組み合わせが不正です: "

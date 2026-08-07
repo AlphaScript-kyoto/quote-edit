@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.3**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.4**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -151,6 +151,13 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 
 ### 2026-08-07 - Super/hyper parent folder rename IPSあり → IRSあり
 User terminology: **IRS** = 安心保証サービス frame. Super/hyper PDFs live under `IRSあり` (not `IPSあり`). Subfolders for SoftBank repair billing stay `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記`; no-repair stays `IPSなし` outside IRSあり.
+
+### 2026-08-07 - Release ver.1.3.4 (super/hyper kishu-only)
+Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hyper light → do not generate those quotes.
+- `is_sales_plan_allowed`: `super_light`/`hyper_light` only when sales = 機種変更・移動機物品販売.
+- `light` still forbidden on 機種変更; still allowed on MNP/新番.
+- Batch default variants: 78 → 57 (iPhone example); full-pattern 3556 → 2380.
+- Bump `APP_VERSION` 1.3.4; field release note UTF-8 BOM.
 
 ## Release checklist
 1. APP_VERSION

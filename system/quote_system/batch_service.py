@@ -692,6 +692,11 @@ def run_individual(
                 "機種変更では Bizパッケージ＋ライト は作成しません"
                 "（50GBはスーパーライト、それ以外はハイパーライトを使用）"
             )
+        if plan_id in {"super_light", "hyper_light"}:
+            raise ValueError(
+                "スーパーライト／ハイパーライトは機種変更のみ作成します"
+                "（MNP／新規／番号移行では作成しません）"
+            )
         raise ValueError(f"販売区分と料金プランの組み合わせが不正です: {sales_type} / {plan_id}")
 
     selected_data = [

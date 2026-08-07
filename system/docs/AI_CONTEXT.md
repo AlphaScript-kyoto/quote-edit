@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.3.3)
+# AI Context - Infinity Quote Batch App (ver.1.3.4)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.3.md`  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.3"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.3.4"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -154,6 +154,7 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
+| 1.3.4 | Super/hyper **only for 機種変更**; no super/hyper for MNP/新規/番号移行. Light remains non-kishu. IRSあり layout / company seed unchanged from 1.3.3. |
 | 1.3.3 | Initial-fee / support folders only when branching; Biz light -500; super/hyper under IRSあり (サブスク/一括表記/通常ランニング); EXE company empty FAX merge; kishu no light; sales display 機種変更. |
 | 1.3.2 | Upfront IPS plan folders (JP names); running warranty columns 24/36; super_light 50GB only; subscr. filename without tier; PDF extra light discount label `弊社特別割引`; developer spec v1.3; field package ZIP |
 | 1.3.1 | PDF layout polish; company.json gitignored; UTF-8 BOM field texts; release-note encoding incident |
