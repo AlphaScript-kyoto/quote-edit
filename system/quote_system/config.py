@@ -52,6 +52,50 @@ def save_json(path: Path, payload: Any) -> None:
     temp_path.replace(path)
 
 
+def merge_missing_company_fields(
+    local: dict[str, Any],
+    bundled: dict[str, Any],
+) -> bool:
+    """ローカル company の空の TEL/FAX/住所を同梱マスタで埋める。変更があれば True。
+
+    EXE 初回コピー後に FAX が空のまま残ると、開発環境（system/data）と
+    現場（%LOCALAPPDATA%）で見積表記が食い違うため、空欄のみ同梱側で補完する。
+    既に値が入っている項目は上書きしない。
+    """
+    changed = False
+    for key in ("phone", "fax", "postal_address"):
+        bundled_value = str(bundled.get(key) or "").strip()
+        local_value = str(local.get(key) or "").strip()
+        if bundled_value and not local_value:
+            local[key] = bundled[key]
+            changed = True
+
+    bundled_contacts = bundled.get("department_contacts")
+    if not isinstance(bundled_contacts, dict):
+        return changed
+    local_contacts = local.get("department_contacts")
+    if not isinstance(local_contacts, dict):
+        local_contacts = {}
+        local["department_contacts"] = local_contacts
+        changed = True
+
+    for dept, bundled_entry in bundled_contacts.items():
+        if not isinstance(bundled_entry, dict):
+            continue
+        local_entry = local_contacts.get(dept)
+        if not isinstance(local_entry, dict):
+            local_entry = {}
+            local_contacts[dept] = local_entry
+            changed = True
+        for field in ("phone", "fax", "postal_address", "address"):
+            bundled_value = str(bundled_entry.get(field) or "").strip()
+            local_value = str(local_entry.get(field) or "").strip()
+            if bundled_value and not local_value:
+                local_entry[field] = bundled_entry[field]
+                changed = True
+    return changed
+
+
 def ensure_directories() -> None:
     for directory in (DATA_DIR, INPUT_DIR, OUTPUT_DIR, LOG_DIR, UPDATE_DIR):
         directory.mkdir(parents=True, exist_ok=True)
@@ -62,3 +106,14 @@ def ensure_directories() -> None:
             target = DATA_DIR / filename
             if source.exists() and not target.exists():
                 shutil.copy2(source, target)
+            # company: 現場に残った空の FAX 等を同梱マスタで補完（開発と表記差が出る対策）
+            if filename == "company.json" and source.exists() and target.exists():
+                try:
+                    local = load_json(target)
+                    bundled = load_json(source)
+                    if isinstance(local, dict) and isinstance(bundled, dict):
+                        if merge_missing_company_fields(local, bundled):
+                            save_json(target, local)
+                except (OSError, json.JSONDecodeError, TypeError):
+                    pass
+

@@ -1001,16 +1001,24 @@ def _plan_folder_name(
     return str(quote.get("plan_name") or plan_id)
 
 
-def _merged_upfront_display_folder(
+def _merged_ips_branch_folder(
     quote: dict[str, Any],
     variant: dict[str, Any],
 ) -> str | None:
-    """スーパー／ハイパー＋通常IPSを、IPS一括表記／IPSランニングコスト表記で分ける。"""
+    """スーパー／ハイパーかつ IPS ありのときの分岐フォルダ名。
+
+    IPSあり/ 直下: IPSサブスク | IPS一括表記 | 通常IPSランニングコスト表記
+    """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     if not _is_merged_special_discount(plan_id):
         return None
     ips = (quote.get("services") or {}).get("ips")
-    if not ips or ips.get("billing_type") != "upfront":
+    if not ips:
+        return None
+    billing = ips.get("billing_type")
+    if billing == "subscription":
+        return "IPSサブスク"
+    if billing != "upfront":
         return None
     display_mode = str(
         variant.get("ips_display_mode")
@@ -1018,7 +1026,7 @@ def _merged_upfront_display_folder(
         or "lump"
     )
     if display_mode == "monthly_as_running":
-        return "IPSランニングコスト表記"
+        return "通常IPSランニングコスト表記"
     return "IPS一括表記"
 
 
@@ -1080,22 +1088,20 @@ def _quote_relative_path(
         quote, variant, include_no_support=include_no_support
     )
     ips = (quote.get("services") or {}).get("ips")
-    # スーパー／ハイパー標準（IPSサブスク・追加分岐なし）は SB光直下に PDF
-    merged_flat = (
-        _is_merged_special_discount(plan_id)
-        and not fee_folder
-        and not support_folder
-        and bool(ips)
-        and ips.get("billing_type") == "subscription"
-    )
-    if merged_flat:
-        parts.append(_quote_filename(device, variant, quote))
-        return Path(*parts)
 
-    # スーパー／ハイパー＋通常IPS → IPS一括表記 / IPSランニングコスト表記 → IPSプラン
-    merged_upfront_display = _merged_upfront_display_folder(quote, variant)
-    if merged_upfront_display:
-        parts.append(_safe_name(merged_upfront_display))
+    # スーパー／ハイパー: Bizパッケージ＋と並列に「IPSあり」を置き、その中で分岐
+    if _is_merged_special_discount(plan_id):
+        if not ips:
+            parts.append("IPSなし")
+            if support_folder:
+                parts.append(support_folder)
+            parts.append(_quote_filename(device, variant, quote))
+            return Path(*parts)
+
+        parts.append("IPSあり")
+        branch = _merged_ips_branch_folder(quote, variant)
+        if branch:
+            parts.append(_safe_name(branch))
         plan_token_folder = _upfront_ips_plan_folder(quote)
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))

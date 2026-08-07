@@ -140,6 +140,11 @@ Extend kishu-only flatten to **MNP / 新規 / 番号移行 / 機種変更** alik
 - Do **not** merge `light` (容量 overlap with both) — keeps `Bizパッケージ＋ライト`.
 - `biz_plus` unchanged. Capacity uniqueness keeps zero path collisions across ~18k variants.
 
+### 2026-08-07 - IPSあり parent + FAX seed merge
+- Super/hyper under SB光: sibling folders **Bizパッケージ＋** and **IPSあり**; under IPSあり → `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記` (+ plan token). IPSなし stays outside IPSあり.
+- EXE `company.json`: on launch, fill empty `phone`/`fax`/`postal_address` (incl. department_contacts) from bundled company so field LOCALAPPDATA does not silently drop RT FAX while dev `system/data` still has it.
+- PDF still hides FAX line when fax is empty string (TM etc.).
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
