@@ -15,6 +15,7 @@ from quote_system.installment_36 import (
     load_installment_36_targets,
     parse_installment_36_pdf,
 )
+from quote_system.pdf_renderer import _attention_notes
 from quote_system.quote_service import build_quote
 
 
@@ -120,6 +121,13 @@ class Installment36PrototypeTest(unittest.TestCase):
         self.assertEqual(quote["periods"][0]["key"], "1_36")
         self.assertEqual(quote["periods"][0]["device_payment"], 3308)
         self.assertIn("1～36", quote["periods"][0]["label"])
+        # 48回払い前提の「新トクするサポート＋」注意事項は36回では出さない
+        notes_36 = _attention_notes(quote, ips=True, support=True)
+        self.assertFalse(any("新トクするサポート" in note for note in notes_36))
+        notes_48 = _attention_notes(
+            {**quote, "installment_months": 48}, ips=True, support=True
+        )
+        self.assertTrue(any("新トクするサポート" in note for note in notes_48))
 
 
 if __name__ == "__main__":

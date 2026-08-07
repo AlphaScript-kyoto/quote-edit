@@ -170,6 +170,11 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 - 36-installment mode ignores the exclusion feature entirely: main-window button disabled with status note, batch and individual paths no longer filter by excluded_models.json. Targets come only from installment_36_targets.json.
 - Individual quote entry split into two explicit buttons: (48-normal) and (36-installment); window no longer follows the main-mode radio.
 
+### 2026-08-07 - 36-mode: checkbox model picker + drop 48-only attention note
+- Individual 36 window: model dropdown replaced with a checkbox list of all JSON-target models (select-all / clear buttons); generation loops selected models, per-model data-plan filtering, aggregated result dialog.
+- PDF attention notes: the SHIN-TOKU SUPPORT+ paragraph (48-installment contract wording) is omitted when quote installment_months == 36 (test added).
+- import_installment_36_master now caches by PDF sha256 into device_master_36.json so per-model run_individual calls do not re-parse the PDF.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

@@ -191,12 +191,28 @@ def filter_36_target_devices(
 
 
 def import_installment_36_master(pdf_path: Path | None = None) -> dict[str, Any]:
+    import hashlib
+
     path = pdf_path or latest_installment_36_pdf()
     if path is None or not path.exists():
         raise FileNotFoundError(
             "36回割賦の価格表PDFがありません。"
             f"「{UPDATE_36_DIR}」にPDFを入れてください。"
         )
+    source_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+    # 同じPDFなら再解析せずキャッシュを返す（個別見積で機種ごとに呼ばれるため）
+    if DEVICE_MASTER_36_PATH.exists():
+        try:
+            cached = load_json(DEVICE_MASTER_36_PATH)
+        except Exception:
+            cached = None
+        if (
+            isinstance(cached, dict)
+            and cached.get("source_hash") == source_hash
+            and cached.get("devices")
+        ):
+            return cached
     master = parse_installment_36_pdf(path)
+    master["source_hash"] = source_hash
     save_json(DEVICE_MASTER_36_PATH, master)
     return master

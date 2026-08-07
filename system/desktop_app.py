@@ -506,8 +506,12 @@ class QuoteApp(tk.Tk):
 
         win = tk.Toplevel(self)
         win.title(mode_label)
-        win.geometry("680x780")
-        win.minsize(620, 720)
+        if months == 36:
+            win.geometry("720x900")
+            win.minsize(660, 800)
+        else:
+            win.geometry("680x780")
+            win.minsize(620, 720)
         frame = ttk.Frame(win, padding=18)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text=mode_label, font=("Yu Gothic UI", 17, "bold")).pack(anchor="w")
@@ -524,6 +528,38 @@ class QuoteApp(tk.Tk):
             text=note_text,
             wraplength=620,
         ).pack(anchor="w", pady=(0, 12))
+
+        # 36回割賦：機種はプルダウンではなくチェックボックスで複数選択する
+        model_check_vars: dict[str, tk.BooleanVar] = {}
+        if months == 36:
+            model_box = ttk.LabelFrame(frame, text="作成する機種（複数選択可）", padding=10)
+            model_box.pack(fill="x", pady=(0, 8))
+            model_toolbar = ttk.Frame(model_box)
+            model_toolbar.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
+
+            def _set_all_models(value: bool) -> None:
+                for var in model_check_vars.values():
+                    var.set(value)
+                refresh_capacities()
+
+            ttk.Button(
+                model_toolbar, text="すべて選択",
+                command=lambda: _set_all_models(True),
+            ).pack(side="left")
+            ttk.Button(
+                model_toolbar, text="すべて解除",
+                command=lambda: _set_all_models(False),
+            ).pack(side="left", padx=(8, 0))
+            for index, name in enumerate(models):
+                var = tk.BooleanVar(value=True)
+                model_check_vars[name] = var
+                row, column = divmod(index, 2)
+                ttk.Checkbutton(
+                    model_box, text=name, variable=var,
+                    command=lambda: refresh_capacities(),
+                ).grid(row=row + 1, column=column, sticky="w", padx=4, pady=1)
+            model_box.columnconfigure(0, weight=1)
+            model_box.columnconfigure(1, weight=1)
 
         fields = ttk.Frame(frame)
         fields.pack(fill="x")
@@ -546,8 +582,10 @@ class QuoteApp(tk.Tk):
             ttk.Label(fields, text=label, width=16).grid(row=row, column=0, sticky="w", pady=4)
             widget.grid(row=row, column=1, sticky="ew", pady=4)
 
-        model_combo = ttk.Combobox(fields, textvariable=model_var, values=models, state="normal")
-        add_row(0, "機種", model_combo)
+        model_combo = None
+        if months != 36:
+            model_combo = ttk.Combobox(fields, textvariable=model_var, values=models, state="normal")
+            add_row(0, "機種", model_combo)
         sales_combo = ttk.Combobox(
             fields, textvariable=sales_var, values=sales_types, state="readonly"
         )
@@ -643,19 +681,32 @@ class QuoteApp(tk.Tk):
                 plan_var.set(names[0])
             refresh_capacities()
 
-        def refresh_capacities(*_args) -> None:
+        def _selected_devices() -> list[dict]:
+            if months == 36:
+                names = {name for name, var in model_check_vars.items() if var.get()}
+                return [d for d in devices if d["model"] in names]
             try:
-                device = find_device(device_master, model_var.get())
+                return [find_device(device_master, model_var.get())]
+            except (KeyError, ValueError):
+                return []
+
+        def refresh_capacities(*_args) -> None:
+            selected_devices = _selected_devices()
+            try:
                 plan_id = plan_name_to_id[plan_var.get()]
                 plan = plan_master["plans"][plan_id]
-            except (KeyError, ValueError):
+            except KeyError:
                 return
             selected_any = False
             for name, check in capacity_checks.items():
+                # 複数機種選択時は「どれか1機種でも使える容量」を選択可能にする
                 allowed = (
                     name in plan["data_plans"]
                     and is_plan_data_plan_allowed(plan_id, name)
-                    and is_device_data_plan_allowed(device, name, sales_var.get())
+                    and any(
+                        is_device_data_plan_allowed(device, name, sales_var.get())
+                        for device in selected_devices
+                    )
                 )
                 check.configure(state="normal" if allowed else "disabled")
                 if not allowed:
@@ -664,18 +715,19 @@ class QuoteApp(tk.Tk):
                     capacity_vars[name].set(True)
                     selected_any = True
 
-        def completed(result) -> None:
+        def completed(generated_files: int, output_dir) -> None:
             create_button.configure(state="normal")
-            status_var.set(f"{result.generated_files}件のPDFを作成しました。")
+            status_var.set(f"{generated_files}件のPDFを作成しました。")
             messagebox.showinfo("個別見積作成完了", status_var.get(), parent=win)
-            _open_path(result.output_dir)
+            if output_dir:
+                _open_path(output_dir)
 
         def failed(detail: str) -> None:
             create_button.configure(state="normal")
             status_var.set("作成を停止しました。条件を確認してください。")
             messagebox.showerror("個別見積作成エラー", detail, parent=win)
 
-        def worker() -> None:
+        def worker(target_models: list[str]) -> None:
             try:
                 fee_modes = [
                     mode for mode, enabled in (
@@ -683,39 +735,73 @@ class QuoteApp(tk.Tk):
                         ("standard", fee_standard_var.get()),
                     ) if enabled
                 ]
-                result = run_individual(
-                    model=model_var.get(),
-                    sales_type=sales_var.get(),
-                    plan_id=plan_name_to_id[plan_var.get()],
-                    data_plans=[name for name, var in capacity_vars.items() if var.get()],
-                    ouchi_options=[
-                        option for option, enabled in (
-                            (False, ouchi_none_var.get()), (True, ouchi_yes_var.get())
-                        ) if enabled
-                    ],
-                    include_ips_subscription=ips_subscription_var.get(),
-                    include_upfront_lump=ips_upfront_lump_var.get(),
-                    include_upfront_running=ips_upfront_running_var.get(),
-                    include_no_ips=ips_none_var.get(),
-                    support_plan_id=support_display[support_var.get()],
-                    department=self.department_var.get(),
-                    initial_fee_modes=fee_modes,
-                    installment_months=months,
-                )
+                selected_capacities = [
+                    name for name, var in capacity_vars.items() if var.get()
+                ]
+                total_files = 0
+                output_dir = None
+                for target in target_models:
+                    device = find_device(device_master, target)
+                    # 機種ごとに使える容量だけ渡す（複数機種の混在選択に対応）
+                    data_plans = [
+                        name for name in selected_capacities
+                        if is_device_data_plan_allowed(device, name, sales_var.get())
+                    ]
+                    if not data_plans:
+                        continue
+                    result = run_individual(
+                        model=target,
+                        sales_type=sales_var.get(),
+                        plan_id=plan_name_to_id[plan_var.get()],
+                        data_plans=data_plans,
+                        ouchi_options=[
+                            option for option, enabled in (
+                                (False, ouchi_none_var.get()), (True, ouchi_yes_var.get())
+                            ) if enabled
+                        ],
+                        include_ips_subscription=ips_subscription_var.get(),
+                        include_upfront_lump=ips_upfront_lump_var.get(),
+                        include_upfront_running=ips_upfront_running_var.get(),
+                        include_no_ips=ips_none_var.get(),
+                        support_plan_id=support_display[support_var.get()],
+                        department=self.department_var.get(),
+                        initial_fee_modes=fee_modes,
+                        installment_months=months,
+                    )
+                    total_files += result.generated_files
+                    output_dir = result.output_dir
+                if total_files == 0:
+                    raise ValueError(
+                        "作成できたPDFが0件です。機種・データ容量の選択を確認してください。"
+                    )
             except Exception as exc:
                 self.after(0, failed, str(exc))
                 return
-            self.after(0, completed, result)
+            self.after(0, completed, total_files, output_dir)
 
         def start() -> None:
+            if months == 36:
+                target_models = [
+                    name for name, var in model_check_vars.items() if var.get()
+                ]
+                if not target_models:
+                    messagebox.showerror(
+                        "機種が未選択です",
+                        "作成する機種にチェックを入れてください。",
+                        parent=win,
+                    )
+                    return
+            else:
+                target_models = [model_var.get()]
             create_button.configure(state="disabled")
-            status_var.set("PDFを作成しています…")
-            threading.Thread(target=worker, daemon=True).start()
+            status_var.set(f"PDFを作成しています…（{len(target_models)}機種）")
+            threading.Thread(target=worker, args=(target_models,), daemon=True).start()
 
-        model_combo.bind("<<ComboboxSelected>>", refresh_capacities)
+        if model_combo is not None:
+            model_combo.bind("<<ComboboxSelected>>", refresh_capacities)
+            model_combo.bind("<FocusOut>", refresh_capacities)
         sales_combo.bind("<<ComboboxSelected>>", refresh_plans)
         plan_combo.bind("<<ComboboxSelected>>", refresh_capacities)
-        model_combo.bind("<FocusOut>", refresh_capacities)
         refresh_plans()
         ttk.Label(frame, textvariable=status_var, wraplength=620).pack(anchor="w", pady=(12, 6))
         create_button = ttk.Button(frame, text="PDF作成", command=start)
