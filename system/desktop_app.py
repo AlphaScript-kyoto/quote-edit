@@ -202,11 +202,12 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w")
         exclude_row = ttk.Frame(option_frame)
         exclude_row.pack(fill="x", pady=(12, 0))
-        ttk.Button(
+        self.exclude_button = ttk.Button(
             exclude_row,
             text="除外する機種",
             command=self._open_exclude_window,
-        ).pack(side="left", ipadx=12, ipady=4)
+        )
+        self.exclude_button.pack(side="left", ipadx=12, ipady=4)
         ttk.Label(
             exclude_row,
             textvariable=self.exclude_status_var,
@@ -226,7 +227,16 @@ class QuoteApp(tk.Tk):
         )
         self.resume_button.pack(side="left", padx=(8, 0), ipadx=12, ipady=8)
         ttk.Button(action, text="出力フォルダを開く", command=self._open_output_folder).pack(side="left", padx=10)
-        ttk.Button(action, text="個別見積作成", command=self._open_individual_window).pack(side="left")
+        ttk.Button(
+            action,
+            text="個別見積作成",
+            command=lambda: self._open_individual_window(48),
+        ).pack(side="left")
+        ttk.Button(
+            action,
+            text="個別見積（36回割賦）",
+            command=lambda: self._open_individual_window(36),
+        ).pack(side="left", padx=(8, 0))
 
         self.progress = ttk.Progressbar(root, mode="determinate")
         self.progress.pack(fill="x")
@@ -276,7 +286,14 @@ class QuoteApp(tk.Tk):
             except Exception as exc:
                 self._write_log(f"対象JSONの読込に失敗：{exc}")
             self.force_all_var.set(True)
+            # 36回割賦では［除外する機種］は使わない（対象は installment_36_targets.json）
+            self.exclude_button.configure(state="disabled")
+            self.exclude_status_var.set(
+                "※36回割賦では使いません（対象は installment_36_targets.json で管理）"
+            )
         else:
+            self.exclude_button.configure(state="normal")
+            self._refresh_exclude_status()
             self._select_latest()
 
     def _select_latest(self) -> None:
@@ -441,8 +458,9 @@ class QuoteApp(tk.Tk):
 
         ttk.Button(frame, text="保存", command=save).pack(anchor="w", pady=(12, 0), ipadx=20, ipady=4)
 
-    def _open_individual_window(self) -> None:
-        months = self._installment_months()
+    def _open_individual_window(self, months: int | None = None) -> None:
+        if months is None:
+            months = self._installment_months()
         plan_master = load_json(DATA_DIR / "plans.json")
         excluded = load_excluded_model_keys()
         if months == 36:
@@ -451,11 +469,8 @@ class QuoteApp(tk.Tk):
                 if pdf36 is None:
                     raise FileNotFoundError("36回PDFなし")
                 master_36 = import_installment_36_master(pdf36)
-                devices = [
-                    d
-                    for d in filter_36_target_devices(master_36)
-                    if d.get("model_key") not in excluded
-                ]
+                # 36回割賦は除外機能の対象外。installment_36_targets.json のみで絞る。
+                devices = list(filter_36_target_devices(master_36))
             except Exception as exc:
                 messagebox.showerror(
                     "36回割賦を開けません",
@@ -498,11 +513,15 @@ class QuoteApp(tk.Tk):
         ttk.Label(frame, text=mode_label, font=("Yu Gothic UI", 17, "bold")).pack(anchor="w")
         ttk.Label(
             frame,
-            text="メイン画面の作成タイプに連動します。選択した条件だけを作成します。",
+            text="選択した条件だけを作成します。",
         ).pack(anchor="w", pady=(2, 2))
+        if months == 36:
+            note_text = "※対象機種は installment_36_targets.json で管理します（除外機能は使いません）。"
+        else:
+            note_text = "※［除外する機種］で除外していない機種が一覧に出ます。"
         ttk.Label(
             frame,
-            text="※［除外する機種］で除外していない機種が一覧に出ます。",
+            text=note_text,
             wraplength=620,
         ).pack(anchor="w", pady=(0, 12))
 

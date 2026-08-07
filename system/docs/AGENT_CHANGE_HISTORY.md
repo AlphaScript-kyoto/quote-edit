@@ -166,6 +166,10 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 - Quote periods: single column `分割支払 1～36回目` when installment_months=36.
 - Confidential 36 PDF must stay local (not git).
 
+### 2026-08-07 - 36-mode UX: exclusion disabled, dedicated individual buttons
+- 36-installment mode ignores the exclusion feature entirely: main-window button disabled with status note, batch and individual paths no longer filter by excluded_models.json. Targets come only from installment_36_targets.json.
+- Individual quote entry split into two explicit buttons: (48-normal) and (36-installment); window no longer follows the main-mode radio.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

@@ -411,14 +411,7 @@ def _run_batch_36(
             f"contains={rules.get('match_model_key_contains')}）"
         )
 
-    excluded = load_excluded_model_keys()
-    targets = [device for device in targets if device["model_key"] not in excluded]
-    if not targets:
-        raise ValueError(
-            "36回対象機種がすべて除外されています。"
-            "［除外する機種］を確認してください。"
-        )
-
+    # 36回割賦は［除外する機種］の対象外。installment_36_targets.json のみで絞る。
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")
