@@ -178,6 +178,10 @@ Business rule: MNP / 新規 / 番号移行 customers do **not** join super or hy
 ### 2026-08-07 - 36-mode: edit-targets button
 - Main window: when 36-installment mode is selected, a button next to the disabled exclusion status opens installment_36_targets.json in the default editor (seeds the file first if missing; notepad fallback). Hidden in 48 mode.
 
+### 2026-08-07 - 36 targets: exclusion rules
+- installment_36_targets.json now supports exclude_model_keys_exact / exclude_model_key_contains; exclusion wins over inclusion (categories/contains/exact).
+- Seed excludes dignobx3plus and dignoke-tai4forbiz per user request (13 -> 11 target models on current PDF).
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

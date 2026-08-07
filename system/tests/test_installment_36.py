@@ -54,6 +54,23 @@ class Installment36PrototypeTest(unittest.TestCase):
                 targets=rules,
             )
         )
+        # 除外指定は包含指定より優先される
+        self.assertFalse(
+            is_installment_36_target(
+                model="DIGNO BX3 Plus",
+                model_key="dignobx3plus",
+                category="Android",
+                targets=rules,
+            )
+        )
+        self.assertFalse(
+            is_installment_36_target(
+                model="DIGNOケータイ4 for Biz",
+                model_key="dignoケータイ4forbiz",
+                category="ケータイ",
+                targets=rules,
+            )
+        )
 
     def test_output_root_split(self):
         self.assertTrue(str(quote_output_root(48)).endswith("見積PDF"))

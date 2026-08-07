@@ -11,9 +11,16 @@
     "dignobx3"
   ],
   "match_model_keys_exact": [],
+  "exclude_model_keys_exact": [
+    "dignobx3plus",
+    "dignoケータイ4forbiz"
+  ],
+  "exclude_model_key_contains": [],
   "notes": [
     "match_categories: カテゴリ完全一致",
     "match_model_key_contains: normalize 後の model_key に部分一致",
-    "match_model_keys_exact: model_key 完全一致（任意）"
+    "match_model_keys_exact: model_key 完全一致（任意）",
+    "exclude_model_keys_exact: 除外（完全一致）。除外は包含より優先",
+    "exclude_model_key_contains: 除外（部分一致）"
   ]
 }

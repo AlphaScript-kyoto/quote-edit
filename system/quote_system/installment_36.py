@@ -46,6 +46,11 @@ def load_installment_36_targets() -> dict[str, Any]:
                 "dignobx3",
             ],
             "match_model_keys_exact": [],
+            "exclude_model_keys_exact": [
+                "dignobx3plus",
+                "dignoケータイ4forbiz",
+            ],
+            "exclude_model_key_contains": [],
         }
     payload = load_json(TARGETS_PATH)
     if not isinstance(payload, dict):
@@ -60,10 +65,22 @@ def is_installment_36_target(
     category: str | None = None,
     targets: dict[str, Any] | None = None,
 ) -> bool:
-    """JSON ルールで 36回作成対象か。"""
+    """JSON ルールで 36回作成対象か。除外指定が包含指定より優先される。"""
     rules = targets if targets is not None else load_installment_36_targets()
     key = (model_key or normalize_model_name(model)).strip()
     cat = str(category or "").strip()
+
+    exclude_exact = {
+        str(item).strip()
+        for item in (rules.get("exclude_model_keys_exact") or [])
+        if str(item).strip()
+    }
+    if key in exclude_exact:
+        return False
+    for part in rules.get("exclude_model_key_contains") or []:
+        token = normalize_model_name(str(part))
+        if token and token in key:
+            return False
 
     exact = {
         str(item).strip()
