@@ -1290,6 +1290,32 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(any("携帯電話機安心サポートについて" in note for note in no_ips))
         self.assertFalse(any("USB-C充電ケーブル" in note for note in no_ips))
 
+        packet_note = "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可"
+        # ハイパーライトの5GB／20GBのみ表示
+        for capacity in ("5GB", "20GB"):
+            notes = _attention_notes(
+                {"model": "iPhone 16e(128GB)", "plan_id": "hyper_light", "data_plan": capacity},
+                ips=True,
+                support=True,
+            )
+            self.assertTrue(any(packet_note in note for note in notes), capacity)
+        for plan_id, capacity in (
+            ("hyper_light", "50GB"),
+            ("hyper_light", "無制限"),
+            ("super_light", "50GB"),
+            ("biz_plus", "5GB"),
+            ("light", "20GB"),
+        ):
+            notes = _attention_notes(
+                {"model": "iPhone 16e(128GB)", "plan_id": plan_id, "data_plan": capacity},
+                ips=True,
+                support=True,
+            )
+            self.assertFalse(
+                any(packet_note in note for note in notes),
+                f"{plan_id}/{capacity}",
+            )
+
     def test_price_diff_detection(self):
         updated = deepcopy(self.device_master)
         device = find_device(updated, "iPhone 17 256GB")

@@ -36,8 +36,8 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.3.5** - constant: `system/quote_system/config.py` -> `APP_VERSION`
-- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.3.5`
+- **ver.1.4.0** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.4.0`
 
 ## Source of truth (edit these)
 

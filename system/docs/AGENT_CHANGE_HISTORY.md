@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.3.5**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.0**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -207,6 +207,10 @@ QA (strict) before bump, all green:
 - Real PDF content checks: super MNP no-IRS (no 安心保証サービス row, no 安心サポート note, 弊社特別割引 kept, IPS note kept, IRSなし path, 1 page, footer), hyper 新規 IRS-yes, 番号移行 super rejected, 36-mode (single 1-36 column, no 新トク note, footer).
 Bump: APP_VERSION 1.3.4 -> 1.3.5; AGENTS.md / AI_CONTEXT.md (version table row added) / system/README.md / field README.txt updated; field release note リリースノート_v1.3.5_現場向け.txt written UTF-8 BOM + CRLF.
 Terminology (user-defined, use consistently): IPS = 修理保証サービス (repair warranty), IRS = 安心サポート (support; PDF row label 安心保証サービス).
+
+### 2026-08-17 - Release ver.1.4.0
+- Attention note for packet plan change restriction (5GB/20GB cannot move to 50GB; unlimited only) is shown only when plan_id=hyper_light and data_plan is 5GB or 20GB. Omitted for other plans/capacities. Tests added.
+- Bump APP_VERSION 1.3.5 -> 1.4.0; docs / field README / release note UTF-8 BOM.
 
 ## Release checklist
 1. APP_VERSION

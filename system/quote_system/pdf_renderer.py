@@ -546,10 +546,14 @@ def _attention_notes(quote: dict[str, Any], *, ips: bool, support: bool) -> list
             "おうち割光セットは、対象の光回線が開通した翌月から適用されます。"
             "（機種変更の場合も同様です）"
         )
-    notes.append(
-        "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可となります。"
-        "（無制限プランにのみ変更可能）"
-    )
+    # ハイパーライトの5GB／20GBのみ（他プラン・他容量では不要）
+    plan_id = str(quote.get("plan_id") or "").strip()
+    data_plan = str(quote.get("data_plan") or "").strip()
+    if plan_id == "hyper_light" and data_plan in {"5GB", "20GB"}:
+        notes.append(
+            "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可となります。"
+            "（無制限プランにのみ変更可能）"
+        )
     # 新トクするサポート＋は48回払い前提の説明のため、36回割賦の見積には載せない
     if int(quote.get("installment_months") or 48) != 36:
         notes.append(
