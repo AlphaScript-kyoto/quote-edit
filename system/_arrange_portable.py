@@ -86,6 +86,22 @@ def main() -> int:
             print(f"Bundled {len(pdfs)} price PDF(s) into {UPDATE_NAME}/")
         else:
             print(f"WARNING: no PDF found in {source_update}", file=sys.stderr)
+
+        # 36回割賦用PDFも同梱（フォルダごと）
+        source_36 = source_update / "36回割賦"
+        dest_36 = STAGE / UPDATE_NAME / "36回割賦"
+        dest_36.mkdir(parents=True, exist_ok=True)
+        pdfs_36 = sorted(source_36.glob("*.pdf")) if source_36.is_dir() else []
+        for pdf in pdfs_36:
+            shutil.copy2(pdf, dest_36 / pdf.name)
+        if pdfs_36:
+            print(f"Bundled {len(pdfs_36)} installment-36 PDF(s) into {UPDATE_NAME}/36回割賦/")
+        else:
+            print(
+                f"WARNING: no PDF found in {source_36} "
+                "(36回割賦 quotes will need a local PDF)",
+                file=sys.stderr,
+            )
     else:
         print(f"WARNING: {source_update} not found; price PDF not bundled", file=sys.stderr)
 

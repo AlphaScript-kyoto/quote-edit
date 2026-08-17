@@ -212,6 +212,9 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Attention note for packet plan change restriction (5GB/20GB cannot move to 50GB; unlimited only) is shown only when plan_id=hyper_light and data_plan is 5GB or 20GB. Omitted for other plans/capacities. Tests added.
 - Bump APP_VERSION 1.3.5 -> 1.4.0; docs / field README / release note UTF-8 BOM.
 
+### 2026-08-17 - Portable package bundles 36-installment price PDF
+- _arrange_portable.py now copies 機種代金一覧表/36回割賦/*.pdf into the portable folder (in addition to root price PDFs). Confidential 36 PDF stays gitignored; only local/ZIP distribution.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
