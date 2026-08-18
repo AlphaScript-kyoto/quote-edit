@@ -18,6 +18,8 @@ APP_NAME = APP_DISPLAY_NAME
 # 配布フォルダ名例: 見積もり一括作成ver1.3.3
 PACKAGE_DIR_NAME = f"{APP_NAME}ver{APP_VERSION}"
 UPDATE_NAME = "機種代金一覧表"
+# 現場向け操作説明PDF（ファイル名にバージョンが入っても拾う）
+USAGE_GUIDE_GLOB = "*使い方*.pdf"
 
 BUILD_DIR = DIST / "build" / BUILD_NAME
 STAGE = DIST / PACKAGE_DIR_NAME
@@ -112,6 +114,23 @@ def main() -> int:
     else:
         print("WARNING: README.txt not found at project root", file=sys.stderr)
 
+    # 使い方PDFはバージョン表記が変わっても、リポジトリ直下の最新1件を必ず同梱する
+    usage_guides = sorted(
+        (path for path in ROOT.glob(USAGE_GUIDE_GLOB) if path.is_file()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not usage_guides:
+        print(
+            f"ERROR: 使い方PDFが見つかりません。リポジトリ直下に "
+            f"「{USAGE_GUIDE_GLOB}」を置いてからパッケージしてください。",
+            file=sys.stderr,
+        )
+        return 1
+    usage_src = usage_guides[0]
+    shutil.copy2(usage_src, STAGE / usage_src.name)
+    print(f"Bundled usage guide: {usage_src.name}")
+
     # 任意：現場向けリリースメモがあれば同梱
     release_note = SYSTEM_DIR / "docs" / f"リリースノート_v{APP_VERSION}_現場向け.txt"
     if release_note.exists():
@@ -119,7 +138,7 @@ def main() -> int:
 
     shutil.rmtree(DIST / "build", ignore_errors=True)
     print(f"Portable app ready: {STAGE}")
-    print("Contents: EXE / README.txt / 機種代金一覧表 / output / system")
+    print("Contents: EXE / README.txt / 使い方PDF / 機種代金一覧表 / output / system")
     return 0
 
 
