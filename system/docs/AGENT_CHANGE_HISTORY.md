@@ -218,6 +218,9 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-08-18 - Portable package always bundles usage-guide PDF
 - _arrange_portable.py copies the newest repo-root PDF matching *使い方*.pdf (filename may include a version) next to the EXE. Missing guide fails the package step so later versions cannot ship without it. PDF stays gitignored; ZIP only.
 
+### 2026-08-18 - 36-installment PDF row label
+- Monthly breakdown device row was hardcoded as 機種代金（48分割） even for 36-month quotes. Now uses quote installment_months (36 -> 機種代金（36分割）). Test added.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

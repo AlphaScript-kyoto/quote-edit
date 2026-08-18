@@ -47,6 +47,12 @@ def yen(value: int) -> str:
     return f"{sign}¥{abs(value):,}"
 
 
+def _device_payment_label(quote: dict[str, Any]) -> str:
+    """月額内訳の機種代金行。分割回数は見積の割賦月数に合わせる。"""
+    months = int(quote.get("installment_months") or 48)
+    return f"機種代金（{months}分割）"
+
+
 def _pdf_additional_discount_label(name: Any) -> str:
     """PDF上だけライト系割引名を「弊社特別割引」と表記する。"""
     text = str(name or "").strip()
@@ -344,7 +350,7 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         )
         discount_item_indexes.append(len(plan_item_rows) - 1)
     plan_item_rows.append(
-        ["機種代金（48分割）", "非課税"]
+        [_device_payment_label(quote), "非課税"]
         + [yen(period["device_payment"]) for period in display_periods]
     )
 
