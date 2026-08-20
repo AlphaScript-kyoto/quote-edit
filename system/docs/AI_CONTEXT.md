@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.4.0)
+# AI Context - Infinity Quote Batch App (ver.1.4.1)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.3.md`  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.4.0"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.4.1"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -128,7 +128,7 @@ price PDF
   -> output/見積PDF/<tree>/<file>.pdf
 ```
 
-Exclusion: `excluded_models.json` skips batch targets **and** hides models from individual-quote Combobox.
+Exclusion: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode ignores this and uses `installment_36_targets.json`.
 
 ---
 
@@ -154,6 +154,7 @@ Exclusion: `excluded_models.json` skips batch targets **and** hides models from 
 
 | Ver | Notes |
 |-----|-------|
+| 1.4.1 | 新トクするサポート＋査定不足時の支払を「最大44,000円(不課税)」に変更。48-mode model picker is include-list (`included_models.json`) instead of exclude-list. |
 | 1.4.0 | Packet-change attention note (5GB/20GB → 50GB不可) only on hyper_light with 5GB or 20GB. |
 | 1.3.5 | Super/hyper restored for MNP/新規 (番号移行 still excluded); default no-IRS (安心サポートなし) + discount variants for MNP/新規 super/hyper (folders IRSあり/IRSなし); 36回割賦 prototype (case R): radio UI, targets JSON with exclusions + edit button, checkbox individual window, output `見積PDF_36回`; PDF version footer bottom-right; 36 quotes omit 新トクするサポート＋ note. |
 | 1.3.4 | Super/hyper **only for 機種変更**; no super/hyper for MNP/新規/番号移行. Light remains non-kishu. IRSあり layout / company seed unchanged from 1.3.3. |

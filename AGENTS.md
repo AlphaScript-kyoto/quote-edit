@@ -36,8 +36,8 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.4.0** - constant: `system/quote_system/config.py` -> `APP_VERSION`
-- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.4.0`
+- **ver.1.4.1** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- Window title (OS chrome / drag bar): `見積もり一括作成  ver.1.4.1`
 
 ## Source of truth (edit these)
 
@@ -52,7 +52,7 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 ## Hard product rules (do not regress)
 
 1. Output only under **`output/見積PDF/`** (overwrite/merge; no per-run timestamp folders).
-2. Excluded models (`excluded_models.json`) win over "regenerate all" and are hidden from individual-quote model dropdown.
+2. Included models (`included_models.json`) win over "regenerate all" and are the only models shown in the individual-quote dropdown (48-mode). Legacy `excluded_models.json` is used only when the include file is absent.
 3. Do **not** create ouchi-discount (SB光あり) quotes for **5GB** (same effective offer as 20GB).
 4. Upfront IPS may produce two display modes: `lump` and `monthly_as_running` (separate folders).
 5. Quote PDFs must remain **one page** under worst-case content (portrait A4).

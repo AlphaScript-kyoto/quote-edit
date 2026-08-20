@@ -9,7 +9,7 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.4.1"
 APP_DISPLAY_NAME = "見積もり一括作成"
 
 FROZEN = bool(getattr(sys, "frozen", False))

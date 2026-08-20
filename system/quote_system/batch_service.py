@@ -85,67 +85,77 @@ def latest_installment_36_pdf() -> Path | None:
 
 
 def load_excluded_model_keys() -> set[str]:
-    """作成しない機種（exclude）。include から1回だけ移行する。"""
+    """互換用。作成しない機種 = 販売中 − 作成対象。"""
+    on_sale = _on_sale_model_keys()
+    if on_sale:
+        return on_sale - load_included_model_keys()
     if EXCLUDED_MODELS_PATH.exists():
         payload = load_json(EXCLUDED_MODELS_PATH)
         return {str(key) for key in payload.get("model_keys", [])}
-
-    # 旧「作成する機種」（include）があった場合 → 除外集合へ変換
-    if INCLUDED_MODELS_PATH.exists() and DEVICE_MASTER_PATH.exists():
-        included = {
-            str(key)
-            for key in load_json(INCLUDED_MODELS_PATH).get("model_keys", [])
-        }
-        master = load_json(DEVICE_MASTER_PATH)
-        on_sale = {
-            str(device["model_key"])
-            for device in master.get("devices", [])
-            if device.get("status") == "販売中"
-        }
-        migrated = sorted(on_sale - included)
-        save_excluded_model_keys(migrated)
-        return set(migrated)
     return set()
 
 
 def save_excluded_model_keys(model_keys: Iterable[str]) -> None:
+    """互換用。除外指定から作成対象を逆算して保存する。"""
+    excluded = {str(key) for key in model_keys}
     save_json(EXCLUDED_MODELS_PATH, {
-        "model_keys": sorted({str(key) for key in model_keys}),
+        "model_keys": sorted(excluded),
         "updated_at": datetime.now().isoformat(timespec="seconds"),
     })
+    on_sale = _on_sale_model_keys()
+    if on_sale:
+        save_included_model_keys(on_sale - excluded, sync_excluded=False)
 
 
-def load_included_model_keys() -> set[str]:
-    """互換用。作成対象 = 販売中 − 除外。"""
-    if not DEVICE_MASTER_PATH.exists():
-        if INCLUDED_MODELS_PATH.exists():
-            payload = load_json(INCLUDED_MODELS_PATH)
-            return {str(key) for key in payload.get("model_keys", [])}
+def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
+    master = device_master
+    if master is None and DEVICE_MASTER_PATH.exists():
+        master = load_json(DEVICE_MASTER_PATH)
+    if not master:
         return set()
-    master = load_json(DEVICE_MASTER_PATH)
-    on_sale = {
+    return {
         str(device["model_key"])
         for device in master.get("devices", [])
         if device.get("status") == "販売中"
     }
-    return on_sale - load_excluded_model_keys()
 
 
-def save_included_model_keys(model_keys: Iterable[str]) -> None:
-    """互換用。include 指定から excluded を逆算して保存する。"""
-    if DEVICE_MASTER_PATH.exists():
-        master = load_json(DEVICE_MASTER_PATH)
-        on_sale = {
-            str(device["model_key"])
-            for device in master.get("devices", [])
-            if device.get("status") == "販売中"
+def load_included_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
+    """作成する機種。include ファイル優先。無ければ旧 exclude から、それも無ければ販売中すべて。"""
+    on_sale = _on_sale_model_keys(device_master)
+    if INCLUDED_MODELS_PATH.exists():
+        keys = {
+            str(key)
+            for key in load_json(INCLUDED_MODELS_PATH).get("model_keys", [])
         }
-        excluded = on_sale - {str(key) for key in model_keys}
-        save_excluded_model_keys(excluded)
+        return keys & on_sale if on_sale else keys
+    if EXCLUDED_MODELS_PATH.exists():
+        excluded = {
+            str(key)
+            for key in load_json(EXCLUDED_MODELS_PATH).get("model_keys", [])
+        }
+        return on_sale - excluded if on_sale else set()
+    return on_sale
+
+
+def save_included_model_keys(
+    model_keys: Iterable[str],
+    *,
+    sync_excluded: bool = False,
+) -> None:
+    """作成対象の機種キーを保存する。"""
+    included = {str(key) for key in model_keys}
     save_json(INCLUDED_MODELS_PATH, {
-        "model_keys": sorted({str(key) for key in model_keys}),
+        "model_keys": sorted(included),
         "updated_at": datetime.now().isoformat(timespec="seconds"),
     })
+    if sync_excluded:
+        on_sale = _on_sale_model_keys()
+        excluded = sorted(on_sale - included) if on_sale else []
+        save_json(EXCLUDED_MODELS_PATH, {
+            "model_keys": excluded,
+            "updated_at": datetime.now().isoformat(timespec="seconds"),
+        })
 
 
 def _upfront_ips_plan_ids(device: dict[str, Any]) -> list[str]:
@@ -325,15 +335,15 @@ def run_batch(
     first_run = state is None
     mode = "初回全件" if first_run else ("全件再作成" if force_all else "差分更新")
 
-    excluded = load_excluded_model_keys()
+    included = load_included_model_keys(new_master)
     active_devices = [
         device for device in new_master["devices"]
-        if device["status"] == "販売中" and device["model_key"] not in excluded
+        if device["status"] == "販売中" and device["model_key"] in included
     ]
     if not active_devices:
         raise ValueError(
             "作成対象の機種がありません。"
-            "メイン画面の［除外する機種］で除外を減らすか確認してください。"
+            "メイン画面の［作成する機種］で対象を選んでください。"
         )
     if first_run or force_all:
         targets = active_devices
@@ -419,7 +429,7 @@ def _run_batch_36(
             f"contains={rules.get('match_model_key_contains')}）"
         )
 
-    # 36回割賦は［除外する機種］の対象外。installment_36_targets.json のみで絞る。
+    # 36回割賦は［作成する機種］の対象外。installment_36_targets.json のみで絞る。
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")

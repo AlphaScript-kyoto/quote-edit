@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.0**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.1**) |
 | Display name | 見積もり一括作成 |
 | Window title | `見積もり一括作成  ver.{APP_VERSION}` |
 | Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
@@ -220,6 +220,11 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 
 ### 2026-08-18 - 36-installment PDF row label
 - Monthly breakdown device row was hardcoded as 機種代金（48分割） even for 36-month quotes. Now uses quote installment_months (36 -> 機種代金（36分割）). Test added.
+
+### 2026-08-20 - Release ver.1.4.1
+- Shin-toku support+ note: unpaid-assessment penalty is now 最大44,000円(不課税); removed 20,000円 residual-cap wording. Still omitted on 36-month quotes.
+- 48-mode model picker is an include-list (作成する機種 / included_models.json). Legacy excluded_models.json is inverted only when include file is absent. New PDF models are not generated until checked. 36-mode still uses installment_36_targets.json.
+- Bump APP_VERSION 1.4.0 -> 1.4.1.
 
 ## Release checklist
 1. APP_VERSION

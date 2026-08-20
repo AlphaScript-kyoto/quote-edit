@@ -16,12 +16,12 @@ from quote_system.batch_service import (
     clear_checkpoint,
     latest_installment_36_pdf,
     latest_price_pdf,
-    load_excluded_model_keys,
+    load_included_model_keys,
     quote_output_root,
     resume_batch,
     run_batch,
     run_individual,
-    save_excluded_model_keys,
+    save_included_model_keys,
 )
 from quote_system.config import (
     APP_DISPLAY_NAME,
@@ -172,14 +172,14 @@ class QuoteApp(tk.Tk):
         ttk.Label(
             option_frame,
             text="※オフのとき（ふつう）：値段が変わった機種だけ作り直します。"
-            "　オンのとき：除外していない販売中の機種をすべて作り直します。"
+            "　オンのとき：作成対象の販売中機種をすべて作り直します。"
             "　いちばん最初の作成だけは、オン／オフどちらでも全部作ります。",
             wraplength=700,
             foreground="#555555",
         ).pack(anchor="w", pady=(0, 2))
         ttk.Label(
             option_frame,
-            text="※［除外する機種］でチェックした機種は、どの場合も作りません。",
+            text="※［作成する機種］でチェックした機種だけを作ります。",
             foreground="#C00000",
         ).pack(anchor="w", pady=(2, 0))
         ttk.Checkbutton(
@@ -206,7 +206,7 @@ class QuoteApp(tk.Tk):
         exclude_row.pack(fill="x", pady=(12, 0))
         self.exclude_button = ttk.Button(
             exclude_row,
-            text="除外する機種",
+            text="作成する機種",
             command=self._open_exclude_window,
         )
         self.exclude_button.pack(side="left", ipadx=12, ipady=4)
@@ -310,7 +310,7 @@ class QuoteApp(tk.Tk):
             except Exception as exc:
                 self._write_log(f"対象JSONの読込に失敗：{exc}")
             self.force_all_var.set(True)
-            # 36回割賦では［除外する機種］は使わない（対象は installment_36_targets.json）
+            # 36回割賦では［作成する機種］は使わない（対象は installment_36_targets.json）
             self.exclude_button.configure(state="disabled")
             self.exclude_status_var.set(
                 "※36回割賦では使いません（対象は installment_36_targets.json で管理）"
@@ -334,12 +334,12 @@ class QuoteApp(tk.Tk):
             self._write_log(f"価格表を検出しました：{latest.name}")
         else:
             self._write_log("「機種代金一覧表」にPDFがありません。PDFを入れるか［PDFを選ぶ］を押してください。")
-        excluded = load_excluded_model_keys()
-        self._refresh_exclude_status(excluded)
-        if excluded:
-            self._write_log(f"除外する機種：{len(excluded)}件（［除外する機種］で変更できます）")
+        included = load_included_model_keys()
+        self._refresh_exclude_status(included)
+        if included:
+            self._write_log(f"作成する機種：{len(included)}件（［作成する機種］で変更できます）")
         else:
-            self._write_log("除外する機種は未設定です（販売中の全機種が対象）。")
+            self._write_log("作成する機種が0件です（［作成する機種］で対象を選んでください）。")
 
     def _build_info_button(self, parent: ttk.Frame) -> tk.Canvas:
         """右上の情報ボタン（青い〇の中に i）。"""
@@ -368,12 +368,12 @@ class QuoteApp(tk.Tk):
     def _open_info_page(self) -> None:
         webbrowser.open(INFO_HOME_URL)
 
-    def _refresh_exclude_status(self, excluded: set[str] | None = None) -> None:
-        keys = excluded if excluded is not None else load_excluded_model_keys()
+    def _refresh_exclude_status(self, included: set[str] | None = None) -> None:
+        keys = included if included is not None else load_included_model_keys()
         if keys:
-            self.exclude_status_var.set(f"※いま {len(keys)} 機種を除外しています")
+            self.exclude_status_var.set(f"※いま {len(keys)} 機種を作成対象にしています")
         else:
-            self.exclude_status_var.set("※除外なし（販売中の全機種が作成対象）")
+            self.exclude_status_var.set("※作成対象が0件です（［作成する機種］で選んでください）")
 
     def _choose_pdf(self) -> None:
         selected = filedialog.askopenfilename(title="機種代金表PDFを選択", filetypes=[("PDF", "*.pdf")])
@@ -394,21 +394,21 @@ class QuoteApp(tk.Tk):
             return
 
         win = tk.Toplevel(self)
-        win.title("除外する機種")
+        win.title("作成する機種")
         win.geometry("520x560")
         win.minsize(480, 460)
         frame = ttk.Frame(win, padding=16)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="除外する機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
+        ttk.Label(frame, text="作成する機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
         ttk.Label(
             frame,
-            text="チェックした機種は一括作成・個別見積の一覧から外れます。"
-            "必要な機種だけ作りたい場合に除外してください。"
+            text="チェックした機種だけを一括作成・個別見積の一覧に出します。"
+            "新しく価格表に載った機種は、ここでチェックするまで作りません。"
             "「すべて選択」「すべて解除」も使えます。",
             wraplength=460,
         ).pack(anchor="w", pady=(2, 8))
 
-        excluded = load_excluded_model_keys()
+        included = load_included_model_keys(device_master)
         toolbar = ttk.Frame(frame)
         toolbar.pack(fill="x", pady=(0, 6))
 
@@ -450,7 +450,7 @@ class QuoteApp(tk.Tk):
         vars_by_key: dict[str, tk.BooleanVar] = {}
         for device in devices:
             key = device["model_key"]
-            var = tk.BooleanVar(value=key in excluded)
+            var = tk.BooleanVar(value=key in included)
             vars_by_key[key] = var
             check = ttk.Checkbutton(
                 list_frame,
@@ -468,22 +468,22 @@ class QuoteApp(tk.Tk):
             for var in vars_by_key.values():
                 var.set(False)
 
-        ttk.Button(toolbar, text="すべて選択（除外）", command=select_all).pack(side="left")
-        ttk.Button(toolbar, text="すべて解除（除外なし）", command=clear_all).pack(side="left", padx=(8, 0))
+        ttk.Button(toolbar, text="すべて選択", command=select_all).pack(side="left")
+        ttk.Button(toolbar, text="すべて解除", command=clear_all).pack(side="left", padx=(8, 0))
 
         def save() -> None:
             selected = [key for key, var in vars_by_key.items() if var.get()]
-            if len(selected) >= len(vars_by_key):
+            if not selected:
                 if not messagebox.askyesno(
-                    "全機種が除外されます",
-                    "すべての機種にチェックが付いています。このまま保存すると一括作成は実行できません。保存しますか？",
+                    "作成対象が0件になります",
+                    "1機種もチェックされていません。このまま保存すると一括作成は実行できません。保存しますか？",
                     parent=win,
                 ):
                     return
-            save_excluded_model_keys(selected)
+            save_included_model_keys(selected)
             self._refresh_exclude_status(set(selected))
-            self._write_log(f"除外機種を更新しました：{len(selected)}件")
-            messagebox.showinfo("保存しました", f"{len(selected)}機種を除外にしました。", parent=win)
+            self._write_log(f"作成する機種を更新しました：{len(selected)}件")
+            messagebox.showinfo("保存しました", f"{len(selected)}機種を作成対象にしました。", parent=win)
             _unbind_wheel()
             win.destroy()
 
@@ -493,7 +493,7 @@ class QuoteApp(tk.Tk):
         if months is None:
             months = self._installment_months()
         plan_master = load_json(DATA_DIR / "plans.json")
-        excluded = load_excluded_model_keys()
+        included = load_included_model_keys()
         if months == 36:
             try:
                 pdf36 = latest_installment_36_pdf()
@@ -524,14 +524,14 @@ class QuoteApp(tk.Tk):
             device_master = load_json(DATA_DIR / "device_master.json")
             devices = [
                 d for d in device_master["devices"]
-                if d["status"] == "販売中" and d.get("model_key") not in excluded
+                if d["status"] == "販売中" and d.get("model_key") in included
             ]
             mode_label = "個別見積作成（通常48回）"
         models = [d["model"] for d in devices]
         if not models:
             messagebox.showerror(
                 "選択できる機種がありません",
-                "対象機種が0件です。除外設定・対象JSON・価格表を確認してください。",
+                "対象機種が0件です。作成する機種・対象JSON・価格表を確認してください。",
             )
             return
 
@@ -562,9 +562,9 @@ class QuoteApp(tk.Tk):
             text="選択した条件だけを作成します。",
         ).pack(anchor="w", pady=(2, 2))
         if months == 36:
-            note_text = "※対象機種は installment_36_targets.json で管理します（除外機能は使いません）。"
+            note_text = "※対象機種は installment_36_targets.json で管理します（作成する機種の指定は使いません）。"
         else:
-            note_text = "※［除外する機種］で除外していない機種が一覧に出ます。"
+            note_text = "※［作成する機種］でチェックした機種が一覧に出ます。"
         ttk.Label(
             frame,
             text=note_text,
@@ -891,12 +891,12 @@ class QuoteApp(tk.Tk):
                 on_sale = [
                     d for d in master.get("devices", []) if d.get("status") == "販売中"
                 ]
-                excluded = load_excluded_model_keys()
-                if on_sale and all(d["model_key"] in excluded for d in on_sale):
+                included = load_included_model_keys(master)
+                if on_sale and not included:
                     messagebox.showerror(
                         "作成対象がありません",
-                        "すべての機種が除外されています。"
-                        "［除外する機種］で除外を減らしてください。",
+                        "作成する機種が1件も選ばれていません。"
+                        "［作成する機種］で対象を選んでください。",
                     )
                     return
             pdf = Path(self.pdf_var.get())

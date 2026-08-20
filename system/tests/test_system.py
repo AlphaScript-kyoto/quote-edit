@@ -1134,22 +1134,36 @@ class QuoteSystemTest(unittest.TestCase):
         from quote_system.config import OUTPUT_DIR
         self.assertEqual(QUOTE_OUTPUT_ROOT, OUTPUT_DIR / "見積PDF")
 
-    def test_excluded_model_keys_roundtrip(self):
-        from quote_system.batch_service import (
-            EXCLUDED_MODELS_PATH,
-            load_excluded_model_keys,
-            save_excluded_model_keys,
-        )
-        previous = load_excluded_model_keys()
-        existed = EXCLUDED_MODELS_PATH.exists()
-        try:
-            save_excluded_model_keys(["demo_key_a", "demo_key_b"])
-            self.assertEqual(load_excluded_model_keys(), {"demo_key_a", "demo_key_b"})
-        finally:
-            if existed:
-                save_excluded_model_keys(previous)
-            elif EXCLUDED_MODELS_PATH.exists():
-                EXCLUDED_MODELS_PATH.unlink()
+    def test_included_model_keys_roundtrip(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from quote_system import batch_service as bs
+        from quote_system.config import save_json
+
+        device = find_device(self.device_master, "iPhone 17 256GB")
+        key = device["model_key"]
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            inc = tmp_path / "included_models.json"
+            exc = tmp_path / "excluded_models.json"
+            with (
+                patch.object(bs, "INCLUDED_MODELS_PATH", inc),
+                patch.object(bs, "EXCLUDED_MODELS_PATH", exc),
+            ):
+                bs.save_included_model_keys([key])
+                self.assertEqual(bs.load_included_model_keys(), {key})
+                on_sale = {
+                    str(item["model_key"])
+                    for item in self.device_master["devices"]
+                    if item.get("status") == "販売中"
+                }
+                save_json(exc, {"model_keys": [key]})
+                if inc.exists():
+                    inc.unlink()
+                included = bs.load_included_model_keys()
+                self.assertNotIn(key, included)
+                self.assertTrue(included)
+                self.assertLess(len(included), len(on_sale))
 
     def test_running_mode_omits_ips_from_initial_total(self):
         request = deepcopy(self.request)
@@ -1289,6 +1303,15 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertFalse(any("携帯電話有料保証について" in note for note in no_ips))
         self.assertTrue(any("携帯電話機安心サポートについて" in note for note in no_ips))
         self.assertFalse(any("USB-C充電ケーブル" in note for note in no_ips))
+
+        shintoku = _attention_notes(
+            {"model": "iPhone 16e(128GB)", "plan_id": "biz_plus", "data_plan": "20GB"},
+            ips=True,
+            support=True,
+        )
+        self.assertTrue(any("最大44,000円(不課税)の支払いが必要です" in note for note in shintoku))
+        self.assertFalse(any("20,000円の支払いが必要です" in note for note in shintoku))
+        self.assertFalse(any("割賦残債務が20,000円以下" in note for note in shintoku))
 
         packet_note = "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可"
         # ハイパーライトの5GB／20GBのみ表示
