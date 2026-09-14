@@ -32,6 +32,7 @@ from .quote_service import (
     is_plan_data_plan_allowed,
     is_sales_plan_allowed,
 )
+from .temporary_devices import merge_temporary_devices, temporary_model_keys
 
 STATE_PATH = DATA_DIR / "app_state.json"
 DEVICE_MASTER_PATH = DATA_DIR / "device_master.json"
@@ -126,12 +127,22 @@ def save_excluded_model_keys(model_keys: Iterable[str]) -> None:
         save_included_model_keys(on_sale - excluded, sync_excluded=False)
 
 
+def load_device_master(
+    device_master: dict[str, Any] | None = None,
+    *,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Load device master and merge temporary overlays (not persisted)."""
+    if device_master is not None:
+        return merge_temporary_devices(device_master)
+    master_path = path or DEVICE_MASTER_PATH
+    if master_path.exists():
+        return merge_temporary_devices(load_json(master_path))
+    return merge_temporary_devices({"schema_version": 1, "devices": []})
+
+
 def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
-    master = device_master
-    if master is None and DEVICE_MASTER_PATH.exists():
-        master = load_json(DEVICE_MASTER_PATH)
-    if not master:
-        return set()
+    master = load_device_master(device_master)
     return {
         str(device["model_key"])
         for device in master.get("devices", [])
@@ -140,20 +151,26 @@ def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]
 
 
 def load_included_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
-    """作成する機種。include ファイル優先。無ければ旧 exclude から、それも無ければ販売中すべて。"""
+    """作成する機種。include ファイル優先。無ければ旧 exclude から、それも無ければ販売中すべて。
+
+    Temporary overlay models are always treated as included while enabled,
+    so field can generate them without editing included_models.json.
+    """
     on_sale = _on_sale_model_keys(device_master)
+    temp_keys = temporary_model_keys() & on_sale
     if INCLUDED_MODELS_PATH.exists():
         keys = {
             str(key)
             for key in load_json(INCLUDED_MODELS_PATH).get("model_keys", [])
         }
+        keys |= temp_keys
         return keys & on_sale if on_sale else keys
     if EXCLUDED_MODELS_PATH.exists():
         excluded = {
             str(key)
             for key in load_json(EXCLUDED_MODELS_PATH).get("model_keys", [])
         }
-        return on_sale - excluded if on_sale else set()
+        return (on_sale - excluded) | temp_keys if on_sale else temp_keys
     return on_sale
 
 
@@ -375,13 +392,18 @@ def run_batch(
     company = load_json(DATA_DIR / "company.json")
     if department and department.strip():
         company["department"] = department.strip()
-    old_master = load_json(DEVICE_MASTER_PATH) if DEVICE_MASTER_PATH.exists() else None
+    old_master = load_device_master() if DEVICE_MASTER_PATH.exists() else None
     state = load_json(STATE_PATH) if STATE_PATH.exists() else None
 
     if progress:
         progress(0, 1, "価格表PDFを読み取り、金額を検算しています…")
-    new_master = parse_price_pdf(pdf_path)
+    parsed_master = parse_price_pdf(pdf_path)
+    # Persist PDF-only master; temporary overlays stay in-memory only.
+    save_json(DEVICE_MASTER_PATH, parsed_master)
+    new_master = load_device_master(parsed_master)
     changed_keys = changed_model_keys(old_master, new_master)
+    # Temporary devices are always "changed" so differential runs still create them.
+    changed_keys |= temporary_model_keys()
     first_run = state is None
     mode = "初回全件" if first_run else ("全件再作成" if force_all else "差分更新")
 
@@ -405,7 +427,6 @@ def run_batch(
         if device["status"] == "取扱終了" and device["model_key"] in changed_keys
     )
 
-    save_json(DEVICE_MASTER_PATH, new_master)
     source_hash = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
     if not targets:
         save_json(STATE_PATH, {
@@ -545,7 +566,7 @@ def generate_selected_models(
     """既存マスターから指定機種のみ全パターン生成する。"""
     if not DEVICE_MASTER_PATH.exists():
         raise FileNotFoundError("機種マスターがありません。先に価格表PDFを取り込んでください。")
-    device_master = load_json(DEVICE_MASTER_PATH)
+    device_master = load_device_master()
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")
@@ -623,7 +644,7 @@ def resume_batch(
     if not DEVICE_MASTER_PATH.exists():
         raise FileNotFoundError("機種マスターがありません。先に価格表PDFを取り込んでください。")
 
-    device_master = load_json(DEVICE_MASTER_PATH)
+    device_master = load_device_master()
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = load_json(DATA_DIR / "company.json")
@@ -926,7 +947,7 @@ def run_individual(
         ):
             raise ValueError(f"36回割賦の対象外です: {model}")
     else:
-        device_master = load_json(DEVICE_MASTER_PATH)
+        device_master = load_device_master()
         device = find_device(device_master, model)
         if is_24:
             if device.get("payment_24") is None:
@@ -1367,7 +1388,6 @@ def _quote_relative_path(
     del include_mnp_shinki_irs  # パスは quote の support 有無から決める
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
-        _safe_name(device["model"]),
         _safe_name(sales_type_display_name(variant["sales_type"])),
     ]
     # ケータイはパケット1GBのみでおうち割分岐がないため SB光なし／ありフォルダを省略
@@ -1400,5 +1420,7 @@ def _quote_relative_path(
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
 
+    # 最下層だけ機種フォルダ（ファイル名と同じく空白なし表記）
+    parts.append(_filename_model(device["model"]))
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)

@@ -16,6 +16,7 @@ from quote_system.batch_service import (
     clear_checkpoint,
     latest_installment_36_pdf,
     latest_price_pdf,
+    load_device_master,
     load_included_model_keys,
     quote_output_root,
     resume_batch,
@@ -498,7 +499,7 @@ class QuoteApp(tk.Tk):
         pdf = Path(pdf_text) if pdf_text else latest_price_pdf()
         if pdf is None or not pdf.exists():
             if (DATA_DIR / "device_master.json").exists():
-                return load_json(DATA_DIR / "device_master.json")
+                return load_device_master()
             messagebox.showerror(
                 "価格表がありません",
                 "「機種代金一覧表」に価格表PDFを入れてから［作成する機種］を開いてください。",
@@ -513,6 +514,7 @@ class QuoteApp(tk.Tk):
             )
             return None
         save_json(DATA_DIR / "device_master.json", device_master)
+        device_master = load_device_master(device_master)
         self.pdf_var.set(str(pdf))
         self._write_log(
             f"作成する機種一覧のため価格表を取り込みました：{pdf.name}"
@@ -531,8 +533,8 @@ class QuoteApp(tk.Tk):
 
         win = tk.Toplevel(self)
         win.title("作成する機種")
-        win.geometry("520x560")
-        win.minsize(480, 460)
+        win.geometry("560x620")
+        win.minsize(500, 480)
         frame = ttk.Frame(win, padding=16)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="作成する機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
@@ -540,8 +542,9 @@ class QuoteApp(tk.Tk):
             frame,
             text="チェックした機種だけを一括作成・個別見積の一覧に出します。"
             "新しく価格表に載った機種は、ここでチェックするまで作りません。"
+            "カテゴリ見出しをクリックすると開閉できます。"
             "「すべて選択」「すべて解除」も使えます。",
-            wraplength=460,
+            wraplength=500,
         ).pack(anchor="w", pady=(2, 8))
 
         included = load_included_model_keys(device_master)
@@ -584,17 +587,81 @@ class QuoteApp(tk.Tk):
         win.bind("<Destroy>", lambda _e: _unbind_wheel())
 
         vars_by_key: dict[str, tk.BooleanVar] = {}
-        for device in devices:
-            key = device["model_key"]
-            var = tk.BooleanVar(value=key in included)
-            vars_by_key[key] = var
-            check = ttk.Checkbutton(
-                list_frame,
-                text=f'{device.get("category", "")} / {device["model"]}',
-                variable=var,
-            )
-            check.pack(anchor="w", pady=1)
-            check.bind("<MouseWheel>", _on_mousewheel)
+        sections = self._device_picker_sections(devices)
+
+        def _section_title(label: str, count: int, expanded: bool) -> str:
+            mark = "▼" if expanded else "▶"
+            return f"{mark} {label}（{count}）"
+
+        for section_label, section_devices, start_expanded in sections:
+            section_wrap = ttk.Frame(list_frame)
+            section_wrap.pack(fill="x", anchor="w", pady=(6, 0))
+            body = ttk.Frame(section_wrap)
+            expanded_var = tk.BooleanVar(value=start_expanded)
+            header = ttk.Button(section_wrap, style="Toolbutton")
+
+            def _refresh_header(
+                btn: ttk.Button = header,
+                label: str = section_label,
+                count: int = len(section_devices),
+                state: tk.BooleanVar = expanded_var,
+            ) -> None:
+                btn.configure(text=_section_title(label, count, state.get()))
+
+            def _toggle(
+                btn: ttk.Button = header,
+                body_frame: ttk.Frame = body,
+                state: tk.BooleanVar = expanded_var,
+                label: str = section_label,
+                count: int = len(section_devices),
+            ) -> None:
+                state.set(not state.get())
+                if state.get():
+                    body_frame.pack(fill="x", anchor="w", padx=(12, 0), pady=(2, 0))
+                else:
+                    body_frame.pack_forget()
+                btn.configure(text=_section_title(label, count, state.get()))
+                canvas.configure(scrollregion=canvas.bbox("all"))
+
+            header.configure(command=_toggle)
+            _refresh_header()
+            header.pack(fill="x", anchor="w")
+            header.bind("<MouseWheel>", _on_mousewheel)
+
+            cat_keys: list[str] = []
+            for device in section_devices:
+                key = str(device["model_key"])
+                var = tk.BooleanVar(value=key in included)
+                vars_by_key[key] = var
+                cat_keys.append(key)
+                check = ttk.Checkbutton(
+                    body,
+                    text=str(device.get("model") or key),
+                    variable=var,
+                )
+                check.pack(anchor="w", pady=1)
+                check.bind("<MouseWheel>", _on_mousewheel)
+
+            cat_toolbar = ttk.Frame(body)
+            cat_toolbar.pack(anchor="w", pady=(2, 4))
+
+            def _select_category(keys: list[str] = cat_keys, value: bool = True) -> None:
+                for key in keys:
+                    vars_by_key[key].set(value)
+
+            ttk.Button(
+                cat_toolbar,
+                text="このカテゴリを選択",
+                command=lambda keys=cat_keys: _select_category(keys, True),
+            ).pack(side="left")
+            ttk.Button(
+                cat_toolbar,
+                text="このカテゴリを解除",
+                command=lambda keys=cat_keys: _select_category(keys, False),
+            ).pack(side="left", padx=(6, 0))
+
+            if start_expanded:
+                body.pack(fill="x", anchor="w", padx=(12, 0), pady=(2, 0))
 
         def select_all() -> None:
             for var in vars_by_key.values():
@@ -606,6 +673,16 @@ class QuoteApp(tk.Tk):
 
         ttk.Button(toolbar, text="すべて選択", command=select_all).pack(side="left")
         ttk.Button(toolbar, text="すべて解除", command=clear_all).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            toolbar,
+            text="すべて開く",
+            command=lambda: self._set_picker_sections_expanded(list_frame, True, canvas),
+        ).pack(side="left", padx=(16, 0))
+        ttk.Button(
+            toolbar,
+            text="すべて閉じる",
+            command=lambda: self._set_picker_sections_expanded(list_frame, False, canvas),
+        ).pack(side="left", padx=(8, 0))
 
         def save() -> None:
             selected = [key for key, var in vars_by_key.items() if var.get()]
@@ -624,6 +701,124 @@ class QuoteApp(tk.Tk):
             win.destroy()
 
         ttk.Button(frame, text="保存", command=save).pack(anchor="w", pady=(12, 0), ipadx=20, ipady=4)
+
+    @staticmethod
+    def _device_display_sort_key(device: dict) -> tuple:
+        """Sort by model family, then Pro before Pro Max, then capacity 256→512→1TB→2TB."""
+        import re
+
+        model = str(device.get("model") or "")
+        match = re.search(r"\(([^)]+)\)\s*$", model)
+        capacity = (match.group(1) if match else "").strip().lower().replace(" ", "")
+        base = model[: match.start()] if match else model
+        is_pro_max = "Pro Max" in base or "ProMax" in base.replace(" ", "")
+        family = (
+            base.replace(" Pro Max", " Pro")
+            .replace("Pro Max", "Pro")
+            .replace("ProMax", "Pro")
+        )
+        capacity_rank = {
+            "1gb": 1,
+            "5gb": 2,
+            "20gb": 3,
+            "50gb": 4,
+            "64gb": 5,
+            "128gb": 6,
+            "256gb": 7,
+            "512gb": 8,
+            "1tb": 9,
+            "2tb": 10,
+        }.get(capacity, 500)
+        return (family.lower(), 1 if is_pro_max else 0, capacity_rank, model.lower())
+
+    @staticmethod
+    def _device_picker_sections(
+        devices: list[dict],
+    ) -> list[tuple[str, list[dict], bool]]:
+        """Return (section_label, devices, start_expanded) for the include picker.
+
+        Temporary overlay models come first. Other models are grouped by category.
+        """
+        from quote_system.temporary_devices import temporary_model_keys
+
+        temp_keys = temporary_model_keys()
+        temp_devices = [d for d in devices if str(d.get("model_key") or "") in temp_keys]
+        other_devices = [
+            d for d in devices if str(d.get("model_key") or "") not in temp_keys
+        ]
+        temp_devices.sort(key=QuoteApp._device_display_sort_key)
+
+        preferred = [
+            "iPhone",
+            "Android",
+            "iPad",
+            "AndroidTab",
+            "ケータイ",
+            "データ通信",
+            "キッズフォン",
+        ]
+        by_category: dict[str, list[dict]] = {}
+        for device in other_devices:
+            category = str(device.get("category") or "").strip() or "その他"
+            by_category.setdefault(category, []).append(device)
+        for group in by_category.values():
+            group.sort(key=QuoteApp._device_display_sort_key)
+
+        ordered_categories = [c for c in preferred if c in by_category]
+        ordered_categories.extend(
+            sorted(c for c in by_category if c not in preferred)
+        )
+
+        sections: list[tuple[str, list[dict], bool]] = []
+        if temp_devices:
+            sections.append(("臨時追加（価格表PDF未反映）", temp_devices, True))
+        for index, category in enumerate(ordered_categories):
+            # Open the first normal category when there is no temporary block.
+            start_open = (not temp_devices) and index == 0
+            sections.append((category, by_category[category], start_open))
+        return sections
+
+    @staticmethod
+    def _sort_devices_temp_first(devices: list[dict]) -> list[dict]:
+        """Put temporary overlay models first (then keep remaining order)."""
+        from quote_system.temporary_devices import temporary_model_keys
+
+        temp_keys = temporary_model_keys()
+        if not temp_keys:
+            return list(devices)
+        first = [d for d in devices if str(d.get("model_key") or "") in temp_keys]
+        rest = [d for d in devices if str(d.get("model_key") or "") not in temp_keys]
+        first.sort(key=QuoteApp._device_display_sort_key)
+        return first + rest
+
+    @staticmethod
+    def _set_picker_sections_expanded(
+        list_frame: ttk.Frame,
+        expanded: bool,
+        canvas: tk.Canvas,
+    ) -> None:
+        """Expand or collapse every category body under the picker list."""
+        for section_wrap in list_frame.winfo_children():
+            children = section_wrap.winfo_children()
+            if len(children) < 2:
+                continue
+            header, body = children[0], children[1]
+            text = str(header.cget("text") or "")
+            # Keep the count suffix; swap only the marker.
+            if text.startswith("▼ ") or text.startswith("▶ "):
+                rest = text[2:]
+            else:
+                rest = text
+            marker = "▼" if expanded else "▶"
+            try:
+                header.configure(text=f"{marker} {rest}")
+            except tk.TclError:
+                pass
+            if expanded:
+                body.pack(fill="x", anchor="w", padx=(12, 0), pady=(2, 0))
+            else:
+                body.pack_forget()
+        canvas.configure(scrollregion=canvas.bbox("all"))
 
     def _open_individual_window(self, months: int | None = None) -> None:
         if months is None:
@@ -659,7 +854,7 @@ class QuoteApp(tk.Tk):
                     "先に通常（48回）で価格表PDFから一括作成（または機種取込）を実行してください。",
                 )
                 return
-            device_master = load_json(DATA_DIR / "device_master.json")
+            device_master = load_device_master()
             with_24 = [
                 d
                 for d in device_master["devices"]
@@ -677,12 +872,16 @@ class QuoteApp(tk.Tk):
                 mode_label = "特例個別見積（24回・TM兼任事業部用）"
         else:
             if not (DATA_DIR / "device_master.json").exists():
-                messagebox.showerror(
-                    "機種マスターがありません",
-                    "先に価格表PDFから一括作成を実行してください。",
-                )
-                return
-            device_master = load_json(DATA_DIR / "device_master.json")
+                # Temporary overlays alone are enough for 48-mode individual.
+                from quote_system.temporary_devices import temporary_devices_enabled
+
+                if not temporary_devices_enabled():
+                    messagebox.showerror(
+                        "機種マスターがありません",
+                        "先に価格表PDFから一括作成を実行してください。",
+                    )
+                    return
+            device_master = load_device_master()
             devices = [
                 d for d in device_master["devices"]
                 if d["status"] == "販売中" and d.get("model_key") in included
@@ -690,6 +889,7 @@ class QuoteApp(tk.Tk):
             mode_label = "個別見積作成（通常48回）"
             if IS_TM_SPECIAL:
                 mode_label = "特例個別見積（通常48回・TM兼任事業部用）"
+        devices = self._sort_devices_temp_first(devices)
         models = [d["model"] for d in devices]
         if not models:
             if months == 24:
@@ -1184,7 +1384,7 @@ class QuoteApp(tk.Tk):
             self.pdf_var.set(str(pdf36))
         else:
             if (DATA_DIR / "device_master.json").exists():
-                master = load_json(DATA_DIR / "device_master.json")
+                master = load_device_master()
                 on_sale = [
                     d for d in master.get("devices", []) if d.get("status") == "販売中"
                 ]

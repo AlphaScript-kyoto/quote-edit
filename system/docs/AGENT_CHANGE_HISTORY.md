@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.10β**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.13β**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -352,6 +352,36 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Fixed contradictions: multi output roots (48/36/24 + TM), include-list (not exclude-first), update check, app_window_title, TM paths/4500 fee.
 - Added `開発者向け仕様書_v1.4.md`; v1.3/v1.1 are stubs.
 - Refreshed `system/README.md`.
+
+
+### 2026-09-14 - Temporary iPhone 18 Pro / Pro Max (ver.1.4.11β)
+- Field emergency: official price PDF not yet published; add `data/temporary_devices.json` + `temporary_devices.py` merge overlay (48-only).
+- Naming follows existing iPhone style (`iPhone 18 Pro(256GB)`, `iPhone 18 Pro Max(...)`). Capacities 256/512/1TB/2TB (user typo 215GB interpreted as 512GB).
+- Installments mapped as 1_12=13_24 (months 1-24) + 25_48. Pro Max 256GB kishu 25-48 adjusted 5500->5550 so periods match stated total 295,920.
+- Overlay not persisted into device_master.json; always force-included for batch/individual while enabled. Standard + TM both use same data.
+- APP_VERSION -> 1.4.11β; both portable ZIPs; standard to N: + latest.json.
+
+
+### 2026-09-14 - Include picker UX (ver.1.4.12β)
+- Temporary overlay models appear at the top under `臨時追加（価格表PDF未反映）`.
+- Other models grouped by category with collapsible headers; open/close all; per-category select/clear.
+- Individual 48-mode model list also sorts temporary devices first.
+- APP_VERSION -> 1.4.12β; both portable ZIPs; standard to N: + latest.json.
+
+
+### 2026-09-14 - Restore output path without model folder (no version bump)
+- Field request: quote PDF tree is category / sales-type / SB光 / … ; model is distinguished by PDF filename only (no per-model folder).
+- Overwrite portable ZIPs at current APP_VERSION; standard to N: + latest.json.
+
+
+### 2026-09-14 - Model folder only as deepest leaf (no version bump)
+- Quote path: category / sales / SB光 / … / model / filename.pdf (model folder is the last folder before the PDF).
+- Overwrite portable ZIPs at current APP_VERSION; standard to N: + latest.json.
+
+
+### 2026-09-14 - Quote path leaf model folder (ver.1.4.13β)
+- Quote path: category / sales / SB光 / fee/IRS/plan/IPS… / **model** / filename.pdf (model folder is only the deepest folder before the PDF). Model folder uses compact name without spaces/underscores (same as PDF basename model token).
+- APP_VERSION -> 1.4.13β; both portable ZIPs; standard to N: + latest.json.
 
 ## Release checklist
 1. APP_VERSION

@@ -1,6 +1,6 @@
 {
-  "version": "1.4.10β",
-  "zip": "見積もり一括作成ver1.4.10β.zip",
+  "version": "1.4.13β",
+  "zip": "見積もり一括作成ver1.4.13β.zip",
   "edition": "standard",
-  "notes": "Startup update check. Place beside the standard ZIP in N:\\01.ツールズ\\見積もり作成ツール. Do not mix TM packages."
+  "notes": "PDF出力の最下層を機種フォルダ（アンダーバーなし）に整理。"
 }
