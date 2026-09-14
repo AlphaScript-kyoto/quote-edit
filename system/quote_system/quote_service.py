@@ -9,6 +9,11 @@ from typing import Any
 from .price_pdf_parser import find_device
 
 
+# iPad／AndroidTab はパケット 1GB／5GB／50GB のみ（20GB・無制限なし）
+_TABLET_PACKET_CATEGORIES = frozenset({"iPad", "AndroidTab"})
+_TABLET_PACKET_PLANS = frozenset({"1GB", "5GB", "50GB"})
+
+
 def is_device_data_plan_allowed(
     device: dict[str, Any],
     data_plan: str,
@@ -18,12 +23,15 @@ def is_device_data_plan_allowed(
 
     機種変更では通常機種でもパケット1GBを許可する（5GB以上は従来どおり）。
     ケータイは引き続き1GBのみ。
+    iPad／AndroidTab は 1GB／5GB／50GB のみ（20GB提供なし）。
     """
     category = str(device.get("category", "")).strip()
     normalized_plan = str(data_plan).strip()
     sales = str(sales_type or "").strip()
     if category == "ケータイ":
         return normalized_plan == "1GB"
+    if category in _TABLET_PACKET_CATEGORIES:
+        return normalized_plan in _TABLET_PACKET_PLANS
     # 機種変更のみ：通常機種でも1GB見積を作成する
     if sales == "機種変更・移動機物品販売" and normalized_plan == "1GB":
         return True
@@ -33,13 +41,73 @@ def is_device_data_plan_allowed(
     return bool(match and float(match.group(1)) >= 5)
 
 
-def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
+def allows_ouchi_discount_with_5gb(device: dict[str, Any]) -> bool:
+    """おうち割あり×5GBを許可するか。
+
+    通常は5GBと20GBが同額提示のため作らないが、
+    iPad／AndroidTab は20GB提供がなく5GBが独立するため許可する。
+    """
+    category = str(device.get("category") or "").strip()
+    return category in _TABLET_PACKET_CATEGORIES
+
+
+# iPad／データ通信／AndroidTab は回線のMNP・番号移行の対象外
+_NO_LINE_PORT_CATEGORIES = frozenset({"iPad", "AndroidTab", "データ通信"})
+_NO_LINE_PORT_SALES_TYPES = frozenset({"MNP", "番号移行"})
+
+
+def is_device_sales_type_allowed(device: dict[str, Any], sales_type: str) -> bool:
+    """機種カテゴリと販売区分の可否（両ビルド共通）。
+
+    iPad／データ通信／AndroidTab では MNP・番号移行の見積を作らない。
+    """
+    category = str(device.get("category") or "").strip()
+    sales = str(sales_type or "").strip()
+    if category in _NO_LINE_PORT_CATEGORIES and sales in _NO_LINE_PORT_SALES_TYPES:
+        return False
+    return True
+
+
+# ライト系はスマートフォン（iPhone／Android）のみ。タブレット・データ通信・ケータイ等は対象外
+_LIGHT_FAMILY_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
+_LIGHT_FAMILY_CATEGORIES = frozenset({"iPhone", "Android"})
+
+
+def is_device_plan_allowed(device: dict[str, Any], plan_id: str) -> bool:
+    """機種カテゴリと料金プランの可否（両ビルド共通）。
+
+    Bizパッケージ＋ライト／スーパーライト／ハイパーライトは
+    カテゴリ「iPhone」「Android」のみ。
+    """
+    plan = str(plan_id or "").strip()
+    if plan not in _LIGHT_FAMILY_PLAN_IDS:
+        return True
+    category = str(device.get("category") or "").strip()
+    return category in _LIGHT_FAMILY_CATEGORIES
+
+
+def is_plan_data_plan_allowed(
+    plan_id: str,
+    data_plan: str,
+    *,
+    unrestricted: bool = False,
+) -> bool:
     """Return whether the tariff plan may offer the packet size."""
     plan = str(plan_id).strip()
     capacity = str(data_plan).strip()
     # ライト／スーパーライト／ハイパーライトは1GB非対象（追加割引があるプラン）
     if plan in {"light", "super_light", "hyper_light"} and capacity == "1GB":
         return False
+    if unrestricted:
+        # TM特例個別: プランごとの開放容量（plans.json に存在するキーのみ）
+        allowed = {
+            "light": {"5GB", "20GB", "50GB", "無制限"},
+            "super_light": {"5GB", "20GB", "50GB", "無制限"},
+            "hyper_light": {"5GB", "20GB", "無制限"},
+        }.get(plan)
+        if allowed is not None:
+            return capacity in allowed
+        return True
     # Bizパッケージ＋スーパーライトはパケット50GBのみ（現場ルール）
     if plan == "super_light":
         return capacity == "50GB"
@@ -49,12 +117,20 @@ def is_plan_data_plan_allowed(plan_id: str, data_plan: str) -> bool:
     return True
 
 
-def is_sales_plan_allowed(sales_type: str, plan_id: str) -> bool:
+def is_sales_plan_allowed(
+    sales_type: str,
+    plan_id: str,
+    *,
+    unrestricted: bool = False,
+) -> bool:
     """販売区分と料金プランの組合せ可否。
 
     - Bizパッケージ＋ライト: 機種変更では使わない（MNP／新規／番号移行のみ）
     - スーパー／ハイパー: 機種変更・MNP・新規で作成（番号移行では加入なし）
+    - unrestricted=True（TM特例個別）: ライト系を全販売区分で許可
     """
+    if unrestricted:
+        return True
     sales = str(sales_type or "").strip()
     plan = str(plan_id or "").strip()
     kishu = "機種変更・移動機物品販売"
@@ -90,6 +166,9 @@ def _resolve_services(
     service_master: dict[str, Any],
     device_total: int,
     plan_id: str,
+    *,
+    allow_super_hyper_without_irs: bool = False,
+    unrestricted_individual: bool = False,
 ) -> dict[str, Any]:
     selection = request.get("services", {})
     ips_selection = selection.get("ips")
@@ -127,18 +206,38 @@ def _resolve_services(
         raise ValueError(f"IPS徴収方式が不正です: {ips_selection.get('type')}")
 
     support: dict[str, Any] | None = None
-    support_plan_id = selection.get("support_plan_id", "auto")
-    if support_plan_id == "auto":
-        support_plan_id = service_master["support_subscription"]["auto_mapping"].get(plan_id)
-    if support_plan_id:
-        plan = service_master["support_subscription"]["plans"].get(support_plan_id)
-        if not plan:
-            raise ValueError(f"安心サポート料金が未登録です: {support_plan_id}")
-        support = {
-            **plan,
-            "plan_id": support_plan_id,
-            "billing_type": "subscription",
-        }
+    # 通常: ライトにはIRSなし。スーパー／ハイパーは原則IRS＋追加割引セット。
+    # 特例個別: プラン自動割当なし。ライトにもIRS可。なしも可。
+    if plan_id == "light" and not unrestricted_individual:
+        support = None
+    else:
+        support_plan_id = selection.get("support_plan_id", "auto")
+        if support_plan_id == "auto" and not unrestricted_individual:
+            support_plan_id = service_master["support_subscription"]["auto_mapping"].get(
+                plan_id
+            )
+        elif support_plan_id == "auto" and unrestricted_individual:
+            # 特例UIは明示選択のみ。「自動」は付けない
+            support_plan_id = None
+        if support_plan_id:
+            plan = service_master["support_subscription"]["plans"].get(support_plan_id)
+            if not plan:
+                raise ValueError(f"安心サポート料金が未登録です: {support_plan_id}")
+            support = {
+                **plan,
+                "plan_id": support_plan_id,
+                "billing_type": "subscription",
+            }
+        elif (
+            plan_id in {"super_light", "hyper_light"}
+            and not allow_super_hyper_without_irs
+            and not unrestricted_individual
+        ):
+            raise ValueError(
+                "スーパーライト／ハイパーライトは安心サポート（IRS）付きでのみ作成します"
+                "（割引とセットのため、一括作成ではIRSなしは作成しません。"
+                "個別見積では「安心サポートなし」を選べます）"
+            )
 
     if ips:
         ips = {**service_master.get("ips_common", {}), **ips}
@@ -150,23 +249,44 @@ def build_quote(
     device_master: dict[str, Any],
     plan_master: dict[str, Any],
     service_master: dict[str, Any],
+    *,
+    allow_super_hyper_without_irs: bool = False,
+    unrestricted_individual: bool = False,
 ) -> dict[str, Any]:
     device = find_device(device_master, request["model"])
-    if device["status"] != "販売中":
-        raise ValueError(f"取扱終了機種です: {device['model']}")
-
-    sales_type = request["sales_type"]
-    if sales_type not in device["payment_48"]:
-        raise ValueError(f"販売区分が不正です: {sales_type}")
-
     installment_months = int(
         request.get("installment_months")
         or device.get("installment_months")
         or 48
     )
+    is_24 = installment_months == 24
+    if device["status"] != "販売中" and not (
+        is_24 and device.get("payment_24") is not None
+    ):
+        raise ValueError(f"取扱終了機種です: {device['model']}")
+
+    sales_type = request["sales_type"]
+    if sales_type not in device["payment_48"]:
+        raise ValueError(f"販売区分が不正です: {sales_type}")
+    if not is_device_sales_type_allowed(device, sales_type):
+        category = str(device.get("category") or "").strip() or "対象カテゴリ"
+        raise ValueError(
+            f"{category}ではMNP・番号移行の見積は作成しません"
+            f"（{device['model']}）"
+        )
+    if not is_device_plan_allowed(device, request["plan_id"]):
+        category = str(device.get("category") or "").strip() or "対象カテゴリ"
+        raise ValueError(
+            f"{category}ではライト／スーパーライト／ハイパーライトの見積は作成しません"
+            f"（対象はiPhone・Androidのみ／{device['model']}）"
+        )
+
     payment_36_flat = request.get("payment_36_flat")
     if payment_36_flat is None:
         payment_36_flat = device.get("payment_36_flat")
+    payment_24_flat = request.get("payment_24")
+    if payment_24_flat is None:
+        payment_24_flat = device.get("payment_24")
 
     if installment_months == 36:
         if payment_36_flat is None:
@@ -174,6 +294,12 @@ def build_quote(
         flat = int(payment_36_flat)
         payments = {"1_36": flat}
         period_specs = [("1_36", "分割支払 1～36回目")]
+    elif is_24:
+        if payment_24_flat is None:
+            raise ValueError(f"24回割賦の月額が一覧にありません: {device['model']}")
+        flat = int(payment_24_flat)
+        payments = {"1_24": flat}
+        period_specs = [("1_24", "分割支払 1～24回目")]
     else:
         payments = device["payment_48"][sales_type]
         if any(value is None for value in payments.values()):
@@ -189,7 +315,9 @@ def build_quote(
     plan = plan_master["plans"].get(request["plan_id"])
     if not plan or not plan.get("enabled"):
         raise ValueError(f"利用できないプランです: {request['plan_id']}")
-    if not is_sales_plan_allowed(sales_type, request["plan_id"]):
+    if not is_sales_plan_allowed(
+        sales_type, request["plan_id"], unrestricted=unrestricted_individual
+    ):
         plan_key = str(request["plan_id"]).strip()
         if plan_key == "light":
             raise ValueError(
@@ -208,10 +336,14 @@ def build_quote(
     data_plan = plan["data_plans"].get(request["data_plan"])
     if not data_plan:
         raise ValueError(f"プランとデータ容量の組み合わせが不正です: {request['data_plan']}")
-    if not is_plan_data_plan_allowed(request["plan_id"], request["data_plan"]):
+    if not is_plan_data_plan_allowed(
+        request["plan_id"],
+        request["data_plan"],
+        unrestricted=unrestricted_individual,
+    ):
         plan_key = str(request["plan_id"]).strip()
         capacity = str(request["data_plan"]).strip()
-        if plan_key == "super_light":
+        if plan_key == "super_light" and not unrestricted_individual:
             raise ValueError(
                 "Bizパッケージ＋スーパーライトはパケット50GBのみ作成します"
             )
@@ -228,8 +360,11 @@ def build_quote(
             f"{request['plan_id']} / {request['data_plan']}"
         )
     if not is_device_data_plan_allowed(device, request["data_plan"], sales_type):
-        if str(device.get("category", "")).strip() == "ケータイ":
+        category = str(device.get("category", "")).strip()
+        if category == "ケータイ":
             condition = "1GBのみ"
+        elif category in _TABLET_PACKET_CATEGORIES:
+            condition = "1GB／5GB／50GBのみ"
         elif sales_type == "機種変更・移動機物品販売":
             condition = "1GB以上"
         else:
@@ -253,14 +388,24 @@ def build_quote(
     ouchi_schedule = plan_master["common"].get("ouchi_discount_by_data_plan_tax_ex", {})
     if request.get("ouchi_discount_applied"):
         ouchi_discount = int(ouchi_schedule.get(request["data_plan"], 0))
-        if request["data_plan"] == "5GB" and ouchi_discount:
+        if (
+            request["data_plan"] == "5GB"
+            and ouchi_discount
+            and not unrestricted_individual
+            and not allows_ouchi_discount_with_5gb(device)
+        ):
             raise ValueError(
                 "おうち割（SB光）ありの場合、5GB見積は作成しません（20GBと同額のため）"
             )
     else:
         # Keep explicit input compatibility for existing individual quote requests.
         ouchi_discount = int(request.get("ouchi_discount_tax_ex", 0))
-        if request["data_plan"] == "5GB" and ouchi_discount:
+        if (
+            request["data_plan"] == "5GB"
+            and ouchi_discount
+            and not unrestricted_individual
+            and not allows_ouchi_discount_with_5gb(device)
+        ):
             raise ValueError(
                 "おうち割（SB光）ありの場合、5GB見積は作成しません（20GBと同額のため）"
             )
@@ -276,7 +421,16 @@ def build_quote(
         raise ValueError("プラン料金の検算に失敗しました")
     communication_tax_in = math.floor(communication_tax_ex * (1 + tax_rate))
 
-    services = _resolve_services(request, service_master, int(device["total"]), request["plan_id"])
+    services = _resolve_services(
+        request,
+        service_master,
+        int(device["total"]),
+        request["plan_id"],
+        allow_super_hyper_without_irs=(
+            allow_super_hyper_without_irs or unrestricted_individual
+        ),
+        unrestricted_individual=unrestricted_individual,
+    )
     ips = services["ips"]
     support = services["support"]
     ips_monthly_actual = int(ips["monthly_charge_tax_in"]) if ips else 0

@@ -9,13 +9,52 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.4.1"
+APP_VERSION = "1.4.10β"
 APP_DISPLAY_NAME = "見積もり一括作成"
+
+# パッケージ版: standard（現場向け） / tm_special（TM兼任事業部用・個別制限解除）
+EDITION_STANDARD = "standard"
+EDITION_TM_SPECIAL = "tm_special"
+_VALID_EDITIONS = frozenset({EDITION_STANDARD, EDITION_TM_SPECIAL})
+
+
+def _resolve_app_edition() -> str:
+    """Edition comes from env or bundled marker — not from LOCALAPPDATA user data."""
+    env = str(os.environ.get("QUOTE_APP_EDITION") or "").strip().lower()
+    if env in _VALID_EDITIONS:
+        return env
+    candidates: list[Path] = []
+    frozen = bool(getattr(sys, "frozen", False))
+    if frozen:
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidates.append(Path(meipass) / "data" / "app_edition.json")
+        exe_parent = Path(sys.executable).resolve().parent
+        candidates.append(exe_parent / "system" / "data" / "app_edition.json")
+    else:
+        candidates.append(Path(__file__).resolve().parents[1] / "data" / "app_edition.json")
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        edition = str(payload.get("edition") or "").strip().lower()
+        if edition in _VALID_EDITIONS:
+            return edition
+    return EDITION_STANDARD
+
+
+APP_EDITION = _resolve_app_edition()
+IS_TM_SPECIAL = APP_EDITION == EDITION_TM_SPECIAL
 
 FROZEN = bool(getattr(sys, "frozen", False))
 _USER_DATA_ROOT = Path(
     os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
-) / "InfinityQuoteApp"
+) / ("InfinityQuoteAppTM" if IS_TM_SPECIAL else "InfinityQuoteApp")
 
 if FROZEN:
     APP_ROOT = Path(sys.executable).resolve().parent
@@ -34,6 +73,23 @@ else:
 
 OUTPUT_DIR = APP_ROOT / "output"
 UPDATE_DIR = APP_ROOT / "機種代金一覧表"
+
+# TM特例パッケージは出力も分離（通常版の見積PDFと混線しない）
+QUOTE_OUTPUT_DIRNAME = "見積PDF_TM特例" if IS_TM_SPECIAL else "見積PDF"
+QUOTE_OUTPUT_DIRNAME_36 = "見積PDF_TM特例_36回" if IS_TM_SPECIAL else "見積PDF_36回"
+QUOTE_OUTPUT_DIRNAME_24 = "見積PDF_TM特例_24回" if IS_TM_SPECIAL else "見積PDF_24回"
+
+
+def app_window_title() -> str:
+    if IS_TM_SPECIAL:
+        return f"{APP_DISPLAY_NAME}（TM兼任事業部用）  ver.{APP_VERSION}"
+    return f"{APP_DISPLAY_NAME}  ver.{APP_VERSION}"
+
+
+def package_dir_name() -> str:
+    if IS_TM_SPECIAL:
+        return f"{APP_DISPLAY_NAME}_TM兼任事業部用ver{APP_VERSION}"
+    return f"{APP_DISPLAY_NAME}ver{APP_VERSION}"
 
 # 旧コード互換
 PROJECT_ROOT = APP_ROOT

@@ -1,6 +1,8 @@
 """Arrange PyInstaller output into the field-facing portable folder."""
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -9,14 +11,21 @@ SYSTEM_DIR = Path(__file__).resolve().parent
 if str(SYSTEM_DIR) not in sys.path:
     sys.path.insert(0, str(SYSTEM_DIR))
 
-from quote_system.config import APP_DISPLAY_NAME, APP_VERSION
+from quote_system.config import (
+    APP_DISPLAY_NAME,
+    APP_VERSION,
+    EDITION_STANDARD,
+    EDITION_TM_SPECIAL,
+    IS_TM_SPECIAL,
+    package_dir_name,
+)
 
 ROOT = SYSTEM_DIR.parent
 DIST = ROOT / "portable"
 BUILD_NAME = "QuoteBatchApp"
 APP_NAME = APP_DISPLAY_NAME
-# 配布フォルダ名例: 見積もり一括作成ver1.3.3
-PACKAGE_DIR_NAME = f"{APP_NAME}ver{APP_VERSION}"
+# 配布フォルダ名例: 見積もり一括作成ver1.3.3 / 見積もり一括作成_TM兼任事業部用ver1.4.6β
+PACKAGE_DIR_NAME = package_dir_name()
 UPDATE_NAME = "機種代金一覧表"
 # 現場向け操作説明PDF（ファイル名にバージョンが入っても拾う）
 USAGE_GUIDE_GLOB = "*使い方*.pdf"
@@ -29,6 +38,23 @@ def _write_utf8_bom(src: Path, dest: Path) -> None:
     """Copy text for field use as UTF-8 with BOM (Windows Notepad-safe)."""
     text = src.read_text(encoding="utf-8-sig")
     dest.write_text(text, encoding="utf-8-sig", newline="\r\n")
+
+
+def _write_edition_marker(stage: Path) -> None:
+    """Freeze edition into the portable package (not LOCALAPPDATA)."""
+    edition = EDITION_TM_SPECIAL if IS_TM_SPECIAL else EDITION_STANDARD
+    # Prefer env if arrange was launched with an explicit edition
+    env = str(os.environ.get("QUOTE_APP_EDITION") or "").strip().lower()
+    if env in {EDITION_STANDARD, EDITION_TM_SPECIAL}:
+        edition = env
+    data_dir = stage / "system" / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    marker = data_dir / "app_edition.json"
+    marker.write_text(
+        json.dumps({"edition": edition}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Bundled app_edition.json: edition={edition}")
 
 
 def main() -> int:
@@ -74,6 +100,8 @@ def main() -> int:
         print(f"Bundled company.json: {candidates[0].relative_to(STAGE)}")
     else:
         print("Bundled company.json: system/data/company.json")
+
+    _write_edition_marker(STAGE)
 
     (STAGE / UPDATE_NAME).mkdir(exist_ok=True)
     (STAGE / "output").mkdir(exist_ok=True)

@@ -53,6 +53,36 @@ def _is_changed(value: Any) -> bool:
     return "変更" in str(value or "")
 
 
+def _expand_merged_device_rows(row: list[Any]) -> list[list[Any]]:
+    """表抽出で複数機種が1行に結合された場合、機種行に分割する。
+
+    新機種ブロックなどで横線が弱いと、pdfplumber が複数行を1セルにまとめることがある。
+    機種列の改行数を基準に、各列を同じ本数へ展開する。
+    """
+    model_text = str(row[2] or "")
+    models = [line.strip() for line in model_text.splitlines() if line.strip()]
+    if len(models) <= 1:
+        return [row]
+
+    count = len(models)
+
+    def split_cell(cell: Any) -> list[str]:
+        text = str(cell or "")
+        if text == "":
+            return [""] * count
+        lines = text.splitlines()
+        if len(lines) == count:
+            return lines
+        if len(lines) == 1:
+            return [text] * count
+        while len(lines) < count:
+            lines.append(lines[-1] if lines else "")
+        return lines[:count]
+
+    columns = [split_cell(cell) for cell in row]
+    return [[columns[col][index] for col in range(len(row))] for index in range(count)]
+
+
 def _validate_total(payments: list[int | None], total: int | None) -> bool | None:
     if total is None or any(value is None for value in payments):
         return None
@@ -83,67 +113,75 @@ def parse_price_pdf(pdf_path: Path) -> dict[str, Any]:
             for row in table:
                 if len(row) < 23:
                     continue
-                category = str(row[1] or "").replace("\n", " ").strip()
-                if category and category != "カテゴリ":
-                    current_category = category
+                for device_row in _expand_merged_device_rows(row):
+                    category = str(device_row[1] or "").replace("\n", " ").strip()
+                    if category and category != "カテゴリ":
+                        current_category = category
 
-                model = str(row[2] or "").replace("\n", " ").strip()
-                if not model or model == "機種":
-                    continue
+                    model = str(device_row[2] or "").replace("\n", " ").strip()
+                    if not model or model == "機種":
+                        continue
 
-                route_payments = {
-                    sales_type: _numbers_from_cells(row, start)
-                    for sales_type, start in SALES_COLUMNS.items()
-                }
-                route_text = " ".join(str(row[index] or "") for index in range(7, 19))
-                route_dash_count = route_text.count("-")
-                has_any_48_payment = any(
-                    any(value is not None for value in payments)
-                    for payments in route_payments.values()
-                )
-                payment_36 = _single_number(row[19])
-                payment_24 = _single_number(row[20])
-                # 4つの販売区分に「-」が連続する行は取扱終了。
-                # 48回欄が空欄で36回・24回のみ設定された端末とは区別します。
-                status = (
-                    "取扱終了"
-                    if not has_any_48_payment and route_dash_count >= 4
-                    else "販売中"
-                )
-                total = _single_number(row[22])
-                validations = {
-                    sales_type: _validate_total(payments, total)
-                    for sales_type, payments in route_payments.items()
-                }
-
-                devices.append(
-                    {
-                        "category": current_category,
-                        "model": model,
-                        "model_key": normalize_model_name(model),
-                        "changed": _is_changed(row[0]),
-                        "status": status,
-                        "notes": str(row[3] or "").replace("\n", " ").strip(),
-                        "eligible": {
-                            "new_toku_support_plus": "●" in str(row[4] or ""),
-                            "replacement_support": "●" in str(row[5] or ""),
-                            "mobile_device_sale": "●" in str(row[6] or ""),
-                        },
-                        "payment_48": {
-                            sales_type: {
-                                "1_12": payments[0],
-                                "13_24": payments[1],
-                                "25_48": payments[2],
-                            }
-                            for sales_type, payments in route_payments.items()
-                        },
-                        "payment_36": payment_36,
-                        "payment_24": payment_24,
-                        "total": total,
-                        "validation": validations,
-                        "source_page": page_number,
+                    route_payments = {
+                        sales_type: _numbers_from_cells(device_row, start)
+                        for sales_type, start in SALES_COLUMNS.items()
                     }
-                )
+                    route_text = " ".join(
+                        str(device_row[index] or "") for index in range(7, 19)
+                    )
+                    route_dash_count = route_text.count("-")
+                    has_any_48_payment = any(
+                        any(value is not None for value in payments)
+                        for payments in route_payments.values()
+                    )
+                    payment_36 = _single_number(device_row[19])
+                    payment_24 = _single_number(device_row[20])
+                    # 4つの販売区分に「-」が連続する行は取扱終了。
+                    # 48回欄が空欄で36回・24回のみ設定された端末は販売中として残す。
+                    has_short_term = payment_36 is not None or payment_24 is not None
+                    status = (
+                        "取扱終了"
+                        if (
+                            not has_any_48_payment
+                            and not has_short_term
+                            and route_dash_count >= 4
+                        )
+                        else "販売中"
+                    )
+                    total = _single_number(device_row[22])
+                    validations = {
+                        sales_type: _validate_total(payments, total)
+                        for sales_type, payments in route_payments.items()
+                    }
+
+                    devices.append(
+                        {
+                            "category": current_category,
+                            "model": model,
+                            "model_key": normalize_model_name(model),
+                            "changed": _is_changed(device_row[0]),
+                            "status": status,
+                            "notes": str(device_row[3] or "").replace("\n", " ").strip(),
+                            "eligible": {
+                                "new_toku_support_plus": "●" in str(device_row[4] or ""),
+                                "replacement_support": "●" in str(device_row[5] or ""),
+                                "mobile_device_sale": "●" in str(device_row[6] or ""),
+                            },
+                            "payment_48": {
+                                sales_type: {
+                                    "1_12": payments[0],
+                                    "13_24": payments[1],
+                                    "25_48": payments[2],
+                                }
+                                for sales_type, payments in route_payments.items()
+                            },
+                            "payment_36": payment_36,
+                            "payment_24": payment_24,
+                            "total": total,
+                            "validation": validations,
+                            "source_page": page_number,
+                        }
+                    )
 
     invalid = [
         {"model": device["model"], "sales_type": sales_type}

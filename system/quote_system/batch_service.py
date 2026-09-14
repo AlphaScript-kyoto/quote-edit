@@ -10,12 +10,25 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from .config import DATA_DIR, OUTPUT_DIR, UPDATE_DIR, load_json, save_json
+from .config import (
+    DATA_DIR,
+    OUTPUT_DIR,
+    QUOTE_OUTPUT_DIRNAME,
+    QUOTE_OUTPUT_DIRNAME_24,
+    QUOTE_OUTPUT_DIRNAME_36,
+    UPDATE_DIR,
+    IS_TM_SPECIAL,
+    load_json,
+    save_json,
+)
 from .pdf_renderer import render_quote
 from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf, sales_type_display_name
 from .quote_service import (
     build_quote,
+    allows_ouchi_discount_with_5gb,
     is_device_data_plan_allowed,
+    is_device_plan_allowed,
+    is_device_sales_type_allowed,
     is_plan_data_plan_allowed,
     is_sales_plan_allowed,
 )
@@ -25,13 +38,19 @@ DEVICE_MASTER_PATH = DATA_DIR / "device_master.json"
 INCLUDED_MODELS_PATH = DATA_DIR / "included_models.json"
 EXCLUDED_MODELS_PATH = DATA_DIR / "excluded_models.json"  # 移行用
 CHECKPOINT_PATH = DATA_DIR / "batch_checkpoint.json"
-QUOTE_OUTPUT_ROOT = OUTPUT_DIR / "見積PDF"
-QUOTE_OUTPUT_ROOT_36 = OUTPUT_DIR / "見積PDF_36回"
+QUOTE_OUTPUT_ROOT = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME
+QUOTE_OUTPUT_ROOT_36 = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME_36
+QUOTE_OUTPUT_ROOT_24 = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME_24
 ProgressCallback = Callable[[int, int, str], None]
 
 
 def quote_output_root(installment_months: int = 48) -> Path:
-    return QUOTE_OUTPUT_ROOT_36 if int(installment_months) == 36 else QUOTE_OUTPUT_ROOT
+    months = int(installment_months)
+    if months == 36:
+        return QUOTE_OUTPUT_ROOT_36
+    if months == 24:
+        return QUOTE_OUTPUT_ROOT_24
+    return QUOTE_OUTPUT_ROOT
 
 
 @dataclass(frozen=True)
@@ -200,10 +219,23 @@ def quote_variants(
     plan_master: dict[str, Any],
     include_upfront_ips: bool = False,
     include_no_ips: bool = False,
-    include_no_support: bool = False,
+    include_mnp_shinki_irs: bool = False,
     include_standard_initial_fee: bool = False,
+    include_upfront_lump: bool = True,
+    include_upfront_running: bool = True,
+    include_light_plan: bool = False,
+    *,
+    include_no_support: bool | None = None,
 ) -> Iterable[dict[str, Any]]:
-    """バリアント列挙。標準は事務手数料免除＋初期費用3,000円。事務手数料ありはチェックON時のみ追加。"""
+    """バリアント列挙。標準は事務手数料免除＋初期費用3,000円。事務手数料ありはチェックON時のみ追加。
+    ライトはチェックON時のみ。
+    スーパー／ハイパーはIRS（安心サポート）＋追加割引のセット。
+    - 機種変更: 常にスーパー／ハイパー（IRSあり）を作成
+    - MNP／新規: チェックOFFでは作らない（Bizのみ）。チェックONでIRSありのスーパー／ハイパーを追加
+    - 番号移行: スーパー／ハイパーなし
+    include_no_support は旧名互換（include_mnp_shinki_irs と同義）。"""
+    if include_no_support is not None:
+        include_mnp_shinki_irs = bool(include_no_support)
     ips_options: list[dict[str, Any]] = [{"type": "subscription"}]
     if include_no_ips:
         ips_options.append({"type": "none"})
@@ -218,25 +250,27 @@ def quote_variants(
         fee_modes.append("standard")
 
     for sales_type in SALES_COLUMNS:
+        if not is_device_sales_type_allowed(device, sales_type):
+            continue
         payments = device["payment_48"][sales_type]
         if any(value is None for value in payments.values()):
             continue
         for plan_id, plan in plan_master["plans"].items():
             if not plan.get("enabled"):
                 continue
+            if plan_id == "light" and not include_light_plan:
+                continue
             if not is_sales_plan_allowed(sales_type, plan_id):
                 continue
-            support_options: list[str | None] = ["auto"]
-            if plan_id in _SUPPORT_AUTO_PLAN_IDS:
-                if include_no_support:
-                    support_options.append(None)
-                elif (
-                    plan_id in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS
-                    and sales_type in _NO_IRS_DEFAULT_SALES_TYPES
-                ):
-                    # 新規・MNPは安心サポート(IRS)を外しても特別割引が入る運用があるため、
-                    # IRSなし版も標準で作成する
-                    support_options.append(None)
+            if not is_device_plan_allowed(device, plan_id):
+                continue
+            # スーパー／ハイパーはIRS＋割引セット。IRSなし版は作らない。
+            if plan_id in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS:
+                if sales_type in _MNP_SHINKI_SALES_TYPES and not include_mnp_shinki_irs:
+                    continue
+                support_options: list[str | None] = ["auto"]
+            else:
+                support_options = ["auto"]
             for data_plan in plan["data_plans"]:
                 if not is_plan_data_plan_allowed(plan_id, data_plan):
                     continue
@@ -248,17 +282,27 @@ def quote_variants(
                     .get(data_plan, 0)
                 )
                 # おうち割ありでは5GBと20GBが同額提示になるため、5GBは作らない。
-                if ouchi_amount and data_plan == "5GB":
+                # 例外: iPad／AndroidTab は20GB提供がなく5GBが独立するため許可。
+                if (
+                    ouchi_amount
+                    and data_plan == "5GB"
+                    and not allows_ouchi_discount_with_5gb(device)
+                ):
                     ouchi_options = [False]
                 else:
                     ouchi_options = [False, True] if ouchi_amount else [False]
                 for ouchi_discount_applied in ouchi_options:
                     for ips in ips_options:
-                        display_modes = (
-                            ["lump", "monthly_as_running"]
-                            if ips.get("type") == "upfront"
-                            else ["lump"]
-                        )
+                        if ips.get("type") == "upfront":
+                            display_modes: list[str] = []
+                            if include_upfront_lump:
+                                display_modes.append("lump")
+                            if include_upfront_running:
+                                display_modes.append("monthly_as_running")
+                            if not display_modes:
+                                continue
+                        else:
+                            display_modes = ["lump"]
                         for support_plan_id in support_options:
                             for fee_mode in fee_modes:
                                 for ips_display_mode in display_modes:
@@ -301,8 +345,11 @@ def run_batch(
     force_all: bool = False,
     include_upfront_ips: bool = False,
     include_no_ips: bool = False,
-    include_no_support: bool = False,
+    include_mnp_shinki_irs: bool = False,
     include_standard_initial_fee: bool = False,
+    include_upfront_lump: bool = True,
+    include_upfront_running: bool = True,
+    include_light_plan: bool = False,
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
@@ -313,8 +360,11 @@ def run_batch(
             force_all=force_all,
             include_upfront_ips=include_upfront_ips,
             include_no_ips=include_no_ips,
-            include_no_support=include_no_support,
+            include_mnp_shinki_irs=include_mnp_shinki_irs,
             include_standard_initial_fee=include_standard_initial_fee,
+            include_upfront_lump=include_upfront_lump,
+            include_upfront_running=include_upfront_running,
+            include_light_plan=include_light_plan,
             department=department,
             progress=progress,
             control=control,
@@ -380,8 +430,11 @@ def run_batch(
         discontinued=discontinued,
         include_upfront_ips=include_upfront_ips,
         include_no_ips=include_no_ips,
-        include_no_support=include_no_support,
+        include_mnp_shinki_irs=include_mnp_shinki_irs,
         include_standard_initial_fee=include_standard_initial_fee,
+        include_upfront_lump=include_upfront_lump,
+        include_upfront_running=include_upfront_running,
+        include_light_plan=include_light_plan,
         progress=progress,
         update_state=True,
         control=control,
@@ -395,8 +448,11 @@ def _run_batch_36(
     force_all: bool = False,
     include_upfront_ips: bool = False,
     include_no_ips: bool = False,
-    include_no_support: bool = False,
+    include_mnp_shinki_irs: bool = False,
     include_standard_initial_fee: bool = False,
+    include_upfront_lump: bool = True,
+    include_upfront_running: bool = True,
+    include_light_plan: bool = False,
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
@@ -457,8 +513,11 @@ def _run_batch_36(
         discontinued=(),
         include_upfront_ips=include_upfront_ips,
         include_no_ips=include_no_ips,
-        include_no_support=include_no_support,
+        include_mnp_shinki_irs=include_mnp_shinki_irs,
         include_standard_initial_fee=include_standard_initial_fee,
+        include_upfront_lump=include_upfront_lump,
+        include_upfront_running=include_upfront_running,
+        include_light_plan=include_light_plan,
         progress=progress,
         update_state=False,
         quote_id_prefix="AUTO36",
@@ -474,8 +533,11 @@ def generate_selected_models(
     output_label: str = "指定機種_全パターン",
     include_upfront_ips: bool = True,
     include_no_ips: bool = True,
-    include_no_support: bool = True,
+    include_mnp_shinki_irs: bool = True,
     include_standard_initial_fee: bool = False,
+    include_upfront_lump: bool = True,
+    include_upfront_running: bool = True,
+    include_light_plan: bool = False,
     department: str | None = None,
     progress: ProgressCallback | None = None,
     control: BatchControl | None = None,
@@ -509,8 +571,11 @@ def generate_selected_models(
         discontinued=(),
         include_upfront_ips=include_upfront_ips,
         include_no_ips=include_no_ips,
-        include_no_support=include_no_support,
+        include_mnp_shinki_irs=include_mnp_shinki_irs,
         include_standard_initial_fee=include_standard_initial_fee,
+        include_upfront_lump=include_upfront_lump,
+        include_upfront_running=include_upfront_running,
+        include_light_plan=include_light_plan,
         progress=progress,
         update_state=False,
         quote_id_prefix="FULL",
@@ -587,8 +652,13 @@ def resume_batch(
         discontinued=tuple(payload.get("discontinued") or ()),
         include_upfront_ips=bool(payload.get("include_upfront_ips")),
         include_no_ips=bool(payload.get("include_no_ips")),
-        include_no_support=bool(payload.get("include_no_support")),
+        include_mnp_shinki_irs=bool(
+            payload.get("include_mnp_shinki_irs", payload.get("include_no_support", False))
+        ),
         include_standard_initial_fee=_checkpoint_include_standard_fee(payload),
+        include_upfront_lump=bool(payload.get("include_upfront_lump", True)),
+        include_upfront_running=bool(payload.get("include_upfront_running", True)),
+        include_light_plan=bool(payload.get("include_light_plan", False)),
         progress=progress,
         update_state=bool(payload.get("update_state", True)),
         quote_id_prefix=str(payload.get("quote_id_prefix") or "AUTO"),
@@ -617,8 +687,11 @@ def _generate_for_devices(
     discontinued: tuple[str, ...],
     include_upfront_ips: bool,
     include_no_ips: bool,
-    include_no_support: bool,
+    include_mnp_shinki_irs: bool,
     include_standard_initial_fee: bool,
+    include_upfront_lump: bool,
+    include_upfront_running: bool,
+    include_light_plan: bool,
     progress: ProgressCallback | None,
     update_state: bool,
     quote_id_prefix: str = "AUTO",
@@ -634,8 +707,11 @@ def _generate_for_devices(
             plan_master,
             include_upfront_ips,
             include_no_ips,
-            include_no_support,
+            include_mnp_shinki_irs,
             include_standard_initial_fee,
+            include_upfront_lump,
+            include_upfront_running,
+            include_light_plan,
         ):
             jobs.append((device, variant))
 
@@ -671,8 +747,11 @@ def _generate_for_devices(
         "source_hash": source_hash,
         "include_upfront_ips": include_upfront_ips,
         "include_no_ips": include_no_ips,
-        "include_no_support": include_no_support,
+        "include_mnp_shinki_irs": include_mnp_shinki_irs,
         "include_standard_initial_fee": include_standard_initial_fee,
+        "include_upfront_lump": include_upfront_lump,
+        "include_upfront_running": include_upfront_running,
+        "include_light_plan": include_light_plan,
         "department": department,
         "target_model_keys": [device["model_key"] for device in targets],
         "discontinued": list(discontinued),
@@ -733,7 +812,7 @@ def _generate_for_devices(
         quote = build_quote(request, device_master, plan_master, service_master)
         output_path = output_dir / _quote_relative_path(
             device, variant, quote, ips_key, ouchi_key,
-            include_no_support=include_no_support,
+            include_mnp_shinki_irs=include_mnp_shinki_irs,
             include_standard_initial_fee=include_standard_initial_fee,
         )
         render_quote(quote, company, output_path)
@@ -803,6 +882,7 @@ def run_individual(
     initial_fee_mode: str | None = None,
     initial_fee_modes: list[str] | None = None,
     installment_months: int = 48,
+    unrestricted_individual: bool | None = None,
 ) -> IndividualResult:
     from .installment_36 import (
         DEVICE_MASTER_36_PATH,
@@ -812,7 +892,12 @@ def run_individual(
         latest_installment_36_pdf,
     )
 
+    if unrestricted_individual is None:
+        unrestricted_individual = IS_TM_SPECIAL
+    unrestricted = bool(unrestricted_individual)
+
     is_36 = int(installment_months) == 36
+    is_24 = int(installment_months) == 24
     if is_36:
         pdf36 = latest_installment_36_pdf()
         if pdf36 is None:
@@ -843,7 +928,10 @@ def run_individual(
     else:
         device_master = load_json(DEVICE_MASTER_PATH)
         device = find_device(device_master, model)
-        if device["status"] != "販売中":
+        if is_24:
+            if device.get("payment_24") is None:
+                raise ValueError(f"24回割賦の月額が一覧にありません: {device['model']}")
+        elif device["status"] != "販売中":
             raise ValueError(f"取扱終了機種です: {device['model']}")
 
     plan_master = load_json(DATA_DIR / "plans.json")
@@ -852,12 +940,24 @@ def run_individual(
     if department and department.strip():
         company["department"] = department.strip()
 
-    if not is_36 and device["status"] != "販売中":
+    if not is_36 and not is_24 and device["status"] != "販売中":
         raise ValueError(f"取扱終了機種です: {device['model']}")
+    if not is_device_sales_type_allowed(device, sales_type):
+        category = str(device.get("category") or "").strip() or "対象カテゴリ"
+        raise ValueError(
+            f"{category}ではMNP・番号移行の見積は作成しません"
+            f"（{device['model']}）"
+        )
+    if not is_device_plan_allowed(device, plan_id):
+        category = str(device.get("category") or "").strip() or "対象カテゴリ"
+        raise ValueError(
+            f"{category}ではライト／スーパーライト／ハイパーライトの見積は作成しません"
+            f"（対象はiPhone・Androidのみ／{device['model']}）"
+        )
     plan = plan_master["plans"].get(plan_id)
     if not plan or not plan.get("enabled"):
         raise ValueError("利用できない料金プランです")
-    if not is_sales_plan_allowed(sales_type, plan_id):
+    if not is_sales_plan_allowed(sales_type, plan_id, unrestricted=unrestricted):
         if plan_id == "light":
             raise ValueError(
                 "機種変更では Bizパッケージ＋ライト は作成しません"
@@ -873,7 +973,7 @@ def run_individual(
     selected_data = [
         value for value in data_plans
         if value in plan["data_plans"]
-        and is_plan_data_plan_allowed(plan_id, value)
+        and is_plan_data_plan_allowed(plan_id, value, unrestricted=unrestricted)
         and is_device_data_plan_allowed(device, value, sales_type)
     ]
     if not selected_data:
@@ -903,7 +1003,7 @@ def run_individual(
         raise ValueError("修理保証（IPS）の作成パターンを1つ以上選択してください")
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = quote_output_root(36 if is_36 else 48)
+    output_dir = quote_output_root(36 if is_36 else (24 if is_24 else 48))
     output_dir.mkdir(parents=True, exist_ok=True)
     updated_rows_by_pdf: dict[str, list[str]] = {}
     generated = 0
@@ -914,8 +1014,12 @@ def run_individual(
         effective_ouchi = list(dict.fromkeys(
             option if discount else False for option in ouchi_options
         ))
-        # おうち割あり×5GBは作成しない
-        if data_plan == "5GB":
+        # おうち割あり×5GBは通常作らない（TM特例個別／iPad・AndroidTabは許可）
+        if (
+            data_plan == "5GB"
+            and not unrestricted
+            and not allows_ouchi_discount_with_5gb(device)
+        ):
             effective_ouchi = [option for option in effective_ouchi if not option]
         if not effective_ouchi:
             continue
@@ -934,8 +1038,11 @@ def run_individual(
                         "data_plan": data_plan,
                         "initial_fee_mode": fee_mode,
                         "ips_display_mode": ips_display_mode,
-                        "installment_months": 36 if is_36 else 48,
+                        "installment_months": (
+                            36 if is_36 else (24 if is_24 else 48)
+                        ),
                         "payment_36_flat": device.get("payment_36_flat") if is_36 else None,
+                        "payment_24": device.get("payment_24") if is_24 else None,
                         "services": {
                             "ips": ips_selection,
                             "support_plan_id": support_plan_id,
@@ -956,8 +1063,14 @@ def run_individual(
                         request["initial_fee_tax_ex"] = int(
                             plan_master["common"]["initial_fee_tax_ex"]
                         )
+                    elif unrestricted and fee_mode == "special_3000":
+                        # TM特例個別: 免除＋初期費用は税抜4,500円（税込4,950円）
+                        request["special_initial_fee_tax_ex"] = 4500
                     quote = build_quote(
-                        request, device_master, plan_master, service_master
+                        request, device_master, plan_master, service_master,
+                        # 個別作成: スーパー／ハイパーは割引維持のままIRSなし可
+                        allow_super_hyper_without_irs=True,
+                        unrestricted_individual=unrestricted,
                     )
                     variant = {
                         "sales_type": sales_type,
@@ -1126,6 +1239,13 @@ def _fee_mode_label(quote: dict[str, Any]) -> str:
 
 
 def _ips_folder_name(quote: dict[str, Any], variant: dict[str, Any] | None = None) -> str:
+    """修理保証(IPS)の分岐フォルダ名。IRSあり／なしのどちらでも同じ名称を使う。
+
+    - IPSサブスク
+    - IPS一括表記（通常IPS・一括）
+    - 通常IPSランニングコスト表記
+    - IPSなし
+    """
     ips = quote["services"]["ips"]
     if not ips:
         return "IPSなし"
@@ -1135,8 +1255,8 @@ def _ips_folder_name(quote: dict[str, Any], variant: dict[str, Any] | None = Non
     )
     if ips.get("billing_type") == "upfront":
         if display_mode == "monthly_as_running":
-            return "IPS一括型_月額換算"
-        return "IPS一括型"
+            return "通常IPSランニングコスト表記"
+        return "IPS一括表記"
     return "IPSサブスク"
 
 
@@ -1155,11 +1275,12 @@ def _upfront_ips_plan_folder(quote: dict[str, Any]) -> str | None:
 
 
 # auto_mapping で安心サポートが付くプラン（services.json と揃える）
-_SUPPORT_AUTO_PLAN_IDS = frozenset({"light", "super_light", "hyper_light"})
-# スーパー／ハイパーは容量が重ならないため、全販売区分でプラン名フォルダを統合する
+_SUPPORT_AUTO_PLAN_IDS = frozenset({"super_light", "hyper_light"})
+# スーパー／ハイパーは容量が重ならないため、IRSありではプラン名フォルダを統合する
 _MERGED_SPECIAL_DISCOUNT_PLAN_IDS = frozenset({"super_light", "hyper_light"})
-# スーパー／ハイパーで「IRS（安心サポート）なし＋割引あり」版を標準作成する販売区分
-_NO_IRS_DEFAULT_SALES_TYPES = frozenset({"MNP", "新規"})
+# 一括で「IRSあり追加」対象の販売区分（機種変更は従来どおりあり固定。番号移行はスーパー／ハイパーなし）
+_MNP_SHINKI_SALES_TYPES = frozenset({"MNP", "新規"})
+_NO_SUPPORT_EXTRA_SALES_TYPES = _MNP_SHINKI_SALES_TYPES  # 旧名互換
 
 
 def _is_merged_special_discount(plan_id: str) -> bool:
@@ -1173,11 +1294,22 @@ def _plan_folder_name(
 ) -> str | None:
     """料金プラン用フォルダ名。
 
-    スーパー／ハイパーはプラン名フォルダなし（容量で区別。Biz・ライトは従来どおり）。
+    - Bizパッケージ＋（標準・IRSなし）はフォルダ不要。IRSフォルダも付けないため
+      スーパー／ハイパー（IRSあり配下）とパスがぶつからない。
+    - スーパー／ハイパー＋IRSありは容量で区別するためプラン名フォルダなし。
+    - スーパー／ハイパー＋IRSなしは同階層のBizとファイル名がぶつかるためプラン名を付ける。
+    - ライトは容量がハイパーと重なるためプラン名フォルダを付ける。
     """
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
-    if _is_merged_special_discount(plan_id):
+    has_support = bool((quote.get("services") or {}).get("support"))
+    if plan_id == "biz_plus":
+        if has_support:
+            return str(quote.get("plan_name") or plan_id)
         return None
+    if _is_merged_special_discount(plan_id):
+        if has_support:
+            return None
+        return str(quote.get("plan_name") or plan_id)
     return str(quote.get("plan_name") or plan_id)
 
 
@@ -1185,41 +1317,26 @@ def _merged_ips_branch_folder(
     quote: dict[str, Any],
     variant: dict[str, Any],
 ) -> str | None:
-    """スーパー／ハイパーかつ IPS ありのときの分岐フォルダ名。
-
-    IRSあり/ 直下: IPSサブスク | IPS一括表記 | 通常IPSランニングコスト表記
-    """
+    """互換用。IPS分岐名は `_ips_folder_name` に統一。"""
     plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
     if not _is_merged_special_discount(plan_id):
         return None
     ips = (quote.get("services") or {}).get("ips")
     if not ips:
         return None
-    billing = ips.get("billing_type")
-    if billing == "subscription":
-        return "IPSサブスク"
-    if billing != "upfront":
-        return None
-    display_mode = str(
-        variant.get("ips_display_mode")
-        or quote.get("ips_display_mode")
-        or "lump"
-    )
-    if display_mode == "monthly_as_running":
-        return "通常IPSランニングコスト表記"
-    return "IPS一括表記"
+    return _ips_folder_name(quote, variant)
 
 
 def _support_folder_name(
     quote: dict[str, Any],
     variant: dict[str, Any] | None = None,
     *,
-    include_no_support: bool = False,
+    include_mnp_shinki_irs: bool = False,
 ) -> str | None:
     """安心サポートのフォルダ名。あり／なしの分岐があるときだけ返す。
 
     - ライト／スーパー／ハイパー: 標準は強制加入のためフォルダ省略。
-      「なし」バリアントも作るとき（include_no_support）や、個別でなしを選んだときは
+      「なし」バリアントも作るとき（include_mnp_shinki_irs）や、個別でなしを選んだときは
       あり／なしフォルダを付ける（パス衝突防止）。
     - その他プラン: 標準はなし固定のため省略。サポート付きだけ「安心サポートあり」。
     """
@@ -1227,7 +1344,7 @@ def _support_folder_name(
     has_support = bool((quote.get("services") or {}).get("support"))
 
     if plan_id in _SUPPORT_AUTO_PLAN_IDS:
-        if include_no_support or not has_support:
+        if include_mnp_shinki_irs or not has_support:
             return "安心サポートあり" if has_support else "安心サポートなし"
         return None
 
@@ -1243,20 +1360,19 @@ def _quote_relative_path(
     ips_key: str,
     ouchi_key: str,
     *,
-    include_no_support: bool = False,
+    include_mnp_shinki_irs: bool = False,
     include_standard_initial_fee: bool = False,
 ) -> Path:
     del ips_key
-    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    del include_mnp_shinki_irs  # パスは quote の support 有無から決める
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
         _safe_name(device["model"]),
         _safe_name(sales_type_display_name(variant["sales_type"])),
-        _safe_name(ouchi_key),
     ]
-    plan_folder = _plan_folder_name(quote, variant)
-    if plan_folder:
-        parts.append(_safe_name(plan_folder))
+    # ケータイはパケット1GBのみでおうち割分岐がないため SB光なし／ありフォルダを省略
+    if str(device.get("category") or "").strip() != "ケータイ":
+        parts.append(_safe_name(ouchi_key))
 
     fee_folder = _fee_folder_name(
         quote, include_standard_initial_fee=include_standard_initial_fee
@@ -1264,38 +1380,25 @@ def _quote_relative_path(
     if fee_folder:
         parts.append(fee_folder)
 
-    support_folder = _support_folder_name(
-        quote, variant, include_no_support=include_no_support
-    )
-    ips = (quote.get("services") or {}).get("ips")
-
-    # スーパー／ハイパー: Biz＋と並列に IRS（安心サポート）あり／なしの枠を置き、
-    # その中で修理保証(IPS)の表記分岐を置く
-    if _is_merged_special_discount(plan_id):
-        if not ips:
-            parts.append("IPSなし")
-            if support_folder:
-                parts.append(support_folder)
-            parts.append(_quote_filename(device, variant, quote))
-            return Path(*parts)
-
-        has_support = bool((quote.get("services") or {}).get("support"))
+    # IRSあり／なしフォルダはスーパー／ハイパーだけ（Biz・ライトは付けない）
+    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    has_support = bool((quote.get("services") or {}).get("support"))
+    if plan_id in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS:
         parts.append("IRSあり" if has_support else "IRSなし")
-        branch = _merged_ips_branch_folder(quote, variant)
-        if branch:
-            parts.append(_safe_name(branch))
+
+    plan_folder = _plan_folder_name(quote, variant)
+    if plan_folder:
+        parts.append(_safe_name(plan_folder))
+
+    ips = (quote.get("services") or {}).get("ips")
+    if not ips:
+        parts.append("IPSなし")
+    else:
+        # Biz・ライト・スーパー／ハイパーで IPS 分岐名を揃える
+        parts.append(_safe_name(_ips_folder_name(quote, variant)))
         plan_token_folder = _upfront_ips_plan_folder(quote)
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
-        # IRSあり／なしで枠が分かれるため、安心サポートあり/なしフォルダは重複させない
-        parts.append(_quote_filename(device, variant, quote))
-        return Path(*parts)
 
-    parts.append(_ips_folder_name(quote, variant))
-    plan_token_folder = _upfront_ips_plan_folder(quote)
-    if plan_token_folder:
-        parts.append(_safe_name(plan_token_folder))
-    if support_folder:
-        parts.append(support_folder)
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)

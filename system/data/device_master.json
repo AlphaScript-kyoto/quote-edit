@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "source_pdf": "分割支払金一覧20260731更新.pdf",
-  "imported_at": "2026-08-07T11:52:01",
+  "source_pdf": "分割支払金一覧_2026.9.4【confidential】.pdf",
+  "imported_at": "2026-09-07T13:57:40",
   "page_count": 2,
-  "device_count": 253,
+  "device_count": 261,
   "changed_count": 3,
   "discontinued_count": 114,
   "devices": [
@@ -56,7 +56,7 @@
       "category": "iPhone",
       "model": "iPhone 17(512GB)",
       "model_key": "iphone17512gb",
-      "changed": false,
+      "changed": true,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -66,29 +66,29 @@
       },
       "payment_48": {
         "MNP": {
-          "1_12": 2160,
-          "13_24": 2160,
-          "25_48": 7050
+          "1_12": 1,
+          "13_24": 1,
+          "25_48": 8339
         },
         "新規": {
           "1_12": 2160,
           "13_24": 2160,
-          "25_48": 7050
+          "25_48": 6180
         },
         "番号移行": {
           "1_12": 2620,
           "13_24": 2620,
-          "25_48": 6590
+          "25_48": 5720
         },
         "機種変更・移動機物品販売": {
           "1_12": 5275,
           "13_24": 5275,
-          "25_48": 3935
+          "25_48": 3065
         }
       },
       "payment_36": null,
-      "payment_24": 9210,
-      "total": 221040,
+      "payment_24": 8340,
+      "total": 200160,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -101,7 +101,7 @@
       "category": "iPhone",
       "model": "iPhone Air(256GB)",
       "model_key": "iphoneair256gb",
-      "changed": false,
+      "changed": true,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -112,28 +112,28 @@
       "payment_48": {
         "MNP": {
           "1_12": 1,
-          "13_24": 2379,
-          "25_48": 7780
+          "13_24": 1,
+          "25_48": 8339
         },
         "新規": {
           "1_12": 1,
           "13_24": 5379,
-          "25_48": 6280
+          "25_48": 5650
         },
         "番号移行": {
           "1_12": 3150,
           "13_24": 3150,
-          "25_48": 5820
+          "25_48": 5190
         },
         "機種変更・移動機物品販売": {
           "1_12": 5245,
           "13_24": 5245,
-          "25_48": 3725
+          "25_48": 3095
         }
       },
       "payment_36": null,
-      "payment_24": 8970,
-      "total": 215280,
+      "payment_24": 8340,
+      "total": 200160,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -236,7 +236,7 @@
       "category": "iPhone",
       "model": "iPhone 17 Pro(256GB)",
       "model_key": "iphone17pro256gb",
-      "changed": false,
+      "changed": true,
       "status": "販売中",
       "notes": "",
       "eligible": {
@@ -246,29 +246,29 @@
       },
       "payment_48": {
         "MNP": {
-          "1_12": 1,
-          "13_24": 6099,
-          "25_48": 7210
+          "1_12": 415,
+          "13_24": 415,
+          "25_48": 9155
         },
         "新規": {
           "1_12": 1,
           "13_24": 6099,
-          "25_48": 7210
+          "25_48": 6520
         },
         "番号移行": {
           "1_12": 3510,
           "13_24": 3510,
-          "25_48": 6750
+          "25_48": 6060
         },
         "機種変更・移動機物品販売": {
           "1_12": 5655,
           "13_24": 5655,
-          "25_48": 4605
+          "25_48": 3915
         }
       },
       "payment_36": null,
-      "payment_24": 10260,
-      "total": 246240,
+      "payment_24": 9570,
+      "total": 229680,
       "validation": {
         "MNP": true,
         "新規": true,
@@ -2614,6 +2614,366 @@
         "新規": null,
         "番号移行": null,
         "機種変更・移動機物品販売": null
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11(256GB)",
+      "model_key": "googlepixel11256gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 1,
+          "13_24": 1,
+          "25_48": 6959
+        },
+        "新規": {
+          "1_12": 1990,
+          "13_24": 1990,
+          "25_48": 4970
+        },
+        "番号移行": {
+          "1_12": 2450,
+          "13_24": 2450,
+          "25_48": 4510
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 3450,
+          "13_24": 3450,
+          "25_48": 3510
+        }
+      },
+      "payment_36": null,
+      "payment_24": 6960,
+      "total": 167040,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11(512GB)",
+      "model_key": "googlepixel11512gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 670,
+          "13_24": 670,
+          "25_48": 7250
+        },
+        "新規": {
+          "1_12": 2290,
+          "13_24": 2290,
+          "25_48": 5630
+        },
+        "番号移行": {
+          "1_12": 2750,
+          "13_24": 2750,
+          "25_48": 5170
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 4580,
+          "13_24": 4580,
+          "25_48": 3340
+        }
+      },
+      "payment_36": null,
+      "payment_24": 7920,
+      "total": 190080,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro(256GB)",
+      "model_key": "googlepixel11pro256gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 990,
+          "13_24": 990,
+          "25_48": 7440
+        },
+        "新規": {
+          "1_12": 2560,
+          "13_24": 2560,
+          "25_48": 5870
+        },
+        "番号移行": {
+          "1_12": 3935,
+          "13_24": 3935,
+          "25_48": 4495
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 4850,
+          "13_24": 4850,
+          "25_48": 3580
+        }
+      },
+      "payment_36": null,
+      "payment_24": 8430,
+      "total": 202320,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro(512GB)",
+      "model_key": "googlepixel11pro512gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 1570,
+          "13_24": 1570,
+          "25_48": 7850
+        },
+        "新規": {
+          "1_12": 3070,
+          "13_24": 3070,
+          "25_48": 6350
+        },
+        "番号移行": {
+          "1_12": 4445,
+          "13_24": 4445,
+          "25_48": 4975
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 5360,
+          "13_24": 5360,
+          "25_48": 4060
+        }
+      },
+      "payment_36": null,
+      "payment_24": 9420,
+      "total": 226080,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro XL(256GB)",
+      "model_key": "googlepixel11proxl256gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 2160,
+          "13_24": 2160,
+          "25_48": 8070
+        },
+        "新規": {
+          "1_12": 3490,
+          "13_24": 3490,
+          "25_48": 6740
+        },
+        "番号移行": {
+          "1_12": 4865,
+          "13_24": 4865,
+          "25_48": 5365
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 5780,
+          "13_24": 5780,
+          "25_48": 4450
+        }
+      },
+      "payment_36": null,
+      "payment_24": 10230,
+      "total": 245520,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro XL(512GB)",
+      "model_key": "googlepixel11proxl512gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 2850,
+          "13_24": 2850,
+          "25_48": 8340
+        },
+        "新規": {
+          "1_12": 4000,
+          "13_24": 4000,
+          "25_48": 7190
+        },
+        "番号移行": {
+          "1_12": 5375,
+          "13_24": 5375,
+          "25_48": 5815
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 6290,
+          "13_24": 6290,
+          "25_48": 4900
+        }
+      },
+      "payment_36": null,
+      "payment_24": 11190,
+      "total": 268560,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro Fold(256GB)",
+      "model_key": "googlepixel11profold256gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 4230,
+          "13_24": 4230,
+          "25_48": 9120
+        },
+        "新規": {
+          "1_12": 5850,
+          "13_24": 5850,
+          "25_48": 7500
+        },
+        "番号移行": {
+          "1_12": 7225,
+          "13_24": 7225,
+          "25_48": 6125
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 8140,
+          "13_24": 8140,
+          "25_48": 5210
+        }
+      },
+      "payment_36": null,
+      "payment_24": 13350,
+      "total": 320400,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
+      },
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro Fold(512GB)",
+      "model_key": "googlepixel11profold512gb",
+      "changed": false,
+      "status": "販売中",
+      "notes": "",
+      "eligible": {
+        "new_toku_support_plus": true,
+        "replacement_support": true,
+        "mobile_device_sale": true
+      },
+      "payment_48": {
+        "MNP": {
+          "1_12": 4900,
+          "13_24": 4900,
+          "25_48": 9410
+        },
+        "新規": {
+          "1_12": 6400,
+          "13_24": 6400,
+          "25_48": 7910
+        },
+        "番号移行": {
+          "1_12": 7775,
+          "13_24": 7775,
+          "25_48": 6535
+        },
+        "機種変更・移動機物品販売": {
+          "1_12": 8690,
+          "13_24": 8690,
+          "25_48": 5620
+        }
+      },
+      "payment_36": null,
+      "payment_24": 14310,
+      "total": 343440,
+      "validation": {
+        "MNP": true,
+        "新規": true,
+        "番号移行": true,
+        "機種変更・移動機物品販売": true
       },
       "source_page": 1
     },
@@ -5499,8 +5859,8 @@
     },
     {
       "category": "Android",
-      "model": "Samsung Galaxy Z Fold8 Ultra(1TB)",
-      "model_key": "samsunggalaxyzfold8ultra1tb",
+      "model": "Samsung Galaxy Z Fold8 Ultra(1T)",
+      "model_key": "samsunggalaxyzfold8ultra1t",
       "changed": false,
       "status": "販売中",
       "notes": "",
@@ -6530,13 +6890,13 @@
         "番号移行": true,
         "機種変更・移動機物品販売": true
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
       "model": "nubia S2e",
       "model_key": "nubias2e",
-      "changed": true,
+      "changed": false,
       "status": "取扱終了",
       "notes": "",
       "eligible": {
@@ -6575,7 +6935,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6620,7 +6980,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6665,7 +7025,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6710,7 +7070,7 @@
         "番号移行": true,
         "機種変更・移動機物品販売": true
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6755,7 +7115,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6800,7 +7160,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -6845,7 +7205,7 @@
         "番号移行": null,
         "機種変更・移動機物品販売": null
       },
-      "source_page": 1
+      "source_page": 2
     },
     {
       "category": "Android",
@@ -7571,7 +7931,7 @@
       "category": "データ通信",
       "model": "Pocket WiFi 5G A503SH",
       "model_key": "pocketwifi5ga503sh",
-      "changed": true,
+      "changed": false,
       "status": "取扱終了",
       "notes": "",
       "eligible": {
@@ -7616,7 +7976,7 @@
       "category": "データ通信",
       "model": "A401ZT",
       "model_key": "a401zt",
-      "changed": true,
+      "changed": false,
       "status": "取扱終了",
       "notes": "",
       "eligible": {

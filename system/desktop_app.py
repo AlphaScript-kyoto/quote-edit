@@ -27,6 +27,11 @@ from quote_system.config import (
     APP_DISPLAY_NAME,
     APP_VERSION,
     DATA_DIR,
+    IS_TM_SPECIAL,
+    QUOTE_OUTPUT_DIRNAME,
+    QUOTE_OUTPUT_DIRNAME_24,
+    QUOTE_OUTPUT_DIRNAME_36,
+    app_window_title,
     ensure_directories,
     load_json,
     save_json,
@@ -38,11 +43,19 @@ from quote_system.installment_36 import (
     import_installment_36_master,
     load_installment_36_targets,
 )
-from quote_system.price_pdf_parser import SALES_COLUMNS, find_device
+from quote_system.price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf
 from quote_system.quote_service import (
     is_device_data_plan_allowed,
+    is_device_plan_allowed,
+    is_device_sales_type_allowed,
     is_plan_data_plan_allowed,
     is_sales_plan_allowed,
+)
+from quote_system.update_check import (
+    RemoteLatest,
+    check_for_update,
+    mark_dismissed,
+    open_update_location,
 )
 
 
@@ -54,12 +67,15 @@ class QuoteApp(tk.Tk):
         ensure_directories()
         super().__init__()
         # ウィンドウタイトルバー（マウスでつかんで移動する場所）にバージョンを表示
-        self.title(f"{APP_DISPLAY_NAME}  ver.{APP_VERSION}")
+        self.title(app_window_title())
         self.pdf_var = tk.StringVar()
         self.status_var = tk.StringVar(value="「機種代金一覧表」フォルダの価格表PDFを確認してください。")
         self.force_all_var = tk.BooleanVar(value=True)
         self.upfront_var = tk.BooleanVar(value=False)
+        self.upfront_mode_var = tk.StringVar(value="lump")
+        self.mnp_shinki_irs_var = tk.BooleanVar(value=False)
         self.no_ips_var = tk.BooleanVar(value=False)
+        self.light_plan_var = tk.BooleanVar(value=False)
         self.standard_fee_var = tk.BooleanVar(value=False)
         self.installment_mode_var = tk.StringVar(value="48")
         self.exclude_status_var = tk.StringVar(value="")
@@ -72,6 +88,51 @@ class QuoteApp(tk.Tk):
         self._fit_window_to_content()
         self._on_installment_mode_changed()
         self._refresh_resume_button(log_if_available=True)
+        if IS_TM_SPECIAL:
+            self.after(300, self._warn_tm_special_edition)
+        else:
+            # 通常版のみ：共有フォルダの latest.json を短時間チェック（失敗時は黙って起動）
+            self.after(500, self._start_update_check)
+
+    def _warn_tm_special_edition(self) -> None:
+        messagebox.showwarning(
+            "TM兼任事業部用パッケージ",
+            "このアプリはTM兼任事業部向けの特例版です。\n\n"
+            "・一括作成 … 通常版と同じ制限\n"
+            "・個別作成 … ライト系の販売区分・容量・IRSの制限を解除\n\n"
+            "標準ルール外の見積になるため、取扱いには注意してください。",
+        )
+
+    def _start_update_check(self) -> None:
+        """Background fetch so a stuck N: drive cannot freeze the main window."""
+
+        def worker() -> None:
+            remote = check_for_update()
+            if remote is not None:
+                self.after(0, self._show_update_notice, remote)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _show_update_notice(self, remote: RemoteLatest) -> None:
+        if not self.winfo_exists():
+            return
+        message = (
+            f"新しいバージョン {remote.version} があります。\n"
+            f"（いまのアプリは {APP_VERSION} です）\n\n"
+            "更新する場合は、共有フォルダの最新ZIPを手元にコピーして\n"
+            "展開し直してください。\n\n"
+            "［はい］でZIPの場所を開きます。［いいえ］であとで確認します。"
+        )
+        if messagebox.askyesno("更新があります", message, parent=self):
+            open_update_location(remote)
+            self._write_log(
+                f"更新案内：共有の {remote.version}（{remote.zip_name}）を開きました。"
+            )
+        else:
+            mark_dismissed(remote.version)
+            self._write_log(
+                f"更新案内：{remote.version} をあとで（本日中は再表示しません）。"
+            )
 
     def _fit_window_to_content(self) -> None:
         """見積もり作成ボタンより下（進捗・状態・ログ）まで、起動時点で見える高さにする。"""
@@ -93,16 +154,20 @@ class QuoteApp(tk.Tk):
         ttk.Label(header, text=APP_DISPLAY_NAME, font=("Yu Gothic UI", 20, "bold")).pack(
             side="left", anchor="w"
         )
+        ver_label = f"ver.{APP_VERSION}"
+        if IS_TM_SPECIAL:
+            ver_label = f"TM兼任事業部用  {ver_label}"
         ttk.Label(
             header,
-            text=f"ver.{APP_VERSION}",
+            text=ver_label,
             font=("Yu Gothic UI", 12),
         ).pack(side="left", anchor="s", padx=(10, 0), pady=(0, 4))
         self._build_info_button(header).pack(side="right", anchor="ne")
         ttk.Label(
             root,
             text="価格表PDFを読み取り、見積もりを作成します。"
-            "作成タイプ（通常48回／36回割賦）で入口・出力先が切り替わります。",
+            "作成タイプ（通常48回／36回割賦）で入口・出力先が切り替わります。"
+            "24回割賦は下のボタンから個別作成ウィンドウを開きます。",
             wraplength=720,
         ).pack(anchor="w", pady=(4, 12))
 
@@ -122,11 +187,33 @@ class QuoteApp(tk.Tk):
             value="36",
             command=self._on_installment_mode_changed,
         ).pack(anchor="w")
+        ttk.Button(
+            mode_frame,
+            text="24回割賦（個別作成ウィンドウを開く）",
+            command=lambda: self._open_individual_window(24),
+        ).pack(anchor="w", pady=(8, 0), ipadx=8, ipady=2)
         ttk.Label(
             mode_frame,
-            text="出力：通常 → output\\見積PDF　／　36回 → output\\見積PDF_36回",
+            text=(
+                f"出力：通常 → output\\{QUOTE_OUTPUT_DIRNAME}"
+                f"　／　36回 → output\\{QUOTE_OUTPUT_DIRNAME_36}"
+                f"　／　24回 → output\\{QUOTE_OUTPUT_DIRNAME_24}"
+            ),
             foreground="#555555",
         ).pack(anchor="w", pady=(4, 0))
+        ttk.Label(
+            mode_frame,
+            text="※24回は価格表の「24回」列がある機種のみ。一括ラジオは切り替えず、個別ウィンドウで作成します。",
+            foreground="#555555",
+            wraplength=700,
+        ).pack(anchor="w", pady=(2, 0))
+        if IS_TM_SPECIAL:
+            ttk.Label(
+                mode_frame,
+                text="※このパッケージはTM兼任事業部用です。一括は通常ルール／個別のみ制限解除。",
+                foreground="#C00000",
+                wraplength=700,
+            ).pack(anchor="w", pady=(4, 0))
 
         file_frame = ttk.LabelFrame(root, text="1. 機種代金表PDF", padding=12)
         file_frame.pack(fill="x")
@@ -147,7 +234,8 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w")
         ttk.Label(
             option_frame,
-            text="データ容量：ケータイ分類は1GBのみ／それ以外は5GB以上。おうち割ありは5GBを作成しません。",
+            text="データ容量：ケータイは1GBのみ／iPad・AndroidTabは1・5・50GB／他は5GB以上。"
+            "おうち割あり×5GBは通常作成しません（iPad・AndroidTabは例外で作成）。",
         ).pack(anchor="w", pady=(3, 0))
         department_row = ttk.Frame(option_frame)
         department_row.pack(fill="x", pady=(8, 3))
@@ -189,8 +277,32 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w")
         ttk.Checkbutton(
             option_frame,
-            text="IPS通常プランも作成（一括請求表示＋ランニングコスト表示の2パターン）",
+            text="通常IPSプランも作成",
             variable=self.upfront_var,
+        ).pack(anchor="w")
+        upfront_mode_row = ttk.Frame(option_frame)
+        upfront_mode_row.pack(anchor="w", padx=(20, 0))
+        ttk.Radiobutton(
+            upfront_mode_row,
+            text="一括表記",
+            variable=self.upfront_mode_var,
+            value="lump",
+        ).pack(side="left")
+        ttk.Radiobutton(
+            upfront_mode_row,
+            text="ランニングコスト表記",
+            variable=self.upfront_mode_var,
+            value="monthly_as_running",
+        ).pack(side="left", padx=(12, 0))
+        ttk.Checkbutton(
+            option_frame,
+            text="新規／MNPでもスーパー／ハイパー（IRSあり・割引セット）を作成",
+            variable=self.mnp_shinki_irs_var,
+        ).pack(anchor="w", pady=(2, 0))
+        ttk.Checkbutton(
+            option_frame,
+            text="ライトプランも作成（IRSなし）",
+            variable=self.light_plan_var,
         ).pack(anchor="w")
         ttk.Label(
             option_frame,
@@ -380,14 +492,38 @@ class QuoteApp(tk.Tk):
         if selected:
             self.pdf_var.set(selected)
 
-    def _open_exclude_window(self) -> None:
-        if not (DATA_DIR / "device_master.json").exists():
+    def _refresh_device_master_for_picker(self) -> dict | None:
+        """作成する機種一覧用に、選択中／最新の価格表から機種マスターを更新する。"""
+        pdf_text = (self.pdf_var.get() or "").strip()
+        pdf = Path(pdf_text) if pdf_text else latest_price_pdf()
+        if pdf is None or not pdf.exists():
+            if (DATA_DIR / "device_master.json").exists():
+                return load_json(DATA_DIR / "device_master.json")
             messagebox.showerror(
-                "機種マスターがありません",
-                "先に価格表PDFから一括作成を1回実行するか、機種マスターを用意してください。",
+                "価格表がありません",
+                "「機種代金一覧表」に価格表PDFを入れてから［作成する機種］を開いてください。",
             )
+            return None
+        try:
+            device_master = parse_price_pdf(pdf)
+        except Exception as exc:
+            messagebox.showerror(
+                "価格表の読取に失敗しました",
+                f"{exc}\n価格表PDFを確認してください。",
+            )
+            return None
+        save_json(DATA_DIR / "device_master.json", device_master)
+        self.pdf_var.set(str(pdf))
+        self._write_log(
+            f"作成する機種一覧のため価格表を取り込みました：{pdf.name}"
+            f"（販売中 {sum(1 for d in device_master['devices'] if d['status']=='販売中')} 機種）"
+        )
+        return device_master
+
+    def _open_exclude_window(self) -> None:
+        device_master = self._refresh_device_master_for_picker()
+        if device_master is None:
             return
-        device_master = load_json(DATA_DIR / "device_master.json")
         devices = [d for d in device_master["devices"] if d["status"] == "販売中"]
         if not devices:
             messagebox.showerror("販売中機種がありません", "機種マスターを確認してください。")
@@ -514,6 +650,31 @@ class QuoteApp(tk.Tk):
                 "devices": devices,
             }
             mode_label = "個別見積作成（36回割賦）"
+            if IS_TM_SPECIAL:
+                mode_label = "特例個別見積（36回・TM兼任事業部用）"
+        elif months == 24:
+            if not (DATA_DIR / "device_master.json").exists():
+                messagebox.showerror(
+                    "機種マスターがありません",
+                    "先に通常（48回）で価格表PDFから一括作成（または機種取込）を実行してください。",
+                )
+                return
+            device_master = load_json(DATA_DIR / "device_master.json")
+            with_24 = [
+                d
+                for d in device_master["devices"]
+                if d.get("payment_24") is not None
+            ]
+            if included:
+                devices = [d for d in with_24 if d.get("model_key") in included]
+                if not devices:
+                    # 作成する機種に24回対象が無い場合は、一覧にある24回機種をすべて出す
+                    devices = with_24
+            else:
+                devices = with_24
+            mode_label = "個別見積作成（24回割賦）"
+            if IS_TM_SPECIAL:
+                mode_label = "特例個別見積（24回・TM兼任事業部用）"
         else:
             if not (DATA_DIR / "device_master.json").exists():
                 messagebox.showerror(
@@ -527,19 +688,35 @@ class QuoteApp(tk.Tk):
                 if d["status"] == "販売中" and d.get("model_key") in included
             ]
             mode_label = "個別見積作成（通常48回）"
+            if IS_TM_SPECIAL:
+                mode_label = "特例個別見積（通常48回・TM兼任事業部用）"
         models = [d["model"] for d in devices]
         if not models:
-            messagebox.showerror(
-                "選択できる機種がありません",
-                "対象機種が0件です。作成する機種・対象JSON・価格表を確認してください。",
-            )
+            if months == 24:
+                messagebox.showerror(
+                    "選択できる機種がありません",
+                    "24回列がある機種が0件です。価格表PDFを取り込み直してください。",
+                )
+            else:
+                messagebox.showerror(
+                    "選択できる機種がありません",
+                    "対象機種が0件です。作成する機種・対象JSON・価格表を確認してください。",
+                )
             return
 
         win = tk.Toplevel(self)
         win.title(mode_label)
         if months == 36:
-            win.geometry("720x900")
-            win.minsize(660, 800)
+            if IS_TM_SPECIAL:
+                win.geometry("720x980")
+                win.minsize(660, 880)
+            else:
+                win.geometry("720x900")
+                win.minsize(660, 800)
+        elif IS_TM_SPECIAL:
+            # 特例は注意文・IRSラジオ・初期費用注記が増えるため高めにする
+            win.geometry("700x920")
+            win.minsize(640, 860)
         else:
             win.geometry("680x780")
             win.minsize(620, 720)
@@ -561,8 +738,19 @@ class QuoteApp(tk.Tk):
             frame,
             text="選択した条件だけを作成します。",
         ).pack(anchor="w", pady=(2, 2))
+        if IS_TM_SPECIAL:
+            ttk.Label(
+                frame,
+                text="※特例：標準の販売区分×プラン×容量×IRSセット制限を外しています（一括作成は通常ルールのまま）。",
+                wraplength=620,
+                foreground="#C00000",
+            ).pack(anchor="w", pady=(0, 4))
         if months == 36:
             note_text = "※対象機種は installment_36_targets.json で管理します（作成する機種の指定は使いません）。"
+        elif months == 24:
+            note_text = (
+                f"※価格表の24回列がある機種のみ。出力は output\\{QUOTE_OUTPUT_DIRNAME_24} です。"
+            )
         else:
             note_text = "※［作成する機種］でチェックした機種が一覧に出ます。"
         ttk.Label(
@@ -588,7 +776,7 @@ class QuoteApp(tk.Tk):
             def _set_all_models(value: bool) -> None:
                 for var in model_check_vars.values():
                     var.set(value)
-                refresh_capacities()
+                on_device_selection_changed()
 
             ttk.Button(
                 model_toolbar, text="すべて選択",
@@ -604,7 +792,7 @@ class QuoteApp(tk.Tk):
                 row, column = divmod(index, 2)
                 ttk.Checkbutton(
                     model_box, text=name, variable=var,
-                    command=lambda: refresh_capacities(),
+                    command=lambda: on_device_selection_changed(),
                 ).grid(row=row + 1, column=column, sticky="w", padx=4, pady=1)
             model_box.columnconfigure(0, weight=1)
             model_box.columnconfigure(1, weight=1)
@@ -615,10 +803,22 @@ class QuoteApp(tk.Tk):
         # SALES_COLUMNS は {販売区分名: PDF列Index} の辞書。選択肢はキー一覧を使う。
         sales_types = list(SALES_COLUMNS.keys())
         sales_var = tk.StringVar(value=sales_types[0])
-        all_plan_name_to_id = {
-            plan["name"]: plan_id
-            for plan_id, plan in plan_master["plans"].items() if plan.get("enabled")
-        }
+        # TM特例個別: Biz → ライト → スーパー → ハイパー の順で見せる
+        _tm_plan_order = ("biz_plus", "light", "super_light", "hyper_light")
+        if IS_TM_SPECIAL:
+            all_plan_name_to_id: dict[str, str] = {}
+            for plan_id in _tm_plan_order:
+                plan = plan_master["plans"].get(plan_id)
+                if plan and plan.get("enabled"):
+                    all_plan_name_to_id[str(plan["name"])] = plan_id
+            for plan_id, plan in plan_master["plans"].items():
+                if plan.get("enabled") and str(plan["name"]) not in all_plan_name_to_id:
+                    all_plan_name_to_id[str(plan["name"])] = plan_id
+        else:
+            all_plan_name_to_id = {
+                plan["name"]: plan_id
+                for plan_id, plan in plan_master["plans"].items() if plan.get("enabled")
+            }
         if not all_plan_name_to_id:
             messagebox.showerror("料金プランがありません", "plans.json の有効プランを確認してください。", parent=win)
             win.destroy()
@@ -659,6 +859,12 @@ class QuoteApp(tk.Tk):
         ouchi_yes_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(ouchi_box, text="SB光なし", variable=ouchi_none_var).pack(side="left", padx=8)
         ttk.Checkbutton(ouchi_box, text="SB光あり", variable=ouchi_yes_var).pack(side="left", padx=8)
+        if IS_TM_SPECIAL:
+            ttk.Label(
+                ouchi_box,
+                text="※特例：5GBでもSB光あり（おうち割）を作成できます",
+                foreground="#555555",
+            ).pack(side="left", padx=(12, 0))
 
         service_box = ttk.LabelFrame(frame, text="付帯サービス", padding=10)
         service_box.pack(fill="x", pady=6)
@@ -685,38 +891,98 @@ class QuoteApp(tk.Tk):
             text="※通常IPSは機種に合うゴールド／プラチナ等をすべて作成します。",
             wraplength=580,
         ).pack(anchor="w", pady=(4, 0))
-        support_display = {
-            "料金プランに合わせて自動": "auto",
-            "安心サポートなし": None,
-            "安心サポートXS": "support_xs",
-            "安心サポートS": "support_s",
-        }
-        support_var = tk.StringVar(value="料金プランに合わせて自動")
-        support_row = ttk.Frame(service_box)
-        support_row.pack(fill="x")
-        ttk.Label(support_row, text="安心サポート：").pack(side="left")
-        ttk.Combobox(
-            support_row, textvariable=support_var, values=list(support_display), state="readonly", width=30
-        ).pack(side="left")
+        if IS_TM_SPECIAL:
+            # 特例: プラン自動割当なし。なし／XS／S の排他ラジオ
+            support_radio_var = tk.StringVar(value="none")
+            support_box = ttk.LabelFrame(service_box, text="安心サポート（どれか1つ）", padding=8)
+            support_box.pack(fill="x", pady=(0, 4))
+            ttk.Radiobutton(
+                support_box, text="安心サポートなし", variable=support_radio_var, value="none"
+            ).pack(anchor="w")
+            ttk.Radiobutton(
+                support_box,
+                text="安心サポートXS（税抜980円）",
+                variable=support_radio_var,
+                value="support_xs",
+            ).pack(anchor="w")
+            ttk.Radiobutton(
+                support_box,
+                text="安心サポートS（税抜1,480円）",
+                variable=support_radio_var,
+                value="support_s",
+            ).pack(anchor="w")
+
+            def current_support_plan_id() -> str | None:
+                raw = support_radio_var.get()
+                return None if raw == "none" else raw
+        else:
+            support_display = {
+                "料金プランに合わせて自動": "auto",
+                "安心サポートなし": None,
+                "安心サポートXS": "support_xs",
+                "安心サポートS": "support_s",
+            }
+            support_var = tk.StringVar(value="料金プランに合わせて自動")
+            support_row = ttk.Frame(service_box)
+            support_row.pack(fill="x")
+            ttk.Label(support_row, text="安心サポート：").pack(side="left")
+            support_combo = ttk.Combobox(
+                support_row,
+                textvariable=support_var,
+                values=list(support_display),
+                state="readonly",
+                width=30,
+            )
+            support_combo.pack(side="left")
+            ttk.Label(
+                service_box,
+                text="※個別のみ：スーパー／ハイパーで「安心サポートなし」可"
+                "（割引は維持・一括作成では不可）",
+                wraplength=580,
+                foreground="#555555",
+            ).pack(anchor="w", pady=(4, 0))
+
+            def current_support_plan_id() -> str | None:
+                return support_display[support_var.get()]
 
         fee_box = ttk.LabelFrame(frame, text="初期費用（複数選択可）", padding=10)
         fee_box.pack(fill="x", pady=6)
         fee_special_var = tk.BooleanVar(value=True)
         fee_standard_var = tk.BooleanVar(value=False)
+        fee_special_label = (
+            "事務手数料免除＋初期費用4,500円（標準）"
+            if IS_TM_SPECIAL
+            else "事務手数料免除＋初期費用3,000円（標準）"
+        )
         ttk.Checkbutton(
-            fee_box, text="事務手数料免除＋初期費用3,000円（標準）", variable=fee_special_var
+            fee_box, text=fee_special_label, variable=fee_special_var
         ).pack(anchor="w")
         ttk.Checkbutton(
             fee_box, text="事務手数料あり（税抜4,500円）", variable=fee_standard_var
         ).pack(anchor="w")
+        if IS_TM_SPECIAL:
+            ttk.Label(
+                fee_box,
+                text="※特例の標準は免除＋初期費用4,500円（税込4,950円）。通常版の3,000円とは異なります。",
+                wraplength=580,
+                foreground="#555555",
+            ).pack(anchor="w", pady=(4, 0))
 
         def refresh_plans(*_args) -> None:
             nonlocal plan_name_to_id
             sales = sales_var.get()
+            selected = _selected_devices()
             plan_name_to_id = {
                 name: plan_id
                 for name, plan_id in all_plan_name_to_id.items()
-                if is_sales_plan_allowed(sales, plan_id)
+                if is_sales_plan_allowed(sales, plan_id, unrestricted=IS_TM_SPECIAL)
+                and (
+                    not selected
+                    or all(
+                        is_device_plan_allowed(device, plan_id)
+                        for device in selected
+                    )
+                )
             }
             names = list(plan_name_to_id)
             plan_combo.configure(values=names)
@@ -736,6 +1002,34 @@ class QuoteApp(tk.Tk):
             except (KeyError, ValueError):
                 return []
 
+        def refresh_sales_types(*_args) -> None:
+            """iPad／データ通信／AndroidTab では MNP・番号移行を選べない。"""
+            selected = _selected_devices()
+            all_types = list(SALES_COLUMNS.keys())
+            if not selected:
+                allowed = all_types
+            else:
+                allowed = [
+                    sales
+                    for sales in all_types
+                    if all(
+                        is_device_sales_type_allowed(device, sales)
+                        for device in selected
+                    )
+                ]
+            if not allowed:
+                allowed = [
+                    sales for sales in all_types
+                    if sales not in {"MNP", "番号移行"}
+                ]
+            sales_combo.configure(values=allowed)
+            if sales_var.get() not in allowed:
+                sales_var.set(allowed[0] if allowed else "")
+            refresh_plans()
+
+        def on_device_selection_changed(*_args) -> None:
+            refresh_sales_types()
+
         def refresh_capacities(*_args) -> None:
             selected_devices = _selected_devices()
             try:
@@ -748,7 +1042,9 @@ class QuoteApp(tk.Tk):
                 # 複数機種選択時は「どれか1機種でも使える容量」を選択可能にする
                 allowed = (
                     name in plan["data_plans"]
-                    and is_plan_data_plan_allowed(plan_id, name)
+                    and is_plan_data_plan_allowed(
+                        plan_id, name, unrestricted=IS_TM_SPECIAL
+                    )
                     and any(
                         is_device_data_plan_allowed(device, name, sales_var.get())
                         for device in selected_devices
@@ -809,10 +1105,11 @@ class QuoteApp(tk.Tk):
                         include_upfront_lump=ips_upfront_lump_var.get(),
                         include_upfront_running=ips_upfront_running_var.get(),
                         include_no_ips=ips_none_var.get(),
-                        support_plan_id=support_display[support_var.get()],
+                        support_plan_id=current_support_plan_id(),
                         department=self.department_var.get(),
                         initial_fee_modes=fee_modes,
                         installment_months=months,
+                        unrestricted_individual=IS_TM_SPECIAL,
                     )
                     total_files += result.generated_files
                     output_dir = result.output_dir
@@ -844,11 +1141,11 @@ class QuoteApp(tk.Tk):
             threading.Thread(target=worker, args=(target_models,), daemon=True).start()
 
         if model_combo is not None:
-            model_combo.bind("<<ComboboxSelected>>", refresh_capacities)
-            model_combo.bind("<FocusOut>", refresh_capacities)
+            model_combo.bind("<<ComboboxSelected>>", on_device_selection_changed)
+            model_combo.bind("<FocusOut>", on_device_selection_changed)
         sales_combo.bind("<<ComboboxSelected>>", refresh_plans)
         plan_combo.bind("<<ComboboxSelected>>", refresh_capacities)
-        refresh_plans()
+        refresh_sales_types()
 
     def _set_running_ui(self, running: bool) -> None:
         self._is_running = running
@@ -932,8 +1229,12 @@ class QuoteApp(tk.Tk):
                 pdf,
                 force_all=self.force_all_var.get(),
                 include_upfront_ips=self.upfront_var.get(),
+                include_upfront_lump=self.upfront_mode_var.get() == "lump",
+                include_upfront_running=self.upfront_mode_var.get() == "monthly_as_running",
                 include_no_ips=self.no_ips_var.get(),
+                include_mnp_shinki_irs=self.mnp_shinki_irs_var.get(),
                 include_standard_initial_fee=self.standard_fee_var.get(),
+                include_light_plan=self.light_plan_var.get(),
                 department=self.department_var.get(),
                 control=self._batch_control,
                 installment_months=installment_months,

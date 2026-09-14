@@ -1,0 +1,2141 @@
+{
+  "schema_version": 1,
+  "installment_months": 36,
+  "source_pdf": "分割支払金一覧_2026.9.4【confidential】法人.pdf",
+  "imported_at": "2026-09-09T11:45:55",
+  "page_count": 2,
+  "device_count": 213,
+  "devices": [
+    {
+      "category": "iPhone",
+      "model": "iPhone 17(256GB)",
+      "model_key": "iphone17256gb",
+      "status": "販売中",
+      "payment_36_flat": 5020,
+      "installment_months": 36,
+      "total": 180720,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17(512GB)",
+      "model_key": "iphone17512gb",
+      "status": "販売中",
+      "payment_36_flat": 5560,
+      "installment_months": 36,
+      "total": 200160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone Air(256GB)",
+      "model_key": "iphoneair256gb",
+      "status": "販売中",
+      "payment_36_flat": 5560,
+      "installment_months": 36,
+      "total": 200160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone Air(512GB)",
+      "model_key": "iphoneair512gb",
+      "status": "販売中",
+      "payment_36_flat": 7340,
+      "installment_months": 36,
+      "total": 264240,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone Air(1TB)",
+      "model_key": "iphoneair1tb",
+      "status": "販売中",
+      "payment_36_flat": 8560,
+      "installment_months": 36,
+      "total": 308160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro(256GB)",
+      "model_key": "iphone17pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 6380,
+      "installment_months": 36,
+      "total": 229680,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro(512GB)",
+      "model_key": "iphone17pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 7920,
+      "installment_months": 36,
+      "total": 285120,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro(1TB)",
+      "model_key": "iphone17pro1tb",
+      "status": "販売中",
+      "payment_36_flat": 9120,
+      "installment_months": 36,
+      "total": 328320,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro Max(256GB)",
+      "model_key": "iphone17promax256gb",
+      "status": "販売中",
+      "payment_36_flat": 7360,
+      "installment_months": 36,
+      "total": 264960,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro Max(512GB)",
+      "model_key": "iphone17promax512gb",
+      "status": "販売中",
+      "payment_36_flat": 8580,
+      "installment_months": 36,
+      "total": 308880,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro Max(1TB)",
+      "model_key": "iphone17promax1tb",
+      "status": "販売中",
+      "payment_36_flat": 9800,
+      "installment_months": 36,
+      "total": 352800,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17 Pro Max(2TB)",
+      "model_key": "iphone17promax2tb",
+      "status": "販売中",
+      "payment_36_flat": 11940,
+      "installment_months": 36,
+      "total": 429840,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17e(256GB)",
+      "model_key": "iphone17e256gb",
+      "status": "販売中",
+      "payment_36_flat": 3700,
+      "installment_months": 36,
+      "total": 133200,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 17e(512GB)",
+      "model_key": "iphone17e512gb",
+      "status": "販売中",
+      "payment_36_flat": 4680,
+      "installment_months": 36,
+      "total": 168480,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16(128GB)",
+      "model_key": "iphone16128gb",
+      "status": "販売中",
+      "payment_36_flat": 3700,
+      "installment_months": 36,
+      "total": 133200,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16(256GB)",
+      "model_key": "iphone16256gb",
+      "status": "販売中",
+      "payment_36_flat": 4760,
+      "installment_months": 36,
+      "total": 171360,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16(512GB)",
+      "model_key": "iphone16512gb",
+      "status": "販売中",
+      "payment_36_flat": 5880,
+      "installment_months": 36,
+      "total": 211680,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Plus(128GB)",
+      "model_key": "iphone16plus128gb",
+      "status": "販売中",
+      "payment_36_flat": 4660,
+      "installment_months": 36,
+      "total": 167760,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Plus(256GB)",
+      "model_key": "iphone16plus256gb",
+      "status": "販売中",
+      "payment_36_flat": 5260,
+      "installment_months": 36,
+      "total": 189360,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Plus(512GB)",
+      "model_key": "iphone16plus512gb",
+      "status": "販売中",
+      "payment_36_flat": 6380,
+      "installment_months": 36,
+      "total": 229680,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro(128GB)",
+      "model_key": "iphone16pro128gb",
+      "status": "販売中",
+      "payment_36_flat": 5240,
+      "installment_months": 36,
+      "total": 188640,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro(256GB)",
+      "model_key": "iphone16pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 6060,
+      "installment_months": 36,
+      "total": 218160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro(512GB)",
+      "model_key": "iphone16pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 7060,
+      "installment_months": 36,
+      "total": 254160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro(1TB)",
+      "model_key": "iphone16pro1tb",
+      "status": "販売中",
+      "payment_36_flat": 8000,
+      "installment_months": 36,
+      "total": 288000,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro Max(256GB)",
+      "model_key": "iphone16promax256gb",
+      "status": "販売中",
+      "payment_36_flat": 6560,
+      "installment_months": 36,
+      "total": 236160,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro Max(512GB)",
+      "model_key": "iphone16promax512gb",
+      "status": "販売中",
+      "payment_36_flat": 7580,
+      "installment_months": 36,
+      "total": 272880,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16 Pro Max(1TB)",
+      "model_key": "iphone16promax1tb",
+      "status": "販売中",
+      "payment_36_flat": 8220,
+      "installment_months": 36,
+      "total": 295920,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16e(128GB)",
+      "model_key": "iphone16e128gb",
+      "status": "販売中",
+      "payment_36_flat": 3308,
+      "installment_months": 36,
+      "total": 119088,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16e(256GB)",
+      "model_key": "iphone16e256gb",
+      "status": "販売中",
+      "payment_36_flat": 3200,
+      "installment_months": 36,
+      "total": 115200,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 16e(512GB)",
+      "model_key": "iphone16e512gb",
+      "status": "販売中",
+      "payment_36_flat": 4040,
+      "installment_months": 36,
+      "total": 145440,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15(128GB)",
+      "model_key": "iphone15128gb",
+      "status": "販売中",
+      "payment_36_flat": 3308,
+      "installment_months": 36,
+      "total": 119088,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15(256GB)",
+      "model_key": "iphone15256gb",
+      "status": "販売中",
+      "payment_36_flat": 3796,
+      "installment_months": 36,
+      "total": 136656,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15(512GB)",
+      "model_key": "iphone15512gb",
+      "status": "販売中",
+      "payment_36_flat": 4772,
+      "installment_months": 36,
+      "total": 171792,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro(128GB)",
+      "model_key": "iphone15pro128gb",
+      "status": "販売中",
+      "payment_36_flat": 4540,
+      "installment_months": 36,
+      "total": 163440,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro(256GB)",
+      "model_key": "iphone15pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 4960,
+      "installment_months": 36,
+      "total": 178560,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro(512GB)",
+      "model_key": "iphone15pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 5840,
+      "installment_months": 36,
+      "total": 210240,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro(1TB)",
+      "model_key": "iphone15pro1tb",
+      "status": "販売中",
+      "payment_36_flat": 6720,
+      "installment_months": 36,
+      "total": 241920,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro Max(256GB)",
+      "model_key": "iphone15promax256gb",
+      "status": "販売中",
+      "payment_36_flat": 5380,
+      "installment_months": 36,
+      "total": 193680,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro Max(512GB)",
+      "model_key": "iphone15promax512gb",
+      "status": "販売中",
+      "payment_36_flat": 6220,
+      "installment_months": 36,
+      "total": 223920,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Pro Max(1TB)",
+      "model_key": "iphone15promax1tb",
+      "status": "販売中",
+      "payment_36_flat": 6960,
+      "installment_months": 36,
+      "total": 250560,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Plus(128GB)",
+      "model_key": "iphone15plus128gb",
+      "status": "販売中",
+      "payment_36_flat": 3920,
+      "installment_months": 36,
+      "total": 141120,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Plus(256GB)",
+      "model_key": "iphone15plus256gb",
+      "status": "販売中",
+      "payment_36_flat": 4540,
+      "installment_months": 36,
+      "total": 163440,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 15 Plus(512GB)",
+      "model_key": "iphone15plus512gb",
+      "status": "販売中",
+      "payment_36_flat": 5220,
+      "installment_months": 36,
+      "total": 187920,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone 14(128GB)",
+      "model_key": "iphone14128gb",
+      "status": "販売中",
+      "payment_36_flat": 2664,
+      "installment_months": 36,
+      "total": 95904,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone SE(第3世代)(64GB)",
+      "model_key": "iphonese第3世代64gb",
+      "status": "販売中",
+      "payment_36_flat": 2040,
+      "installment_months": 36,
+      "total": 73440,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone SE(第3世代)(128GB)",
+      "model_key": "iphonese第3世代128gb",
+      "status": "販売中",
+      "payment_36_flat": 2260,
+      "installment_months": 36,
+      "total": 81360,
+      "source_page": 1
+    },
+    {
+      "category": "iPhone",
+      "model": "iPhone SE(第3世代)(256GB)",
+      "model_key": "iphonese第3世代256gb",
+      "status": "販売中",
+      "payment_36_flat": 2760,
+      "installment_months": 36,
+      "total": 99360,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11(256GB)",
+      "model_key": "googlepixel11256gb",
+      "status": "販売中",
+      "payment_36_flat": 4640,
+      "installment_months": 36,
+      "total": 167040,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11(512GB)",
+      "model_key": "googlepixel11512gb",
+      "status": "販売中",
+      "payment_36_flat": 5280,
+      "installment_months": 36,
+      "total": 190080,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro(256GB)",
+      "model_key": "googlepixel11pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 5620,
+      "installment_months": 36,
+      "total": 202320,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro(512GB)",
+      "model_key": "googlepixel11pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 6280,
+      "installment_months": 36,
+      "total": 226080,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro XL(256GB)",
+      "model_key": "googlepixel11proxl256gb",
+      "status": "販売中",
+      "payment_36_flat": 6820,
+      "installment_months": 36,
+      "total": 245520,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro XL(512GB)",
+      "model_key": "googlepixel11proxl512gb",
+      "status": "販売中",
+      "payment_36_flat": 7460,
+      "installment_months": 36,
+      "total": 268560,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro Fold(256GB)",
+      "model_key": "googlepixel11profold256gb",
+      "status": "販売中",
+      "payment_36_flat": 8900,
+      "installment_months": 36,
+      "total": 320400,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 11 Pro Fold(512GB)",
+      "model_key": "googlepixel11profold512gb",
+      "status": "販売中",
+      "payment_36_flat": 9540,
+      "installment_months": 36,
+      "total": 343440,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10(128GB)",
+      "model_key": "googlepixel10128gb",
+      "status": "販売中",
+      "payment_36_flat": 4160,
+      "installment_months": 36,
+      "total": 149760,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10(256GB)",
+      "model_key": "googlepixel10256gb",
+      "status": "販売中",
+      "payment_36_flat": 4640,
+      "installment_months": 36,
+      "total": 167040,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro(256GB)",
+      "model_key": "googlepixel10pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 4860,
+      "installment_months": 36,
+      "total": 174960,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro(512GB)",
+      "model_key": "googlepixel10pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 5420,
+      "installment_months": 36,
+      "total": 195120,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro XL(256GB)",
+      "model_key": "googlepixel10proxl256gb",
+      "status": "販売中",
+      "payment_36_flat": 5360,
+      "installment_months": 36,
+      "total": 192960,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro XL(512GB)",
+      "model_key": "googlepixel10proxl512gb",
+      "status": "販売中",
+      "payment_36_flat": 5920,
+      "installment_months": 36,
+      "total": 213120,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro Fold(256GB)",
+      "model_key": "googlepixel10profold256gb",
+      "status": "販売中",
+      "payment_36_flat": 7440,
+      "installment_months": 36,
+      "total": 267840,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10 Pro Fold(512GB)",
+      "model_key": "googlepixel10profold512gb",
+      "status": "販売中",
+      "payment_36_flat": 8000,
+      "installment_months": 36,
+      "total": 288000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9(128GB)",
+      "model_key": "googlepixel9128gb",
+      "status": "販売中",
+      "payment_36_flat": 3240,
+      "installment_months": 36,
+      "total": 116640,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9(256GB)",
+      "model_key": "googlepixel9256gb",
+      "status": "販売中",
+      "payment_36_flat": 3600,
+      "installment_months": 36,
+      "total": 129600,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9 Pro(128GB)",
+      "model_key": "googlepixel9pro128gb",
+      "status": "販売中",
+      "payment_36_flat": 3960,
+      "installment_months": 36,
+      "total": 142560,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9 Pro(256GB)",
+      "model_key": "googlepixel9pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 4500,
+      "installment_months": 36,
+      "total": 162000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9 Pro XL(128GB)",
+      "model_key": "googlepixel9proxl128gb",
+      "status": "販売中",
+      "payment_36_flat": 4500,
+      "installment_months": 36,
+      "total": 162000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9 Pro XL(256GB)",
+      "model_key": "googlepixel9proxl256gb",
+      "status": "販売中",
+      "payment_36_flat": 5000,
+      "installment_months": 36,
+      "total": 180000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9 Pro Fold(256GB)",
+      "model_key": "googlepixel9profold256gb",
+      "status": "販売中",
+      "payment_36_flat": 7060,
+      "installment_months": 36,
+      "total": 254160,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8(128GB)",
+      "model_key": "googlepixel8128gb",
+      "status": "販売中",
+      "payment_36_flat": 1652,
+      "installment_months": 36,
+      "total": 59472,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8(256GB)",
+      "model_key": "googlepixel8256gb",
+      "status": "販売中",
+      "payment_36_flat": 3500,
+      "installment_months": 36,
+      "total": 126000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8 Pro(128GB)",
+      "model_key": "googlepixel8pro128gb",
+      "status": "販売中",
+      "payment_36_flat": 4448,
+      "installment_months": 36,
+      "total": 160128,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8 Pro(256GB)",
+      "model_key": "googlepixel8pro256gb",
+      "status": "販売中",
+      "payment_36_flat": 4640,
+      "installment_months": 36,
+      "total": 167040,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8 Pro(512GB)",
+      "model_key": "googlepixel8pro512gb",
+      "status": "販売中",
+      "payment_36_flat": 5740,
+      "installment_months": 36,
+      "total": 206640,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10a(128GB)",
+      "model_key": "googlepixel10a128gb",
+      "status": "販売中",
+      "payment_36_flat": 2600,
+      "installment_months": 36,
+      "total": 93600,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 10a(256GB)",
+      "model_key": "googlepixel10a256gb",
+      "status": "販売中",
+      "payment_36_flat": 3080,
+      "installment_months": 36,
+      "total": 110880,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9a(128GB)",
+      "model_key": "googlepixel9a128gb",
+      "status": "販売中",
+      "payment_36_flat": 2456,
+      "installment_months": 36,
+      "total": 88416,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 9a(256GB)",
+      "model_key": "googlepixel9a256gb",
+      "status": "販売中",
+      "payment_36_flat": 2920,
+      "installment_months": 36,
+      "total": 105120,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 8a",
+      "model_key": "googlepixel8a",
+      "status": "販売中",
+      "payment_36_flat": 1376,
+      "installment_months": 36,
+      "total": 49536,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Google Pixel 7a",
+      "model_key": "googlepixel7a",
+      "status": "販売中",
+      "payment_36_flat": 1540,
+      "installment_months": 36,
+      "total": 55440,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 1 VIII",
+      "model_key": "xperia1viii",
+      "status": "販売中",
+      "payment_36_flat": 7620,
+      "installment_months": 36,
+      "total": 274320,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 1 VII",
+      "model_key": "xperia1vii",
+      "status": "販売中",
+      "payment_36_flat": 6880,
+      "installment_months": 36,
+      "total": 247680,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 1 VI",
+      "model_key": "xperia1vi",
+      "status": "販売中",
+      "payment_36_flat": 4672,
+      "installment_months": 36,
+      "total": 168192,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 1 V",
+      "model_key": "xperia1v",
+      "status": "販売中",
+      "payment_36_flat": 4288,
+      "installment_months": 36,
+      "total": 154368,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 10 VII",
+      "model_key": "xperia10vii",
+      "status": "販売中",
+      "payment_36_flat": 2460,
+      "installment_months": 36,
+      "total": 88560,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 10 VI",
+      "model_key": "xperia10vi",
+      "status": "販売中",
+      "payment_36_flat": 884,
+      "installment_months": 36,
+      "total": 31824,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xperia 10 Ⅴ",
+      "model_key": "xperia10v",
+      "status": "販売中",
+      "payment_36_flat": 884,
+      "installment_months": 36,
+      "total": 31824,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS R11",
+      "model_key": "aquosr11",
+      "status": "販売中",
+      "payment_36_flat": 4360,
+      "installment_months": 36,
+      "total": 156960,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS R10",
+      "model_key": "aquosr10",
+      "status": "販売中",
+      "payment_36_flat": 3608,
+      "installment_months": 36,
+      "total": 129888,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS R9",
+      "model_key": "aquosr9",
+      "status": "販売中",
+      "payment_36_flat": 3460,
+      "installment_months": 36,
+      "total": 124560,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS R8 pro",
+      "model_key": "aquosr8pro",
+      "status": "販売中",
+      "payment_36_flat": 4320,
+      "installment_months": 36,
+      "total": 155520,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS sense10",
+      "model_key": "aquossense10",
+      "status": "販売中",
+      "payment_36_flat": 1940,
+      "installment_months": 36,
+      "total": 69840,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS sense9",
+      "model_key": "aquossense9",
+      "status": "販売中",
+      "payment_36_flat": 1940,
+      "installment_months": 36,
+      "total": 69840,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS sense7 plus",
+      "model_key": "aquossense7plus",
+      "status": "販売中",
+      "payment_36_flat": 1940,
+      "installment_months": 36,
+      "total": 69840,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS wish4_biz",
+      "model_key": "aquoswish4biz",
+      "status": "販売中",
+      "payment_36_flat": 1000,
+      "installment_months": 36,
+      "total": 36000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS wish3",
+      "model_key": "aquoswish3",
+      "status": "販売中",
+      "payment_36_flat": 1000,
+      "installment_months": 36,
+      "total": 36000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "AQUOS wish",
+      "model_key": "aquoswish",
+      "status": "販売中",
+      "payment_36_flat": 920,
+      "installment_months": 36,
+      "total": 33120,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Duraforce EX",
+      "model_key": "duraforceex",
+      "status": "販売中",
+      "payment_36_flat": 1640,
+      "installment_months": 36,
+      "total": 59040,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "DIGNO BX3",
+      "model_key": "dignobx3",
+      "status": "販売中",
+      "payment_36_flat": 1120,
+      "installment_months": 36,
+      "total": 40320,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "DIGNO BX3 カメラレス",
+      "model_key": "dignobx3カメラレス",
+      "status": "販売中",
+      "payment_36_flat": 1080,
+      "installment_months": 36,
+      "total": 38880,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "DIGNO BX3 Plus",
+      "model_key": "dignobx3plus",
+      "status": "販売中",
+      "payment_36_flat": 1480,
+      "installment_months": 36,
+      "total": 53280,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "DIGNO BX2",
+      "model_key": "dignobx2",
+      "status": "販売中",
+      "payment_36_flat": 1000,
+      "installment_months": 36,
+      "total": 36000,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xiaomi 14T Pro",
+      "model_key": "xiaomi14tpro",
+      "status": "販売中",
+      "payment_36_flat": 1680,
+      "installment_months": 36,
+      "total": 60480,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Xiaomi 13T Pro",
+      "model_key": "xiaomi13tpro",
+      "status": "販売中",
+      "payment_36_flat": 2460,
+      "installment_months": 36,
+      "total": 88560,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8",
+      "model_key": "samsunggalaxyzfold8",
+      "status": "販売中",
+      "payment_36_flat": 8340,
+      "installment_months": 36,
+      "total": 300240,
+      "source_page": 1
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(256GB)",
+      "model_key": "samsunggalaxyzfold8ultra256gb",
+      "status": "販売中",
+      "payment_36_flat": 9140,
+      "installment_months": 36,
+      "total": 329040,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(512GB)",
+      "model_key": "samsunggalaxyzfold8ultra512gb",
+      "status": "販売中",
+      "payment_36_flat": 9940,
+      "installment_months": 36,
+      "total": 357840,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Fold8 Ultra(1T)",
+      "model_key": "samsunggalaxyzfold8ultra1t",
+      "status": "販売中",
+      "payment_36_flat": 11120,
+      "installment_months": 36,
+      "total": 400320,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy Z Flip8",
+      "model_key": "samsunggalaxyzflip8",
+      "status": "販売中",
+      "payment_36_flat": 6160,
+      "installment_months": 36,
+      "total": 221760,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy A57 5G",
+      "model_key": "samsunggalaxya575g",
+      "status": "販売中",
+      "payment_36_flat": 2600,
+      "installment_months": 36,
+      "total": 93600,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26(256GB)",
+      "model_key": "samsunggalaxys26256gb",
+      "status": "販売中",
+      "payment_36_flat": 4440,
+      "installment_months": 36,
+      "total": 159840,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26(512GB)",
+      "model_key": "samsunggalaxys26512gb",
+      "status": "販売中",
+      "payment_36_flat": 5220,
+      "installment_months": 36,
+      "total": 187920,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26+(256GB)",
+      "model_key": "samsunggalaxys26+256gb",
+      "status": "販売中",
+      "payment_36_flat": 5240,
+      "installment_months": 36,
+      "total": 188640,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26+(512GB)",
+      "model_key": "samsunggalaxys26+512gb",
+      "status": "販売中",
+      "payment_36_flat": 6040,
+      "installment_months": 36,
+      "total": 217440,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26 Ultra(256GB)",
+      "model_key": "samsunggalaxys26ultra256gb",
+      "status": "販売中",
+      "payment_36_flat": 6680,
+      "installment_months": 36,
+      "total": 240480,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Samsung Galaxy S26 Ultra(512GB)",
+      "model_key": "samsunggalaxys26ultra512gb",
+      "status": "販売中",
+      "payment_36_flat": 7460,
+      "installment_months": 36,
+      "total": 268560,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Galaxy Z Fold7",
+      "model_key": "galaxyzfold7",
+      "status": "販売中",
+      "payment_36_flat": 7400,
+      "installment_months": 36,
+      "total": 266400,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Galaxy Z Flip7",
+      "model_key": "galaxyzflip7",
+      "status": "販売中",
+      "payment_36_flat": 3600,
+      "installment_months": 36,
+      "total": 129600,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Galaxy A25 5G",
+      "model_key": "galaxya255g",
+      "status": "販売中",
+      "payment_36_flat": 608,
+      "installment_months": 36,
+      "total": 21888,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Galaxy S25",
+      "model_key": "galaxys25",
+      "status": "販売中",
+      "payment_36_flat": 3600,
+      "installment_months": 36,
+      "total": 129600,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Galaxy S25 Ultra(256GB)",
+      "model_key": "galaxys25ultra256gb",
+      "status": "販売中",
+      "payment_36_flat": 5988,
+      "installment_months": 36,
+      "total": 215568,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "motorola razr 60s",
+      "model_key": "motorolarazr60s",
+      "status": "販売中",
+      "payment_36_flat": 3320,
+      "installment_months": 36,
+      "total": 119520,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "motorola edge 60s pro",
+      "model_key": "motorolaedge60spro",
+      "status": "販売中",
+      "payment_36_flat": 2460,
+      "installment_months": 36,
+      "total": 88560,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "motorola razr 50 ultra",
+      "model_key": "motorolarazr50ultra",
+      "status": "販売中",
+      "payment_36_flat": 2720,
+      "installment_months": 36,
+      "total": 97920,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "motorola razr 50s",
+      "model_key": "motorolarazr50s",
+      "status": "販売中",
+      "payment_36_flat": 1160,
+      "installment_months": 36,
+      "total": 41760,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "motorola razr 40s",
+      "model_key": "motorolarazr40s",
+      "status": "販売中",
+      "payment_36_flat": 2600,
+      "installment_months": 36,
+      "total": 93600,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "Natural AI Phone",
+      "model_key": "naturalaiphone",
+      "status": "販売中",
+      "payment_36_flat": 2600,
+      "installment_months": 36,
+      "total": 93600,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "nubia S2e",
+      "model_key": "nubias2e",
+      "status": "販売中",
+      "payment_36_flat": 760,
+      "installment_months": 36,
+      "total": 27360,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "OPPO Reno10 Pro 5G",
+      "model_key": "opporeno10pro5g",
+      "status": "販売中",
+      "payment_36_flat": 884,
+      "installment_months": 36,
+      "total": 31824,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "シンプルスマホ7",
+      "model_key": "シンプルスマホ7",
+      "status": "販売中",
+      "payment_36_flat": 1660,
+      "installment_months": 36,
+      "total": 59760,
+      "source_page": 2
+    },
+    {
+      "category": "Android",
+      "model": "シンプルスマホ６",
+      "model_key": "シンプルスマホ6",
+      "status": "販売中",
+      "payment_36_flat": 884,
+      "installment_months": 36,
+      "total": 31824,
+      "source_page": 2
+    },
+    {
+      "category": "ケータイ",
+      "model": "かんたん携帯 11",
+      "model_key": "かんたん携帯11",
+      "status": "販売中",
+      "payment_36_flat": 1080,
+      "installment_months": 36,
+      "total": 38880,
+      "source_page": 2
+    },
+    {
+      "category": "ケータイ",
+      "model": "DIGNOケータイ4",
+      "model_key": "dignoケータイ4",
+      "status": "販売中",
+      "payment_36_flat": 1000,
+      "installment_months": 36,
+      "total": 36000,
+      "source_page": 2
+    },
+    {
+      "category": "ケータイ",
+      "model": "DIGNOケータイ4 for Biz",
+      "model_key": "dignoケータイ4forbiz",
+      "status": "販売中",
+      "payment_36_flat": 1000,
+      "installment_months": 36,
+      "total": 36000,
+      "source_page": 2
+    },
+    {
+      "category": "ケータイ",
+      "model": "AQUOSケータイ４",
+      "model_key": "aquosケータイ4",
+      "status": "販売中",
+      "payment_36_flat": 900,
+      "installment_months": 36,
+      "total": 32400,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
+      "model_key": "13インチipadprom5wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 10580,
+      "installment_months": 36,
+      "total": 380880,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(512GB)",
+      "model_key": "13インチipadprom5wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 11800,
+      "installment_months": 36,
+      "total": 424800,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(1TB)",
+      "model_key": "13インチipadprom5wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 13440,
+      "installment_months": 36,
+      "total": 483840,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(1TB)_NT",
+      "model_key": "13インチipadprom5wifi+cellular1tbnt",
+      "status": "販売中",
+      "payment_36_flat": 13980,
+      "installment_months": 36,
+      "total": 503280,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(2TB)",
+      "model_key": "13インチipadprom5wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 15680,
+      "installment_months": 36,
+      "total": 564480,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(2TB)_NT",
+      "model_key": "13インチipadprom5wifi+cellular2tbnt",
+      "status": "販売中",
+      "payment_36_flat": 16220,
+      "installment_months": 36,
+      "total": 583920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(256GB)",
+      "model_key": "13インチipadprom4wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 8840,
+      "installment_months": 36,
+      "total": 318240,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(512GB)",
+      "model_key": "13インチipadprom4wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 10100,
+      "installment_months": 36,
+      "total": 363600,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(1TB)",
+      "model_key": "13インチipadprom4wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 12460,
+      "installment_months": 36,
+      "total": 448560,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(1TB)_NT",
+      "model_key": "13インチipadprom4wifi+cellular1tbnt",
+      "status": "販売中",
+      "payment_36_flat": 13020,
+      "installment_months": 36,
+      "total": 468720,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(2TB)",
+      "model_key": "13インチipadprom4wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 14820,
+      "installment_months": 36,
+      "total": 533520,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Pro（M4）Wi-Fi+Cellular(2TB)_NT",
+      "model_key": "13インチipadprom4wifi+cellular2tbnt",
+      "status": "販売中",
+      "payment_36_flat": 15380,
+      "installment_months": 36,
+      "total": 553680,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "12.9インチiPad Pro(第6世代) Wi-Fi+Cellular(128GB)",
+      "model_key": "12.9インチipadpro第6世代wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 6160,
+      "installment_months": 36,
+      "total": 221760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "12.9インチiPad Pro(第6世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "12.9インチipadpro第6世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 6660,
+      "installment_months": 36,
+      "total": 239760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "12.9インチiPad Pro(第6世代) Wi-Fi+Cellular(512GB)",
+      "model_key": "12.9インチipadpro第6世代wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 7660,
+      "installment_months": 36,
+      "total": 275760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "12.9インチiPad Pro(第6世代) Wi-Fi+Cellular(1TB)",
+      "model_key": "12.9インチipadpro第6世代wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 9660,
+      "installment_months": 36,
+      "total": 347760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "12.9インチiPad Pro(第6世代) Wi-Fi+Cellular(2TB)",
+      "model_key": "12.9インチipadpro第6世代wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 11680,
+      "installment_months": 36,
+      "total": 420480,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadprom5wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 8500,
+      "installment_months": 36,
+      "total": 306000,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadprom5wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 9720,
+      "installment_months": 36,
+      "total": 349920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadprom5wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 11660,
+      "installment_months": 36,
+      "total": 419760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(1TB)_NT",
+      "model_key": "11インチipadprom5wifi+cellular1tbnt",
+      "status": "販売中",
+      "payment_36_flat": 12220,
+      "installment_months": 36,
+      "total": 439920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(2TB)",
+      "model_key": "11インチipadprom5wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 14540,
+      "installment_months": 36,
+      "total": 523440,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M5）Wi-Fi+Cellular(2TB)_NT",
+      "model_key": "11インチipadprom5wifi+cellular2tbnt",
+      "status": "販売中",
+      "payment_36_flat": 14980,
+      "installment_months": 36,
+      "total": 539280,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadprom4wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 7120,
+      "installment_months": 36,
+      "total": 256320,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadprom4wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 8360,
+      "installment_months": 36,
+      "total": 300960,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadprom4wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 10720,
+      "installment_months": 36,
+      "total": 385920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(1TB)_NT",
+      "model_key": "11インチipadprom4wifi+cellular1tbnt",
+      "status": "販売中",
+      "payment_36_flat": 11280,
+      "installment_months": 36,
+      "total": 406080,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(2TB)",
+      "model_key": "11インチipadprom4wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 13080,
+      "installment_months": 36,
+      "total": 470880,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro（M4）Wi-Fi+Cellular(2TB)_NT",
+      "model_key": "11インチipadprom4wifi+cellular2tbnt",
+      "status": "販売中",
+      "payment_36_flat": 13640,
+      "installment_months": 36,
+      "total": 491040,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro(第4世代) Wi-Fi+Cellular(128GB)",
+      "model_key": "11インチipadpro第4世代wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 4660,
+      "installment_months": 36,
+      "total": 167760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro(第4世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadpro第4世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 5160,
+      "installment_months": 36,
+      "total": 185760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro(第4世代) Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadpro第4世代wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 6160,
+      "installment_months": 36,
+      "total": 221760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro(第4世代) Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadpro第4世代wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 8160,
+      "installment_months": 36,
+      "total": 293760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Pro(第4世代) Wi-Fi+Cellular(2TB)",
+      "model_key": "11インチipadpro第4世代wifi+cellular2tb",
+      "status": "販売中",
+      "payment_36_flat": 10160,
+      "installment_months": 36,
+      "total": 365760,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M4）Wi-Fi+Cellular(128GB)",
+      "model_key": "13インチipadairm4wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 6760,
+      "installment_months": 36,
+      "total": 243360,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M4）Wi-Fi+Cellular(256GB)",
+      "model_key": "13インチipadairm4wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 7360,
+      "installment_months": 36,
+      "total": 264960,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M4）Wi-Fi+Cellular(512GB)",
+      "model_key": "13インチipadairm4wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 8560,
+      "installment_months": 36,
+      "total": 308160,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M4）Wi-Fi+Cellular(1TB)",
+      "model_key": "13インチipadairm4wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 10300,
+      "installment_months": 36,
+      "total": 370800,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M4）Wi-Fi+Cellular(128GB)",
+      "model_key": "11インチipadairm4wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 5380,
+      "installment_months": 36,
+      "total": 193680,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M4）Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadairm4wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 5960,
+      "installment_months": 36,
+      "total": 214560,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M4）Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadairm4wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 7180,
+      "installment_months": 36,
+      "total": 258480,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M4）Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadairm4wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 8920,
+      "installment_months": 36,
+      "total": 321120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M3）Wi-Fi+Cellular(128GB)",
+      "model_key": "13インチipadairm3wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 4720,
+      "installment_months": 36,
+      "total": 169920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M3）Wi-Fi+Cellular(256GB)",
+      "model_key": "13インチipadairm3wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 5220,
+      "installment_months": 36,
+      "total": 187920,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M3）Wi-Fi+Cellular(512GB)",
+      "model_key": "13インチipadairm3wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 6320,
+      "installment_months": 36,
+      "total": 227520,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M3）Wi-Fi+Cellular(1TB)",
+      "model_key": "13インチipadairm3wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 7420,
+      "installment_months": 36,
+      "total": 267120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M3）Wi-Fi+Cellular(128GB)",
+      "model_key": "11インチipadairm3wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 3820,
+      "installment_months": 36,
+      "total": 137520,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M3）Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadairm3wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 4300,
+      "installment_months": 36,
+      "total": 154800,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M3）Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadairm3wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 5400,
+      "installment_months": 36,
+      "total": 194400,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M3）Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadairm3wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 6500,
+      "installment_months": 36,
+      "total": 234000,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M2）Wi-Fi+Cellular(128GB)",
+      "model_key": "13インチipadairm2wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 4300,
+      "installment_months": 36,
+      "total": 154800,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M2）Wi-Fi+Cellular(256GB)",
+      "model_key": "13インチipadairm2wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 4760,
+      "installment_months": 36,
+      "total": 171360,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M2）Wi-Fi+Cellular(512GB)",
+      "model_key": "13インチipadairm2wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 5760,
+      "installment_months": 36,
+      "total": 207360,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "13インチiPad Air（M2）Wi-Fi+Cellular(1TB)",
+      "model_key": "13インチipadairm2wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 6760,
+      "installment_months": 36,
+      "total": 243360,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M2）Wi-Fi+Cellular(128GB)",
+      "model_key": "11インチipadairm2wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 3480,
+      "installment_months": 36,
+      "total": 125280,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M2）Wi-Fi+Cellular(256GB)",
+      "model_key": "11インチipadairm2wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 3920,
+      "installment_months": 36,
+      "total": 141120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M2）Wi-Fi+Cellular(512GB)",
+      "model_key": "11インチipadairm2wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 4920,
+      "installment_months": 36,
+      "total": 177120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "11インチiPad Air（M2）Wi-Fi+Cellular(1TB)",
+      "model_key": "11インチipadairm2wifi+cellular1tb",
+      "status": "販売中",
+      "payment_36_flat": 5920,
+      "installment_months": 36,
+      "total": 213120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad Air(第5世代) Wi-Fi+Cellular(64GB)",
+      "model_key": "ipadair第5世代wifi+cellular64gb",
+      "status": "販売中",
+      "payment_36_flat": 3640,
+      "installment_months": 36,
+      "total": 131040,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad Air(第5世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "ipadair第5世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 4400,
+      "installment_months": 36,
+      "total": 158400,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad（A16）Wi-Fi+Cellular(128GB)",
+      "model_key": "ipada16wifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 3460,
+      "installment_months": 36,
+      "total": 124560,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad（A16）Wi-Fi+Cellular(256GB)",
+      "model_key": "ipada16wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 4060,
+      "installment_months": 36,
+      "total": 146160,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad（A16）Wi-Fi+Cellular(512GB)",
+      "model_key": "ipada16wifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 5280,
+      "installment_months": 36,
+      "total": 190080,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad(第10世代) Wi-Fi+Cellular(64GB)",
+      "model_key": "ipad第10世代wifi+cellular64gb",
+      "status": "販売中",
+      "payment_36_flat": 2600,
+      "installment_months": 36,
+      "total": 93600,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad(第10世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "ipad第10世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 3380,
+      "installment_months": 36,
+      "total": 121680,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad(第9世代) Wi-Fi+Cellular(64GB)",
+      "model_key": "ipad第9世代wifi+cellular64gb",
+      "status": "販売中",
+      "payment_36_flat": 2180,
+      "installment_months": 36,
+      "total": 78480,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad(第9世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "ipad第9世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 2860,
+      "installment_months": 36,
+      "total": 102960,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(128GB)",
+      "model_key": "ipadminia17prowifi+cellular128gb",
+      "status": "販売中",
+      "payment_36_flat": 4340,
+      "installment_months": 36,
+      "total": 156240,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(256GB)",
+      "model_key": "ipadminia17prowifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 4920,
+      "installment_months": 36,
+      "total": 177120,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad mini（A17 Pro）Wi-Fi+Cellular(512GB)",
+      "model_key": "ipadminia17prowifi+cellular512gb",
+      "status": "販売中",
+      "payment_36_flat": 6140,
+      "installment_months": 36,
+      "total": 221040,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad mini(第6世代) Wi-Fi+Cellular(64GB)",
+      "model_key": "ipadmini第6世代wifi+cellular64gb",
+      "status": "販売中",
+      "payment_36_flat": 3080,
+      "installment_months": 36,
+      "total": 110880,
+      "source_page": 2
+    },
+    {
+      "category": "iPad",
+      "model": "iPad mini(第6世代) Wi-Fi+Cellular(256GB)",
+      "model_key": "ipadmini第6世代wifi+cellular256gb",
+      "status": "販売中",
+      "payment_36_flat": 3740,
+      "installment_months": 36,
+      "total": 134640,
+      "source_page": 2
+    },
+    {
+      "category": "AndroidTab",
+      "model": "Lenovo 14e Chromebook Gen3",
+      "model_key": "lenovo14echromebookgen3",
+      "status": "販売中",
+      "payment_36_flat": 1980,
+      "installment_months": 36,
+      "total": 71280,
+      "source_page": 2
+    },
+    {
+      "category": "AndroidTab",
+      "model": "Lenovo TAB8",
+      "model_key": "lenovotab8",
+      "status": "販売中",
+      "payment_36_flat": 1320,
+      "installment_months": 36,
+      "total": 47520,
+      "source_page": 2
+    },
+    {
+      "category": "AndroidTab",
+      "model": "Lenovo TAB7",
+      "model_key": "lenovotab7",
+      "status": "販売中",
+      "payment_36_flat": 1320,
+      "installment_months": 36,
+      "total": 47520,
+      "source_page": 2
+    },
+    {
+      "category": "AndroidTab",
+      "model": "LenovoTAB6",
+      "model_key": "lenovotab6",
+      "status": "販売中",
+      "payment_36_flat": 1020,
+      "installment_months": 36,
+      "total": 36720,
+      "source_page": 2
+    },
+    {
+      "category": "AndroidTab",
+      "model": "DIGNO Tab2 5G",
+      "model_key": "dignotab25g",
+      "status": "販売中",
+      "payment_36_flat": 1960,
+      "installment_months": 36,
+      "total": 70560,
+      "source_page": 2
+    }
+  ],
+  "source_hash": "5b2dc5d464bd91f0f4e409bb315de53abcd3ef94a3ea7db0a4996ac9ccd252bd"
+}

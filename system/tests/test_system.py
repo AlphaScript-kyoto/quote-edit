@@ -11,7 +11,7 @@ from quote_system.batch_service import (
 )
 from quote_system.config import DATA_DIR, load_json
 from quote_system.pdf_renderer import _display_periods
-from quote_system.price_pdf_parser import find_device
+from quote_system.price_pdf_parser import find_device, _expand_merged_device_rows
 from quote_system.quote_service import build_quote
 
 
@@ -23,6 +23,28 @@ class QuoteSystemTest(unittest.TestCase):
         cls.service_master = load_json(DATA_DIR / "services.json")
         cls.request = load_json(DATA_DIR / "test_quote.json")
 
+    def test_expand_merged_device_rows(self):
+        """新機種ブロックが1セルに結合されても機種行へ分割できる。"""
+        row = [None] * 23
+        row[0] = "新機種\n新機種"
+        row[1] = "Android"
+        row[2] = "Google Pixel 11(256GB)\nGoogle Pixel 11(512GB)"
+        row[4] = "●\n●"
+        row[7] = "1 1 6,959\n670 670 7,250"
+        row[10] = "1,990 1,990 4,970\n2,290 2,290 5,630"
+        row[13] = "2,450 2,450 4,510\n2,750 2,750 5,170"
+        row[16] = "3,450 3,450 3,510\n4,580 4,580 3,340"
+        row[19] = "-\n-"
+        row[20] = "6,960\n7,920"
+        row[22] = "167,040\n190,080"
+        expanded = _expand_merged_device_rows(row)
+        self.assertEqual(len(expanded), 2)
+        self.assertEqual(expanded[0][2], "Google Pixel 11(256GB)")
+        self.assertEqual(expanded[1][2], "Google Pixel 11(512GB)")
+        self.assertEqual(expanded[0][7], "1 1 6,959")
+        self.assertEqual(expanded[1][22], "190,080")
+        self.assertEqual(expanded[0][1], "Android")
+        self.assertEqual(expanded[1][1], "Android")
     def test_iphone_17_256gb_prices(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         self.assertEqual(device["payment_48"]["MNP"], {
@@ -342,7 +364,7 @@ class QuoteSystemTest(unittest.TestCase):
         light_quote = build_quote(
             light, self.device_master, self.plan_master, self.service_master
         )
-        self.assertEqual(light_quote["services"]["support"]["plan_id"], "support_xs")
+        self.assertEqual(light_quote["services"]["support"], None)
 
         biz_plus = {**self.request, "plan_id": "biz_plus"}
         quote = build_quote(
@@ -353,7 +375,10 @@ class QuoteSystemTest(unittest.TestCase):
     def test_standard_batch_variants(self):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(device, self.plan_master))
-        self.assertEqual(len(variants), 85)
+        self.assertEqual(len(variants), 36)
+        self.assertFalse(any(item["plan_id"] == "light" for item in variants))
+        with_light = list(quote_variants(device, self.plan_master, include_light_plan=True))
+        self.assertEqual(len(with_light), 57)
         self.assertEqual({item["sales_type"] for item in variants}, {
             "MNP", "新規", "番号移行", "機種変更・移動機物品販売"
         })
@@ -361,7 +386,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertFalse(any(
             item["data_plan"] == "1GB"
             and item["plan_id"] in {"light", "super_light", "hyper_light"}
-            for item in variants
+            for item in with_light
         ))
         ones = [item for item in variants if item["data_plan"] == "1GB"]
         self.assertTrue(ones)
@@ -378,46 +403,53 @@ class QuoteSystemTest(unittest.TestCase):
             and item["data_plan"] == "5GB"
         }
         self.assertEqual(kishu_five, {"biz_plus", "hyper_light"})
-        # スーパー／ハイパーは機種変更・MNP・新規（番号移行では作らない）
+        # デフォルトのスーパー／ハイパーは機種変更のみ（MNP／新規はチェックON時）
         self.assertEqual(
             {
                 item["sales_type"]
                 for item in variants
                 if item["plan_id"] in {"super_light", "hyper_light"}
             },
-            {"機種変更・移動機物品販売", "MNP", "新規"},
+            {"機種変更・移動機物品販売"},
         )
-        # IRS（安心サポート）なし＋割引あり版は新規・MNPのスーパー／ハイパーのみ標準作成
-        no_irs = [item for item in variants if item["support_plan_id"] is None]
-        self.assertTrue(no_irs)
-        self.assertEqual(
-            {item["sales_type"] for item in no_irs}, {"MNP", "新規"}
-        )
-        self.assertEqual(
-            {item["plan_id"] for item in no_irs}, {"super_light", "hyper_light"}
-        )
+        self.assertFalse(any(
+            item["plan_id"] in {"super_light", "hyper_light"}
+            and item["support_plan_id"] is None
+            for item in variants
+        ))
+        with_irs = list(quote_variants(
+            device, self.plan_master, include_mnp_shinki_irs=True
+        ))
+        self.assertEqual(len(with_irs), 50)
+        mnp_shinki_super = [
+            item for item in with_irs
+            if item["plan_id"] in {"super_light", "hyper_light"}
+            and item["sales_type"] in {"MNP", "新規"}
+        ]
+        self.assertTrue(mnp_shinki_super)
+        self.assertTrue(all(item["support_plan_id"] == "auto" for item in mnp_shinki_super))
         # スーパーライトは50GBのみ
         self.assertTrue(
             all(
                 item["data_plan"] == "50GB"
-                for item in variants
+                for item in with_irs
                 if item["plan_id"] == "super_light"
             )
         )
-        # ライトは1GB以外・機種変更では使わない（MNP／新規／番号移行のみ）
+        # ライトはオプションON時のみ。1GB以外・機種変更では使わない（MNP／新規／番号移行のみ）
         self.assertTrue(
             all(
                 item["data_plan"] != "1GB"
-                for item in variants
+                for item in with_light
                 if item["plan_id"] == "light"
             )
         )
         self.assertFalse(any(
             item["plan_id"] == "light" and item["sales_type"] == "機種変更・移動機物品販売"
-            for item in variants
+            for item in with_light
         ))
         self.assertEqual(
-            {item["sales_type"] for item in variants if item["plan_id"] == "light"},
+            {item["sales_type"] for item in with_light if item["plan_id"] == "light"},
             {"MNP", "新規", "番号移行"},
         )
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False, True})
@@ -429,13 +461,13 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(all(item["initial_fee_mode"] == "special_3000" for item in variants))
 
         with_no_ips = list(quote_variants(device, self.plan_master, include_no_ips=True))
-        self.assertEqual(len(with_no_ips), 170)
+        self.assertEqual(len(with_no_ips), 72)
         self.assertEqual({item["ips"]["type"] for item in with_no_ips}, {"subscription", "none"})
 
         with_standard_fee = list(quote_variants(
             device, self.plan_master, include_standard_initial_fee=True
         ))
-        self.assertEqual(len(with_standard_fee), 170)
+        self.assertEqual(len(with_standard_fee), 72)
         self.assertEqual(
             {item["initial_fee_mode"] for item in with_standard_fee},
             {"special_3000", "standard"},
@@ -448,8 +480,8 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual({item["plan_id"] for item in variants}, {"biz_plus"})
         self.assertEqual({item["ouchi_discount_applied"] for item in variants}, {False})
 
-        # ライト系プランは1GBを対象としない（ケータイでもハイパーを作らない）
-        with self.assertRaisesRegex(ValueError, "1GB|50GBのみ"):
+        # ライト系はケータイカテゴリ自体が対象外（iPhone／Androidのみ）
+        with self.assertRaisesRegex(ValueError, "ライト／スーパーライト／ハイパーライト"):
             build_quote(
                 {
                     **self.request,
@@ -463,8 +495,8 @@ class QuoteSystemTest(unittest.TestCase):
                 self.service_master,
             )
 
-        # 番号移行ではハイパー自体を作らない
-        with self.assertRaisesRegex(ValueError, "番号移行では作成しません"):
+        # 番号移行×ケータイでもハイパーはカテゴリ制限で拒否
+        with self.assertRaisesRegex(ValueError, "ライト／スーパーライト／ハイパーライト"):
             build_quote(
                 {
                     **self.request,
@@ -482,6 +514,21 @@ class QuoteSystemTest(unittest.TestCase):
         request.update({"model": device["model"], "plan_id": "biz_plus", "data_plan": "1GB"})
         quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
         self.assertEqual(quote["data_plan"], "1GB")
+        # ケータイはおうち割分岐がないため SB光なしフォルダを付けない
+        relative = _quote_relative_path(
+            device,
+            {
+                "sales_type": request["sales_type"],
+                "plan_id": "biz_plus",
+                "data_plan": "1GB",
+                "initial_fee_mode": "special_3000",
+            },
+            quote,
+            "subscription",
+            "SB光なし",
+        )
+        self.assertNotIn("SB光なし", relative.parts)
+        self.assertNotIn("SB光あり", relative.parts)
 
         request["data_plan"] = "5GB"
         with self.assertRaisesRegex(ValueError, "1GBのみ"):
@@ -547,7 +594,7 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_display_mode": "monthly_as_running",
             "services": {
                 "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
-                "support_plan_id": None,
+                "support_plan_id": "auto",
             },
         })
         gold24 = build_quote(
@@ -576,7 +623,7 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_display_mode": "monthly_as_running",
             "services": {
                 "ips": {"type": "upfront", "plan_id": "ips_platinum_36"},
-                "support_plan_id": None,
+                "support_plan_id": "auto",
             },
         })
         plat36 = build_quote(
@@ -699,7 +746,7 @@ class QuoteSystemTest(unittest.TestCase):
             "initial_fee_mode": "special_3000",
             "services": {
                 "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
-                "support_plan_id": None,
+                "support_plan_id": "auto",
             },
         })
         gold24_quote = build_quote(
@@ -718,54 +765,65 @@ class QuoteSystemTest(unittest.TestCase):
             "ips_gold_24",
             "SB光なし",
         )
-        # IRS（安心サポート）なしは「IRSなし」枠に入る（安心サポートフォルダは重複させない）
-        self.assertEqual(gold24_relative.parts[4], "IRSなし")
+        # スーパーはIRS必須なので IRSあり 枠
+        self.assertEqual(gold24_relative.parts[4], "IRSあり")
         self.assertEqual(gold24_relative.parts[5], "IPS一括表記")
         self.assertEqual(gold24_relative.parts[6], "ゴールド24")
         self.assertEqual(gold24_relative.name, "iPhone17(256GB)_50GB.pdf")
         self.assertNotIn("安心サポート", str(gold24_relative))
 
         none_request = deepcopy(self.request)
-        none_request["services"] = {"ips": {"type": "none"}, "support_plan_id": None}
+        none_request["services"] = {"ips": {"type": "none"}, "support_plan_id": "auto"}
         none_quote = build_quote(
             none_request, self.device_master, self.plan_master, self.service_master
         )
         none_relative = _quote_relative_path(
             device, variant, none_quote, "none", "SB光なし"
         )
-        self.assertEqual(none_relative.parts[4], "IPSなし")
-        self.assertEqual(none_relative.parts[5], "安心サポートなし")
+        self.assertEqual(none_relative.parts[4], "IRSあり")
+        self.assertEqual(none_relative.parts[5], "IPSなし")
         self.assertEqual(
             _quote_filename(device, variant, none_quote),
             "iPhone17(256GB)_5GB.pdf",
         )
-        self.assertNotIn("IRSあり", str(none_relative))
+        self.assertNotIn("安心サポート", str(none_relative))
 
-        # サポートなしバリアントも作る場合でも IRSあり/IRSなし で枠が分かれるだけ
+        # 一括経路（デフォルト）: スーパー／ハイパーはIRSなしでは作れない
+        no_irs_request = deepcopy(self.request)
+        no_irs_request["sales_type"] = "MNP"
+        no_irs_request["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": None,
+        }
+        with self.assertRaisesRegex(ValueError, "安心サポート（IRS）付きでのみ"):
+            build_quote(
+                no_irs_request, self.device_master, self.plan_master, self.service_master
+            )
+        # 個別例外: IRSなしでも割引は維持
+        individual_quote = build_quote(
+            no_irs_request,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            allow_super_hyper_without_irs=True,
+        )
+        self.assertIsNone(individual_quote["services"]["support"])
+        self.assertNotEqual(
+            individual_quote["components"]["package_discount_tax_ex"], 0
+        )
+        self.assertNotEqual(
+            individual_quote["components"]["additional_discount_tax_ex"], 0
+        )
+
+        # 機種変更×スーパー／ハイパー（IRSあり）のパスは従来どおり
         branched = _quote_relative_path(
             device, variant, quote, "subscription", "SB光なし",
-            include_no_support=True,
+            include_mnp_shinki_irs=True,
         )
         self.assertEqual(branched.parts[-2], "IPSサブスク")
         self.assertEqual(branched.name, "iPhone17(256GB)_5GB.pdf")
         self.assertIn("IRSあり", branched.parts)
         self.assertNotIn("安心サポートあり", branched.parts)
-
-        # サブスクIPS＋IRSなし → IRSなし/IPSサブスク
-        no_irs_request = deepcopy(self.request)
-        no_irs_request["services"] = {
-            "ips": {"type": "subscription"},
-            "support_plan_id": None,
-        }
-        no_irs_quote = build_quote(
-            no_irs_request, self.device_master, self.plan_master, self.service_master
-        )
-        no_irs_relative = _quote_relative_path(
-            device, variant, no_irs_quote, "subscription", "SB光なし"
-        )
-        self.assertEqual(no_irs_relative.parts[4], "IRSなし")
-        self.assertEqual(no_irs_relative.parts[5], "IPSサブスク")
-        self.assertEqual(no_irs_relative.name, "iPhone17(256GB)_5GB.pdf")
 
         # 事務手数料あり版との同時生成時は標準側にも初期費用フォルダを付ける
         fee_branched = _quote_relative_path(
@@ -797,7 +855,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertIn("IRSあり", standard_relative.parts)
         self.assertNotIn("初期費用3300円", str(standard_relative))
 
-        # 自動サポートのない Bizパッケージ＋ は「なし」固定なのでフォルダ省略
+        # 自動サポートのない Bizパッケージ＋ は IRSフォルダなし（スーパー／ハイパーのみIRS枠）
         biz_request = deepcopy(self.request)
         biz_request["plan_id"] = "biz_plus"
         biz_request["services"] = {"ips": {"type": "subscription"}, "support_plan_id": "auto"}
@@ -812,9 +870,35 @@ class QuoteSystemTest(unittest.TestCase):
             "subscription",
             "SB光なし",
         )
-        self.assertEqual(biz_relative.parts[4], "Bizパッケージ＋")
+        self.assertEqual(biz_relative.parts[4], "IPSサブスク")
+        self.assertNotIn("IRSなし", biz_relative.parts)
+        self.assertNotIn("IRSあり", biz_relative.parts)
+        self.assertNotIn("Bizパッケージ", str(biz_relative))
         self.assertNotIn("安心サポート", str(biz_relative))
-        self.assertEqual(biz_relative.parts[5], "IPSサブスク")
+        # 通常IPSも SB光直下で、IRSあり側と同じIPS分岐名にする
+        biz_upfront_request = deepcopy(biz_request)
+        biz_upfront_request["services"] = {
+            "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
+            "support_plan_id": "auto",
+        }
+        biz_upfront_quote = build_quote(
+            biz_upfront_request, self.device_master, self.plan_master, self.service_master
+        )
+        biz_upfront_relative = _quote_relative_path(
+            device,
+            {
+                **variant,
+                "plan_id": "biz_plus",
+                "ips_display_mode": "lump",
+            },
+            biz_upfront_quote,
+            "ips_gold_24",
+            "SB光なし",
+        )
+        self.assertEqual(
+            biz_upfront_relative.parts[4:6],
+            ("IPS一括表記", "ゴールド24"),
+        )
         biz_with_support_request = deepcopy(biz_request)
         biz_with_support_request["services"] = {
             "ips": {"type": "subscription"},
@@ -833,7 +917,10 @@ class QuoteSystemTest(unittest.TestCase):
             "subscription",
             "SB光なし",
         )
-        self.assertEqual(biz_with_support_relative.parts[-2], "安心サポートあり")
+        self.assertEqual(biz_with_support_relative.parts[4], "Bizパッケージ＋")
+        self.assertEqual(biz_with_support_relative.parts[5], "IPSサブスク")
+        self.assertNotIn("IRSあり", biz_with_support_relative.parts)
+        self.assertNotIn("安心サポートあり", str(biz_with_support_relative))
 
         kishu_request = deepcopy(self.request)
         kishu_request["sales_type"] = "機種変更・移動機物品販売"
@@ -915,7 +1002,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(kishu_hyper_path.parts[4], "IRSあり")
         self.assertEqual(kishu_hyper_path.parts[5], "IPSサブスク")
         self.assertEqual(len(kishu_hyper_path.parts), 7)
-        # Bizパッケージ＋ は従来どおりプランフォルダを作る
+        # Bizパッケージ＋ は IRSフォルダなし（プランフォルダも付けない）
         kishu_biz = deepcopy(self.request)
         kishu_biz.update({
             "sales_type": "機種変更・移動機物品販売",
@@ -938,7 +1025,9 @@ class QuoteSystemTest(unittest.TestCase):
             "subscription",
             "SB光なし",
         )
-        self.assertEqual(kishu_biz_path.parts[4], "Bizパッケージ＋")
+        self.assertEqual(kishu_biz_path.parts[4], "IPSサブスク")
+        self.assertNotIn("IRSなし", kishu_biz_path.parts)
+        self.assertNotIn("Bizパッケージ", str(kishu_biz_path))
         # 機種変更で IPS なしなど分岐があるときは IPS フォルダを付ける
         kishu_no_ips = deepcopy(kishu_hyper)
         kishu_no_ips["services"] = {"ips": {"type": "none"}, "support_plan_id": "auto"}
@@ -1057,7 +1146,7 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(light_quote["components"]["additional_discount_tax_ex"], -500)
         self.assertEqual(light_quote["components"]["additional_discount_name"], "ライト割")
-        self.assertEqual(light_quote["services"]["support"]["plan_id"], "support_xs")
+        self.assertEqual(light_quote["services"]["support"], None)
 
     def test_kishu_henko_pdf_heading_short(self):
         import pdfplumber
@@ -1107,11 +1196,17 @@ class QuoteSystemTest(unittest.TestCase):
         device = find_device(self.device_master, "iPhone 17 256GB")
         variants = list(quote_variants(
             device, self.plan_master,
-            include_upfront_ips=True, include_no_ips=True, include_no_support=True,
+            include_upfront_ips=True, include_no_ips=True, include_mnp_shinki_irs=True,
             include_standard_initial_fee=True,
         ))
-        # 初期費用 special_3000 + standard。一括型は lump / monthly_as_running の2版
-        self.assertEqual(len(variants), 3164)
+        # デフォルトはライトなし・MNP／新規スーパー／ハイパーなし
+        self.assertEqual(len(variants), 1400)
+        with_light = list(quote_variants(
+            device, self.plan_master,
+            include_upfront_ips=True, include_no_ips=True, include_mnp_shinki_irs=True,
+            include_standard_initial_fee=True, include_light_plan=True,
+        ))
+        self.assertEqual(len(with_light), 1988)
         self.assertEqual(
             {item["initial_fee_mode"] for item in variants},
             {"standard", "special_3000"},
@@ -1124,7 +1219,7 @@ class QuoteSystemTest(unittest.TestCase):
         feature = find_device(self.device_master, "DIGNOケータイ4")
         feature_variants = list(quote_variants(
             feature, self.plan_master,
-            include_upfront_ips=True, include_no_ips=True, include_no_support=True,
+            include_upfront_ips=True, include_no_ips=True, include_mnp_shinki_irs=True,
             include_standard_initial_fee=True,
         ))
         self.assertEqual(len(feature_variants), 48)
@@ -1171,7 +1266,7 @@ class QuoteSystemTest(unittest.TestCase):
         request["ips_display_mode"] = "monthly_as_running"
         request["services"] = {
             "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
-            "support_plan_id": None,
+            "support_plan_id": "auto",
         }
         quote = build_quote(
             request, self.device_master, self.plan_master, self.service_master
@@ -1189,7 +1284,7 @@ class QuoteSystemTest(unittest.TestCase):
 
         request = deepcopy(self.request)
         request.update({
-            "model": "13インチiPad Pro（M5）Wi-Fi+Cellular(256GB)",
+            "model": "iPhone 17 256GB",
             "plan_id": "hyper_light",
             "data_plan": "無制限",
             "ouchi_discount_applied": True,
@@ -1214,18 +1309,20 @@ class QuoteSystemTest(unittest.TestCase):
             self.assertNotIn("携帯電話料金小計", text)
             self.assertNotIn("通信料金小計", text)
             self.assertIn("修理保証サービス", text)
-            self.assertIn("安心保証サービス", text)
+            self.assertIn("安心サポート", text)
+            self.assertNotIn("安心保証サービス", text)
             self.assertIn("No.", text)
             self.assertIn("月額合計", text)
-            # 並び: 機種代金 → 修理保証 → 安心保証 → ユニバーサル → 月額合計
+            # 並び: 機種代金 → 修理保証 → 安心サポート → ユニバーサル → 月額合計
             device_pos = text.find("機種代金")
             ips_pos = text.find("修理保証サービス")
-            support_pos = text.find("安心保証サービス")
+            support_pos = text.find("安心サポート")
             uni = text.find("ユニバーサルサービス料")
             total_pos = text.find("月額合計")
             self.assertTrue(
                 0 <= device_pos < ips_pos < support_pos < uni < total_pos
             )
+            self.assertIn("機種代金総額", text)
             self.assertIn("機種変更お見積り", text)
 
     def test_attention_notes_conditions(self):
@@ -1304,6 +1401,18 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(any("携帯電話機安心サポートについて" in note for note in no_ips))
         self.assertFalse(any("USB-C充電ケーブル" in note for note in no_ips))
 
+        no_support_notes = _attention_notes(
+            {"model": "iPhone 17(256GB)", "sales_type": "MNP"},
+            ips=True,
+            support=False,
+        )
+        self.assertFalse(
+            any("携帯電話機安心サポートについて" in note for note in no_support_notes)
+        )
+        self.assertTrue(
+            any("修理保証サービスへの加入が必要" in note for note in no_support_notes)
+        )
+
         shintoku = _attention_notes(
             {"model": "iPhone 16e(128GB)", "plan_id": "biz_plus", "data_plan": "20GB"},
             ips=True,
@@ -1312,6 +1421,23 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertTrue(any("最大44,000円(不課税)の支払いが必要です" in note for note in shintoku))
         self.assertFalse(any("20,000円の支払いが必要です" in note for note in shintoku))
         self.assertFalse(any("割賦残債務が20,000円以下" in note for note in shintoku))
+
+        prev_shintoku = "前回ご購入時トクするサポートにご加入の場合"
+        kishu_notes = _attention_notes(
+            {
+                "model": "iPhone 17(256GB)",
+                "sales_type": "機種変更・移動機物品販売",
+            },
+            ips=True,
+            support=True,
+        )
+        self.assertTrue(any(prev_shintoku in note for note in kishu_notes))
+        mnp_notes = _attention_notes(
+            {"model": "iPhone 17(256GB)", "sales_type": "MNP"},
+            ips=True,
+            support=True,
+        )
+        self.assertFalse(any(prev_shintoku in note for note in mnp_notes))
 
         packet_note = "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可"
         # ハイパーライトの5GB／20GBのみ表示
@@ -1441,8 +1567,8 @@ class QuoteSystemTest(unittest.TestCase):
             expected = len(_upfront_ips_plan_ids(device)) * 2
             self.assertEqual(result.generated_files, expected)
             all_parts = {part for p in out.rglob("*.pdf") for part in p.parts}
-            self.assertIn("IPS一括型", all_parts)
-            self.assertIn("IPS一括型_月額換算", all_parts)
+            self.assertIn("IPS一括表記", all_parts)
+            self.assertIn("通常IPSランニングコスト表記", all_parts)
 
     def test_run_individual_pdf_content_and_merged_paths(self):
         """個別見積: 実PDF生成・1ページ・部署FAX・スーパー統合パスを検算。"""
@@ -1506,7 +1632,7 @@ class QuoteSystemTest(unittest.TestCase):
                 include_ips_subscription=True,
             )
 
-        # MNP×ハイパー（復活）＋IRS（安心サポート）なし → IRSなし/IPSサブスク
+        # MNP×ハイパー＋IRSなし（個別）→ IRSなし・割引維持・安心サポート行なし
         with TemporaryDirectory() as tmp:
             out = Path(tmp)
             with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
@@ -1523,16 +1649,71 @@ class QuoteSystemTest(unittest.TestCase):
             pdfs = list(out.rglob("*.pdf"))
             self.assertEqual(len(pdfs), 1)
             self.assertEqual(
-                pdfs[0].parts[-4:],
-                ("SB光なし", "IRSなし", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
+                pdfs[0].parts[-5:],
+                (
+                    "SB光なし",
+                    "IRSなし",
+                    "Bizパッケージ＋ハイパーライト",
+                    "IPSサブスク",
+                    "iPhone17(256GB)_5GB.pdf",
+                ),
             )
             with pdfplumber.open(pdfs[0]) as doc:
                 self.assertEqual(len(doc.pages), 1)
                 text = doc.pages[0].extract_text() or ""
-            # 割引は入るが、IRS（安心保証サービス）行と安心サポート注記は出ない
             self.assertIn("弊社特別割引", text)
-            self.assertNotIn("安心保証サービス", text)
-            self.assertNotIn("携帯電話機安心サポート", text)
+            self.assertNotIn("安心サポート", text)
+            self.assertNotIn("携帯電話機安心サポートについて", text)
+
+        # 機種変更でも個別はスーパー／ハイパー＋IRSなし可（割引維持）
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    model="iPhone 17 256GB",
+                    sales_type="機種変更・移動機物品販売",
+                    plan_id="hyper_light",
+                    data_plans=["5GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    support_plan_id=None,
+                    department="RT事業部",
+                )
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+            self.assertIn("IRSなし", pdfs[0].parts)
+            with pdfplumber.open(pdfs[0]) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = doc.pages[0].extract_text() or ""
+            self.assertIn("弊社特別割引", text)
+            self.assertNotIn("安心サポート", text)
+
+        # MNP×ハイパー＋IRSあり → IRSあり/IPSサブスク
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT", out):
+                result = run_individual(
+                    model="iPhone 17 256GB",
+                    sales_type="MNP",
+                    plan_id="hyper_light",
+                    data_plans=["5GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    support_plan_id="auto",
+                    department="RT事業部",
+                )
+            pdfs = list(out.rglob("*.pdf"))
+            self.assertEqual(len(pdfs), 1)
+            self.assertEqual(
+                pdfs[0].parts[-4:],
+                ("SB光なし", "IRSあり", "IPSサブスク", "iPhone17(256GB)_5GB.pdf"),
+            )
+            with pdfplumber.open(pdfs[0]) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = doc.pages[0].extract_text() or ""
+            self.assertIn("弊社特別割引", text)
+            self.assertIn("安心サポート", text)
+            self.assertIn("携帯電話機安心サポート", text)
 
         # 機種変更×スーパー＋通常IPS両方表記 → IRSあり配下の表記フォルダ
         with TemporaryDirectory() as tmp:
@@ -1630,8 +1811,11 @@ class QuoteSystemTest(unittest.TestCase):
                         discontinued=(),
                         include_upfront_ips=False,
                         include_no_ips=False,
-                        include_no_support=False,
+                        include_mnp_shinki_irs=False,
                         include_standard_initial_fee=False,
+                        include_upfront_lump=True,
+                        include_upfront_running=True,
+                        include_light_plan=False,
                         progress=None,
                         update_state=False,
                         control=control,
@@ -1660,6 +1844,295 @@ class QuoteSystemTest(unittest.TestCase):
                     bs.CHECKPOINT_PATH = old_cp
                     clear_checkpoint()
 
+    def test_tablet_data_categories_block_mnp_and_bangou(self):
+        """iPad／データ通信／AndroidTab は MNP・番号移行不可（一括・個別・build共通）。"""
+        from quote_system.quote_service import is_device_sales_type_allowed
 
+        for category in ("iPad", "AndroidTab", "データ通信"):
+            device = next(
+                (
+                    item
+                    for item in self.device_master["devices"]
+                    if item.get("category") == category and item.get("status") == "販売中"
+                ),
+                None,
+            )
+            if device is None:
+                continue
+            self.assertFalse(is_device_sales_type_allowed(device, "MNP"))
+            self.assertFalse(is_device_sales_type_allowed(device, "番号移行"))
+            self.assertTrue(is_device_sales_type_allowed(device, "新規"))
+            self.assertTrue(
+                is_device_sales_type_allowed(device, "機種変更・移動機物品販売")
+            )
+            variants = list(quote_variants(device, self.plan_master))
+            sales = {item["sales_type"] for item in variants}
+            self.assertNotIn("MNP", sales)
+            self.assertNotIn("番号移行", sales)
+
+        ipad = next(
+            item
+            for item in self.device_master["devices"]
+            if item.get("category") == "iPad" and item.get("status") == "販売中"
+        )
+        request = deepcopy(self.request)
+        request["model"] = ipad["model"]
+        request["sales_type"] = "MNP"
+        request["plan_id"] = "biz_plus"
+        request["data_plan"] = "5GB"
+        with self.assertRaisesRegex(ValueError, "MNP・番号移行"):
+            build_quote(
+                request, self.device_master, self.plan_master, self.service_master
+            )
+
+    def test_tablet_packet_plans_and_ouchi_5gb(self):
+        """iPad／AndroidTab は 1／5／50GB のみ。20GBなしのためおうち割×5GBを許可。"""
+        from quote_system.quote_service import (
+            allows_ouchi_discount_with_5gb,
+            is_device_data_plan_allowed,
+        )
+
+        for category in ("iPad", "AndroidTab"):
+            device = next(
+                item
+                for item in self.device_master["devices"]
+                if item.get("category") == category and item.get("status") == "販売中"
+            )
+            self.assertTrue(allows_ouchi_discount_with_5gb(device))
+            self.assertTrue(is_device_data_plan_allowed(device, "1GB", "新規"))
+            self.assertTrue(is_device_data_plan_allowed(device, "5GB", "新規"))
+            self.assertTrue(is_device_data_plan_allowed(device, "50GB", "新規"))
+            self.assertFalse(is_device_data_plan_allowed(device, "20GB", "新規"))
+            self.assertFalse(is_device_data_plan_allowed(device, "無制限", "新規"))
+
+            variants = list(quote_variants(device, self.plan_master))
+            self.assertEqual({item["data_plan"] for item in variants}, {"1GB", "5GB", "50GB"})
+            self.assertTrue(
+                any(
+                    item["data_plan"] == "5GB" and item["ouchi_discount_applied"]
+                    for item in variants
+                )
+            )
+            # 1GB はおうち割引額0のためなしのみ
+            self.assertFalse(
+                any(
+                    item["data_plan"] == "1GB" and item["ouchi_discount_applied"]
+                    for item in variants
+                )
+            )
+
+            request = deepcopy(self.request)
+            request["model"] = device["model"]
+            request["sales_type"] = "新規"
+            request["plan_id"] = "biz_plus"
+            request["data_plan"] = "5GB"
+            request["ouchi_discount_applied"] = True
+            quote = build_quote(
+                request, self.device_master, self.plan_master, self.service_master
+            )
+            self.assertTrue(quote["ouchi_discount_applied"])
+            self.assertEqual(quote["components"]["ouchi_discount_tax_ex"], -500)
+
+            request["data_plan"] = "20GB"
+            with self.assertRaisesRegex(ValueError, "1GB／5GB／50GB"):
+                build_quote(
+                    request, self.device_master, self.plan_master, self.service_master
+                )
+
+        iphone = find_device(self.device_master, "iPhone 17 256GB")
+        self.assertFalse(allows_ouchi_discount_with_5gb(iphone))
+
+    def test_light_family_plans_only_for_iphone_android(self):
+        """ライト／スーパー／ハイパーは iPhone・Android のみ（他カテゴリは一括・個別とも不可）。"""
+        from quote_system.quote_service import is_device_plan_allowed
+
+        iphone = find_device(self.device_master, "iPhone 17 256GB")
+        self.assertTrue(is_device_plan_allowed(iphone, "light"))
+        self.assertTrue(is_device_plan_allowed(iphone, "super_light"))
+        self.assertTrue(is_device_plan_allowed(iphone, "hyper_light"))
+        self.assertTrue(is_device_plan_allowed(iphone, "biz_plus"))
+
+        for category in ("iPad", "AndroidTab", "データ通信", "ケータイ"):
+            device = next(
+                (
+                    item
+                    for item in self.device_master["devices"]
+                    if item.get("category") == category and item.get("status") == "販売中"
+                ),
+                None,
+            )
+            if device is None:
+                continue
+            self.assertFalse(is_device_plan_allowed(device, "light"))
+            self.assertFalse(is_device_plan_allowed(device, "super_light"))
+            self.assertFalse(is_device_plan_allowed(device, "hyper_light"))
+            self.assertTrue(is_device_plan_allowed(device, "biz_plus"))
+            variants = list(
+                quote_variants(device, self.plan_master, include_light_plan=True)
+            )
+            plan_ids = {item["plan_id"] for item in variants}
+            self.assertNotIn("light", plan_ids)
+            self.assertNotIn("super_light", plan_ids)
+            self.assertNotIn("hyper_light", plan_ids)
+            self.assertIn("biz_plus", plan_ids)
+
+        ipad = next(
+            item
+            for item in self.device_master["devices"]
+            if item.get("category") == "iPad" and item.get("status") == "販売中"
+        )
+        request = deepcopy(self.request)
+        request["model"] = ipad["model"]
+        request["sales_type"] = "新規"
+        request["plan_id"] = "hyper_light"
+        request["data_plan"] = "5GB"
+        with self.assertRaisesRegex(ValueError, "ライト／スーパーライト／ハイパーライト"):
+            build_quote(
+                request, self.device_master, self.plan_master, self.service_master
+            )
+
+    def test_tm_unrestricted_individual_rules(self):
+        """TM特例個別: 販売区分・容量・IRSの制限解除（一括ルールは従来どおり）。"""
+        from quote_system.quote_service import (
+            is_plan_data_plan_allowed,
+            is_sales_plan_allowed,
+        )
+
+        self.assertFalse(
+            is_sales_plan_allowed("機種変更・移動機物品販売", "light")
+        )
+        self.assertTrue(
+            is_sales_plan_allowed(
+                "機種変更・移動機物品販売", "light", unrestricted=True
+            )
+        )
+        self.assertFalse(is_sales_plan_allowed("番号移行", "hyper_light"))
+        self.assertTrue(
+            is_sales_plan_allowed("番号移行", "hyper_light", unrestricted=True)
+        )
+
+        self.assertTrue(is_plan_data_plan_allowed("super_light", "50GB"))
+        self.assertFalse(is_plan_data_plan_allowed("super_light", "5GB"))
+        self.assertTrue(
+            is_plan_data_plan_allowed("super_light", "5GB", unrestricted=True)
+        )
+        self.assertTrue(
+            is_plan_data_plan_allowed("hyper_light", "20GB", unrestricted=True)
+        )
+        self.assertFalse(
+            is_plan_data_plan_allowed("hyper_light", "50GB", unrestricted=True)
+        )
+        self.assertFalse(
+            is_plan_data_plan_allowed("light", "1GB", unrestricted=True)
+        )
+
+        # 機種変更×ライト×IRS XS
+        kishu_light = deepcopy(self.request)
+        kishu_light["sales_type"] = "機種変更・移動機物品販売"
+        kishu_light["plan_id"] = "light"
+        kishu_light["data_plan"] = "20GB"
+        kishu_light["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": "support_xs",
+        }
+        with self.assertRaisesRegex(ValueError, "機種変更では"):
+            build_quote(
+                kishu_light, self.device_master, self.plan_master, self.service_master
+            )
+        quote = build_quote(
+            kishu_light,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            unrestricted_individual=True,
+        )
+        self.assertEqual(quote["services"]["support"]["plan_id"], "support_xs")
+        self.assertEqual(quote["services"]["support"]["monthly_fee_tax_ex"], 980)
+
+        # 番号移行×ハイパー＋IRSなし
+        bangou = deepcopy(self.request)
+        bangou["sales_type"] = "番号移行"
+        bangou["plan_id"] = "hyper_light"
+        bangou["data_plan"] = "5GB"
+        bangou["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": None,
+        }
+        with self.assertRaisesRegex(ValueError, "番号移行では作成しません"):
+            build_quote(
+                bangou, self.device_master, self.plan_master, self.service_master
+            )
+        bangou_quote = build_quote(
+            bangou,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            unrestricted_individual=True,
+        )
+        self.assertIsNone(bangou_quote["services"]["support"])
+        self.assertNotEqual(
+            bangou_quote["components"]["additional_discount_tax_ex"], 0
+        )
+
+        # スーパー×5GB（通常は50GBのみ）
+        super5 = deepcopy(self.request)
+        super5["plan_id"] = "super_light"
+        super5["data_plan"] = "5GB"
+        super5["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": "support_s",
+        }
+        with self.assertRaisesRegex(ValueError, "50GBのみ"):
+            build_quote(
+                super5, self.device_master, self.plan_master, self.service_master
+            )
+        super_quote = build_quote(
+            super5,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            unrestricted_individual=True,
+        )
+        self.assertEqual(super_quote["data_plan"], "5GB")
+        self.assertEqual(super_quote["services"]["support"]["plan_id"], "support_s")
+
+        # TM特例: 免除＋初期費用は税抜4,500→税込4,950
+        fee_req = deepcopy(self.request)
+        fee_req["initial_fee_mode"] = "special_3000"
+        fee_req["special_initial_fee_tax_ex"] = 4500
+        fee_quote = build_quote(
+            fee_req,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            unrestricted_individual=True,
+        )
+        self.assertEqual(fee_quote["special_initial_fee_tax_ex"], 4500)
+        self.assertEqual(fee_quote["special_initial_fee_tax_in"], 4950)
+        self.assertEqual(fee_quote["initial_fee_tax_in"], 0)
+
+        # TM特例: 5GBでもおうち割可（通常は拒否）
+        ouchi5 = deepcopy(self.request)
+        ouchi5["sales_type"] = "MNP"
+        ouchi5["plan_id"] = "light"
+        ouchi5["data_plan"] = "5GB"
+        ouchi5["ouchi_discount_applied"] = True
+        ouchi5["services"] = {
+            "ips": {"type": "subscription"},
+            "support_plan_id": "support_xs",
+        }
+        with self.assertRaisesRegex(ValueError, "5GB見積は作成しません"):
+            build_quote(
+                ouchi5, self.device_master, self.plan_master, self.service_master
+            )
+        ouchi5_quote = build_quote(
+            ouchi5,
+            self.device_master,
+            self.plan_master,
+            self.service_master,
+            unrestricted_individual=True,
+        )
+        self.assertTrue(ouchi5_quote["ouchi_discount_applied"])
+        self.assertEqual(ouchi5_quote["components"]["ouchi_discount_tax_ex"], -500)
 if __name__ == "__main__":
     unittest.main()

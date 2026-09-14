@@ -382,7 +382,7 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
         )
     if support:
         plan_item_rows.append(
-            ["安心保証サービス", "税抜"] + [yen(support_tax_ex_monthly)] * period_count
+            ["安心サポート", "税抜"] + [yen(support_tax_ex_monthly)] * period_count
         )
     # 弊社サービス（修理保証・安心保証）の直後、月額合計の直前
     plan_item_rows.append(
@@ -446,8 +446,16 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     monthly.setStyle(TableStyle(table_commands))
     story.extend([monthly, Spacer(1, 1.2 * mm)])
 
+    device_total_style = ParagraphStyle(
+        "DeviceTotal",
+        parent=body,
+        fontName=FONT,
+        fontSize=10.2,
+        leading=12.2,
+    )
     story.append(Paragraph(
-        f"機種代金総額：<b>{yen(quote['device_total_tax_in'])}</b>（非課税）", body
+        f"機種代金総額：<b>{yen(quote['device_total_tax_in'])}</b>（非課税）",
+        device_total_style,
     ))
     story.append(Spacer(1, 1.0 * mm))
 
@@ -560,18 +568,21 @@ def _attention_notes(quote: dict[str, Any], *, ips: bool, support: bool) -> list
             "パケットプラン5GB、20GBでご契約の方は50GBプランへの変更は不可となります。"
             "（無制限プランにのみ変更可能）"
         )
-    # 新トクするサポート＋は48回払い前提の説明のため、36回割賦の見積には載せない
-    if int(quote.get("installment_months") or 48) != 36:
+    # 新トクするサポート＋は48回払い前提の説明のため、24／36回割賦の見積には載せない
+    if int(quote.get("installment_months") or 48) not in {24, 36}:
         notes.append(
             "新トクするサポート＋・・今回ご購入の本体機種料金を48回払いでお支払頂く契約となります"
             "<br/>※本体機種料金を24回以上お支払い後機種変更頂き、今回ご購入の端末を回収させて頂きますと残割賦が免除となります"
             "<br/>※次回端末変更の翌月末までに加入時に購入した機種を回収、査定完了する必要があります"
             "<br/>※回収した端末が査定条件を満たさなかった場合、最大44,000円(不課税)の支払いが必要です"
         )
+    if sales_type_display_name(str(quote.get("sales_type") or "")) == "機種変更":
+        notes.append(
+            "前回ご購入時トクするサポートにご加入の場合、前回ご購入の端末を回収させて頂きますと残割賦が免除となります"
+            "<br/>※端末変更の翌月末までに前回加入時に購入した機種を回収、査定完了する必要があります"
+            "<br/>※回収キットはご契約住所にお届けとなります（ご契約住所に変更がある場合はご変更お願いします）"
+        )
     notes.extend([
-        "前回ご購入時トクするサポートにご加入の場合、前回ご購入の端末を回収させて頂きますと残割賦が免除となります"
-        "<br/>※端末変更の翌月末までに前回加入時に購入した機種を回収、査定完了する必要があります"
-        "<br/>※回収キットはご契約住所にお届けとなります（ご契約住所に変更がある場合はご変更お願いします）",
         "現在個人名義の場合は譲渡手数料4,500円(税抜)が発生致します。",
         "法人契約ではスマートログイン（Yahoo! JAPAN ID連携、PayPayまとめて支払いでのチャージ等）をご利用いただけません。",
     ])

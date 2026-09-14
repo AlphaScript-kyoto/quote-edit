@@ -13,11 +13,12 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.1**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.10β**) |
 | Display name | 見積もり一括作成 |
-| Window title | `見積もり一括作成  ver.{APP_VERSION}` |
-| Dist | `portable/見積もり一括作成ver{APP_VERSION}/` |
-| Japanese spec | `system/docs/開発者向け仕様書_v1.3.md` |
+| Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
+| Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
+| Dist | `portable/見積もり一括作成ver{APP_VERSION}/` ；TM: `…_TM兼任事業部用ver{APP_VERSION}/` |
+| Japanese spec | `system/docs/開発者向け仕様書_v1.4.md` (v1.3 / v1.1 stubs) |
 | Company contacts | Local-only `system/data/company.json` (gitignored). Template: `company.example.json` |
 
 ---
@@ -29,8 +30,10 @@ Append a dated entry after user-visible changes.
 | `AGENTS.md` | Short agent entry |
 | `system/docs/AI_CONTEXT.md` | Architecture |
 | `AGENT_CHANGE_HISTORY.md` (this) | Decisions / session log |
-| `開発者向け仕様書_v1.3.md` | Japanese human handoff |
+| `開発者向け仕様書_v1.4.md` | Japanese human handoff (current) |
+| `開発者向け仕様書_v1.3.md` / `v1.1.md` | Stubs → v1.4 |
 | `README.txt` | Field operators (short) |
+| `system/README.md` | Developer entry (JP) |
 
 Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_write_utf8_bom`.
 
@@ -38,14 +41,16 @@ Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_wr
 
 ## Hard invariants
 
-1. Output root: `output/見積PDF/` only.
-2. Exclusions beat force-all; hide models from individual Combobox.
-3. No ouchi (おうち割 SB光あり) + 5GB.
-4. Upfront IPS: `lump` and/or `monthly_as_running`.
+1. Fixed output roots (no per-run timestamp folders): 48 `見積PDF` / 36 `見積PDF_36回` / 24 `見積PDF_24回` (+ TM `*_TM特例*` variants).
+2. Include-list (`included_models.json`) beats force-all for 48-mode; drives individual Combobox. 36 uses `installment_36_targets.json` only. Legacy exclude-list only if include missing.
+3. No ouchi (おうち割 SB光あり) + 5GB on phones. Exception: iPad/AndroidTab (and TM unrestricted individual may allow more).
+4. Upfront IPS: UI picks `lump` or `monthly_as_running`.
 5. Portrait A4; prefer one-page PDFs.
 6. No bulk regen of thousands of PDFs unless asked.
 7. Real phones/addresses must not be in git.
-8. Biz package super light: **50GB only**.
+8. Biz package super light: **50GB only** (standard; TM individual unlock may differ).
+9. Batch: super/hyper = IRS+discount set only. Individual: may omit IRS while keeping 弊社特別割引.
+10. Standard startup update check via share `latest.json`; update that file on every standard ship.
 
 ---
 
@@ -226,6 +231,128 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - 48-mode model picker is an include-list (作成する機種 / included_models.json). Legacy excluded_models.json is inverted only when include file is absent. New PDF models are not generated until checked. 36-mode still uses installment_36_targets.json.
 - Bump APP_VERSION 1.4.0 -> 1.4.1.
 
+### 2026-08-20 - IRS default + selectable normal IPS display
+- Batch default for IRS is now `あり` only. `IRSなし` variants are generated only when `include_no_support=True` (UI checkbox).
+- Removed automatic `IRSなし` generation for MNP/新規 on super/hyper plans; this is now explicit opt-in.
+- Added batch-level normal IPS display selection: generate either `lump` or `monthly_as_running` based on UI selection.
+- Checkpoint payload now stores `include_upfront_lump` / `include_upfront_running` so resume preserves display-mode choice.
+- Updated tests for the new default variant counts and checkpoint call signature.
+
+### 2026-08-20 - Pixel 11 parse + IRS-first folders
+- Price PDF table extraction sometimes merges a whole “新機種” block (e.g. all Google Pixel 11 SKUs) into one cell. `_expand_merged_device_rows` now splits by model newlines so each SKU becomes its own device.
+- Opening ［作成する機種］ now re-imports the selected/latest price PDF into `device_master.json` so newly listed models appear immediately (unchecked until include-listed).
+- Super/hyper quotes always include IRS (安心サポート). `build_quote` rejects super/hyper with support_plan_id=None. Batch `include_no_support` only adds IRSなし for `light`.
+- No `Bizパッケージ＋` folder: IRSなし + IPS branches is enough to identify Biz. Light still uses its plan folder (capacity overlap with hyper).
+- IPS branch folder names are unified: `IPSサブスク` / `IPS一括表記` / `通常IPSランニングコスト表記`.
+
+### 2026-08-20 - Beta ver.1.4.2β
+- APP_VERSION -> 1.4.2β (beta portable ZIP).
+- IRS-first folders; no Bizパッケージ＋ folder under IRSなし; selectable normal IPS display; Pixel 11 merged-row parse; ［作成する機種］ refreshes from latest price PDF.
+- Field release note リリースノート_v1.4.2β_現場向け.txt (UTF-8 BOM).
+
+### 2026-08-20 - IRS on super/hyper only; light optional
+- Light never gets IRS (`services.json` auto_mapping excludes light; `build_quote` forces support=None for light).
+- Super/hyper default IRSあり + discount. Checkbox `include_no_support` adds super/hyper IRSなし **with discount kept**.
+- New checkbox `include_light_plan` (default OFF): batch creates Bizパッケージ＋ライト only when checked.
+- Variant counts (iPhone 17 256GB): default 50; with light 71; full flags without light 1988; with light 2576.
+- Overwrite beta portable ZIP after rebuild.
+
+### 2026-08-24 - IRS folders only for super/hyper; no kishu IRSなし
+- Batch `include_no_support` adds IRSなし only for super/hyper on **MNP/新規** (機種変更・番号移行 excluded).
+- Folder `IRSあり`/`IRSなし` only for super/hyper. Biz/light no longer use IRS folder (チェックOFFでは IRSなし フォルダが出ない).
+- Checkbox label clarifies 追加 + MNP/新規のみ + 機種変更対象外.
+- PDF 機種代金総額 confirmed present (月額表の下); no code change.
+- Variant counts with no_support: 64 (was 71); full flags 1792 / with light 2380.
+
+### 2026-08-25 - Beta ver.1.4.3β (PDF label + device total size)
+- PDF monthly row label: `安心保証サービス` -> `安心サポート` (attention note unchanged: 携帯電話機安心サポート).
+- `機種代金総額` paragraph font 7.6pt -> 10.2pt (+2.6).
+- APP_VERSION -> 1.4.3β; field release note; overwrite beta ZIP.
+
+### 2026-08-28 - Previous Toku-suru support note: kishu only
+- PDF attention note「前回ご購入時トクするサポート…」is shown only when `sales_type` is 機種変更（機種変更・移動機物品販売）. MNP/新規/番号移行 omit it.
+
+### 2026-09-04 - MNP/新規 default IRSなし; checkbox adds IRSあり
+- Super/hyper: 機種変更 remains IRSあり fixed. MNP/新規 default IRSなし (discount kept); checkbox `include_mnp_shinki_irs` adds IRSあり.
+- 番号移行 unchanged (no super/hyper → no IRS).
+- UI checkbox: 「新規／MNPのスーパー／ハイパーにIRSあり版も追加…」.
+- Attention note「携帯電話機安心サポートについて…」already gated by `support=True`; test asserts absent when IRSなし.
+- Legacy kwarg/checkpoint key `include_no_support` mapped to new flag.
+
+### 2026-09-04 - Beta ver.1.4.4β
+- APP_VERSION -> 1.4.4β; field release note; portable ZIP to local + N: shared folder.
+
+### 2026-09-04 - Super/hyper = IRS+discount set; ver.1.4.5β
+- Field clarification: IRS and super/hyper additional discount are a set. No IRSなし super/hyper (would keep discount) — do not generate.
+- MNP/新規: checkbox OFF → Biz only (no super/hyper). Checkbox ON → super/hyper with IRSあり (+ discount).
+- 機種変更 unchanged (super/hyper with IRS). 番号移行 unchanged.
+- `build_quote` raises if super/hyper requested with support_plan_id=None.
+- APP_VERSION -> 1.4.5β; overwrite portable ZIP.
+
+### 2026-09-04 - Individual exception for IRSなし super/hyper; ver.1.4.6β
+- Batch unchanged: super/hyper only as IRS+discount set; never generate IRSなし in batch.
+- Individual (`run_individual` / `allow_super_hyper_without_irs=True`): may choose 安心サポートなし while keeping 弊社特別割引.
+- UI hint under individual support combobox; folder still `IRSなし` + plan name for path uniqueness.
+- APP_VERSION -> 1.4.6β.
+
+### 2026-09-07 - TM individual plan dropdown order
+- TM特例個別の料金プラン並び: Bizパッケージ＋ → ライト → スーパーライト → ハイパーライト.
+
+### 2026-09-07 - TM special initial fee 4,500
+- TM特例個別のみ: 「事務手数料免除＋初期費用」標準を税抜4,500円（税込4,950円）。通常版の3,000／3,300は維持。
+- `run_individual` unrestricted + `special_3000` sets `special_initial_fee_tax_ex=4500`.
+
+### 2026-09-09 - Block MNP/番号移行 for iPad・データ通信・AndroidTab
+- Both editions: `is_device_sales_type_allowed` — categories `iPad` / `AndroidTab` / `データ通信` cannot use MNP or 番号移行.
+- Enforced in `quote_variants` (batch), `build_quote`, `run_individual`, and individual UI sales dropdown.
+
+### 2026-09-09 - Light family plans only for iPhone / Android
+- Both editions: `is_device_plan_allowed` — `light` / `super_light` / `hyper_light` only for categories `iPhone` and `Android`.
+- iPad / AndroidTab / データ通信 / ケータイ / キッズフォン etc. get Bizパッケージ＋ only (no light-family batch or individual).
+
+### 2026-09-09 - Beta ver.1.4.7β
+- APP_VERSION -> 1.4.7β; field release note; standard portable ZIP to local + N: share.
+- TM special ZIP rebuilt to portable only (same APP_VERSION, separate package name).
+
+### 2026-09-09 - Omit SB光 folder for ケータイ
+- Category `ケータイ` (1GB only, no ouchi branch): `_quote_relative_path` skips `SB光なし`/`SB光あり` folder level.
+- Rebuild ver.1.4.7β ZIPs (no version bump): standard → portable + N:; TM → portable only.
+
+### 2026-09-09 - iPad/AndroidTab packets + ouchi×5GB; ver.1.4.8β
+- iPad / AndroidTab: allowed data plans only `1GB` / `5GB` / `50GB` (`is_device_data_plan_allowed`). No 20GB or 無制限.
+- Exception to phone rule: ouchi (SB光あり) + 5GB **allowed** for those categories (`allows_ouchi_discount_with_5gb`) because there is no 20GB tier to collapse into.
+- Phones / other categories: still skip ouchi+5GB. TM special individual unrestricted still allows ouchi+5GB broadly.
+- APP_VERSION -> 1.4.8β; both portable ZIPs; standard also to N: share.
+
+### 2026-09-09 - Standard individual IRSなし for all sales; ver.1.4.9β
+- Batch unchanged: super/hyper only as IRS+discount set.
+- Individual (`run_individual`): always `allow_super_hyper_without_irs=True` — includes 機種変更 (previously MNP/新規 only on standard).
+- Standard individual UI: 「安心サポートなし」 always in combobox; hint says individual-only, discount kept.
+- APP_VERSION -> 1.4.9β; both portable ZIPs; standard to N: share.
+
+### 2026-09-14 - 24回割賦 individual window; ver.1.4.10β
+- UI: button under 作成タイプ (below 36 radio) opens individual window (`_open_individual_window(24)`). Not a third batch radio.
+- Uses main price PDF `payment_24` column (flat monthly); single PDF period `分割支払 1～24回目`.
+- Output: `output/見積PDF_24回` (TM: `見積PDF_TM特例_24回`).
+- Parser: devices with only 24/36 (no 48) stay `販売中` (commented intent restored).
+- 新トクするサポート＋ note omitted for 24 like 36.
+- APP_VERSION -> 1.4.10β; both portable ZIPs; standard to N: share.
+
+### 2026-09-14 - Standard update notice via N: latest.json (no version bump)
+- Standard edition only: on startup, background-read `N:\01.ツールズ\見積もり作成ツール\latest.json` (≈2.5s timeout; silent if unreachable).
+- Compare numeric version tuples (`1.4.10β` → 1.4.10). Newer → dialog; Yes opens Explorer on ZIP; No snoozes that version for today.
+- TM special skips entirely. Ignores latest.json if `edition` ≠ `standard`.
+- Template: `system/data/latest.example.json`. Ship overwrite of ver.1.4.10β standard ZIP (+ place latest.json on N:).
+
+### 2026-09-14 - Remember latest.json on every standard ship
+- Human request: on every version bump / standard ZIP distribute, always rewrite share `latest.json` (and the example template). Agents must not forget this step.
+
+### 2026-09-14 - Docs sync: agent rules + Japanese spec v1.4
+- Audited AGENTS / handoff / AI_CONTEXT / AGENT_CHANGE_HISTORY vs code (1.4.10β).
+- Fixed contradictions: multi output roots (48/36/24 + TM), include-list (not exclude-first), update check, app_window_title, TM paths/4500 fee.
+- Added `開発者向け仕様書_v1.4.md`; v1.3/v1.1 are stubs.
+- Refreshed `system/README.md`.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
@@ -235,7 +362,9 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 6. Never commit real company.json
 7. Portable ZIP build only after local company.json has field FAXes
 8. Never commit confidential 36 price PDFs
+9. TM edition ZIP is separate from standard field ZIP
+10. **Standard release:** update `N:\01.ツールズ\見積もり作成ツール\latest.json` (`version` + `zip`) and `system/data/latest.example.json` whenever the field ZIP changes (including same-version overwrite ships)
 
 ## Anti-patterns
-Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB; inventing attention notes.
+Landscape PDF; CP932 round-trip for JP texts; committing phones; ouchi+5GB on phones (iPad/AndroidTab exception exists); inventing attention notes; pointing agents at stale `開発者向け仕様書_v1.3.md` body instead of v1.4.
 

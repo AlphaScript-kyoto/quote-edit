@@ -1,0 +1,4 @@
+{
+  "edition": "tm_special",
+  "_comment": "Copy to app_edition.json only inside TM portable builds. Standard packages omit this or use edition=standard."
+}

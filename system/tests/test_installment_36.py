@@ -75,6 +75,68 @@ class Installment36PrototypeTest(unittest.TestCase):
     def test_output_root_split(self):
         self.assertTrue(str(quote_output_root(48)).endswith("見積PDF"))
         self.assertTrue(str(quote_output_root(36)).endswith("見積PDF_36回"))
+        self.assertTrue(str(quote_output_root(24)).endswith("見積PDF_24回"))
+
+    def test_quote_build_single_24_period(self):
+        device = {
+            "category": "iPhone",
+            "model": "iPhone 15(256GB)",
+            "model_key": "iphone15256gb",
+            "status": "販売中",
+            "payment_24": 5694,
+            "total": 136656,
+            "payment_48": {
+                "MNP": {"1_12": None, "13_24": None, "25_48": None},
+                "新規": {"1_12": None, "13_24": None, "25_48": None},
+                "番号移行": {"1_12": None, "13_24": None, "25_48": None},
+                "機種変更・移動機物品販売": {
+                    "1_12": None,
+                    "13_24": None,
+                    "25_48": None,
+                },
+            },
+            "eligible": {
+                "new_toku_support_plus": False,
+                "replacement_support": False,
+                "mobile_device_sale": True,
+            },
+        }
+        master = {"devices": [device]}
+        plans = load_json(DATA_DIR / "plans.json")
+        services = load_json(DATA_DIR / "services.json")
+        quote = build_quote(
+            {
+                "quote_id": "T-24",
+                "quote_date": "2026-09-14",
+                "customer_name": "御中",
+                "model": device["model"],
+                "sales_type": "機種変更・移動機物品販売",
+                "plan_id": "biz_plus",
+                "data_plan": "5GB",
+                "initial_fee_mode": "special_3000",
+                "installment_months": 24,
+                "payment_24": 5694,
+                "services": {
+                    "ips": {"type": "subscription"},
+                    "support_plan_id": "auto",
+                },
+                "universal_fee_tax_in": 4,
+                "universal_fee_tax_ex": 4,
+                "ouchi_discount_applied": False,
+                "tax_rate": 0.10,
+            },
+            master,
+            plans,
+            services,
+        )
+        self.assertEqual(quote["installment_months"], 24)
+        self.assertEqual(len(quote["periods"]), 1)
+        self.assertEqual(quote["periods"][0]["key"], "1_24")
+        self.assertEqual(quote["periods"][0]["device_payment"], 5694)
+        self.assertIn("1～24", quote["periods"][0]["label"])
+        self.assertEqual(_device_payment_label(quote), "機種代金（24分割）")
+        notes_24 = _attention_notes(quote, ips=True, support=True)
+        self.assertFalse(any("新トクするサポート" in note for note in notes_24))
 
     def test_parse_and_filter_live_pdf_if_present(self):
         folder = UPDATE_DIR / "36回割賦"

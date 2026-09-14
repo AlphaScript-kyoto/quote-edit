@@ -2,6 +2,9 @@
 setlocal EnableExtensions
 cd /d "%~dp0"
 
+REM TM special portable package (individual unlocks)
+set "QUOTE_APP_EDITION=tm_special"
+
 set "PYTHON=C:\Users\1180075\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
 if not exist "%PYTHON%" set "PYTHON=python"
 
@@ -11,6 +14,7 @@ set "BUILD_NAME=QuoteBatchApp"
 set "DATA_SRC=%~dp0data"
 set "ASSETS_SRC=%~dp0assets"
 
+echo [TM] Building TM special portable package (QUOTE_APP_EDITION=%QUOTE_APP_EDITION%)
 echo [1/5] Creating a project-local build environment...
 echo      (First run can take a few minutes)
 if not exist "%VENV%\Scripts\python.exe" (
@@ -39,13 +43,14 @@ if errorlevel 1 goto :error
 "%VENV%\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed --name "%BUILD_NAME%" --contents-directory system --distpath "%DIST%\build" --workpath "%~dp0work\pyinstaller" --specpath "%~dp0work" --collect-all pdfplumber --collect-all reportlab --add-data "%DATA_SRC%;data" --add-data "%ASSETS_SRC%;assets" desktop_app.py
 if errorlevel 1 goto :error
 
-echo [4/5] Arranging the user-facing folder layout...
+echo [4/5] Arranging the user-facing folder layout (TM edition)...
 "%VENV%\Scripts\python.exe" "%~dp0_arrange_portable.py"
 if errorlevel 1 goto :error
 
 echo [5/5] Done.
 echo.
 echo See the arrange script output above for the final folder path.
+echo Package is for TM special only (not the standard field ZIP).
 echo.
 pause
 exit /b 0
