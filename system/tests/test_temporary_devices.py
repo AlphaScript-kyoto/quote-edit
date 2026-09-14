@@ -43,6 +43,7 @@ class TemporaryDevicesTests(unittest.TestCase):
         self.assertEqual(device["payment_48"]["MNP"]["1_12"], 2365)
         self.assertEqual(device["payment_48"]["MNP"]["13_24"], 2365)
         self.assertEqual(device["payment_48"]["MNP"]["25_48"], 8825)
+        self.assertEqual(device["payment_24"], 11190)
         quote = build_quote(
             {
                 "quote_id": "TMP-I18P-256-MNP",
@@ -62,11 +63,31 @@ class TemporaryDevicesTests(unittest.TestCase):
         self.assertEqual(quote["device_total_tax_in"], 268560)
         self.assertEqual(quote["model"], "iPhone 18 Pro(256GB)")
 
-    def test_pro_max_naming(self) -> None:
+    def test_pro_max_pure_24_split(self) -> None:
         master = load_device_master()
         device = find_device(master, "iPhone 18 Pro Max(1TB)")
         self.assertEqual(device["category"], "iPhone")
-        self.assertEqual(device["payment_24"], None)
+        self.assertEqual(device["payment_24"], 17580)  # 421920 / 24
+        quote24 = build_quote(
+            {
+                "quote_id": "TMP-I18PM-1TB-24",
+                "model": "iPhone 18 Pro Max(1TB)",
+                "sales_type": "\u6a5f\u7a2e\u5909\u66f4\u30fb\u79fb\u52d5\u6a5f\u7269\u54c1\u8ca9\u58f2",
+                "plan_id": "biz_plus",
+                "data_plan": "20GB",
+                "ouchi_discount": False,
+                "ips_id": None,
+                "support_plan_id": None,
+                "initial_fee_mode": "special_3000",
+                "installment_months": 24,
+            },
+            master,
+            self.plan_master,
+            self.service_master,
+        )
+        self.assertEqual(quote24["installment_months"], 24)
+        self.assertEqual(quote24["periods"][0]["device_payment"], 17580)
+        self.assertEqual(quote24["device_total_tax_in"], 421920)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "schema_version": 1,
-  "note": "Temporary iPhone 18 Pro / Pro Max (48-only) until official price PDF. Set enabled=false or delete to remove. Pro Max 256GB kishu 25-48 adjusted 5500->5550 so installments match total.",
+  "note": "Temporary iPhone 18 Pro / Pro Max until official price PDF. 48 from sales-type installments; payment_24 = total/24 (pure split). Set enabled=false or delete to remove. Pro Max 256GB kishu 25-48 adjusted 5500->5550 so installments match total.",
   "devices": [
     {
       "category": "iPhone",
@@ -9,7 +9,7 @@
       "model_key": "iphone18pro256gb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -38,7 +38,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 11190,
       "total": 268560,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -54,7 +54,7 @@
       "model_key": "iphone18pro512gb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -83,7 +83,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 13140,
       "total": 315360,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -99,7 +99,7 @@
       "model_key": "iphone18pro1tb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -128,7 +128,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 16770,
       "total": 402480,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -144,7 +144,7 @@
       "model_key": "iphone18pro2tb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -173,7 +173,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 22200,
       "total": 532800,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -189,7 +189,7 @@
       "model_key": "iphone18promax256gb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -218,7 +218,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 12330,
       "total": 295920,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -234,7 +234,7 @@
       "model_key": "iphone18promax512gb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -263,7 +263,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 14160,
       "total": 339840,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -279,7 +279,7 @@
       "model_key": "iphone18promax1tb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -308,7 +308,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 17580,
       "total": 421920,
       "validation": {
         "機種変更・移動機物品販売": true,
@@ -324,7 +324,7 @@
       "model_key": "iphone18promax2tb",
       "changed": true,
       "status": "販売中",
-      "notes": "臨時（価格表PDF未反映・48回のみ）",
+      "notes": "??????PDF????48????24???",
       "eligible": {
         "new_toku_support_plus": true,
         "replacement_support": true,
@@ -353,7 +353,7 @@
         }
       },
       "payment_36": null,
-      "payment_24": null,
+      "payment_24": 22620,
       "total": 542880,
       "validation": {
         "機種変更・移動機物品販売": true,

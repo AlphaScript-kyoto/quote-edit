@@ -9,7 +9,7 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.4.13β"
+APP_VERSION = "1.4.14β"
 APP_DISPLAY_NAME = "見積もり一括作成"
 
 # パッケージ版: standard（現場向け） / tm_special（TM兼任事業部用・個別制限解除）

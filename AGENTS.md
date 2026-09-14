@@ -36,7 +36,7 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.4.13β** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- **ver.1.4.14β** - constant: `system/quote_system/config.py` -> `APP_VERSION`
 - Window title: `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}`; TM `見積もり一括作成（TM兼任事業部用）  ver.{APP_VERSION}`
 
 ## Source of truth (edit these)
@@ -48,6 +48,14 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 - Cursor rules: `.cursor/rules/`
 
 Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, large vendor trees under portable.
+
+
+## Locked output tree (do not change casually)
+
+- Canonical relative path under each quote root: `{category}/{model}/{sales}/[SB光…]/[fee/IRS/plan/IPS…]/{file}.pdf`
+- Model folder is **immediately under category** (not leaf-only).
+- Model folder name uses compact `_filename_model` (no spaces/underscores).
+- **Never** reshuffle this hierarchy without asking the user for explicit confirmation in that turn (even if they request a path change).
 
 ## Hard product rules (do not regress)
 

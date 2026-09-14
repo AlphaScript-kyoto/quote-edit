@@ -82,12 +82,21 @@ def merge_temporary_devices(device_master: dict[str, Any] | None) -> dict[str, A
         if not key:
             continue
         device["model_key"] = key
-        device.setdefault("status", "???")
+        device.setdefault("status", "販売中")
         device.setdefault("category", "iPhone")
-        device.setdefault("notes", "??????PDF????")
+        device.setdefault("notes", "臨時（価格表PDF未反映）")
         device.setdefault("changed", True)
         device.setdefault("payment_36", None)
-        device.setdefault("payment_24", None)
+        if device.get("payment_24") is None:
+            total = device.get("total")
+            try:
+                total_i = int(total)
+            except (TypeError, ValueError):
+                total_i = None
+            if total_i is not None and total_i % 24 == 0:
+                device["payment_24"] = total_i // 24
+            else:
+                device["payment_24"] = None
         device.setdefault(
             "eligible",
             {

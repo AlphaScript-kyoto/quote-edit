@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.13β**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.14β**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -41,6 +41,7 @@ Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_wr
 
 ## Hard invariants
 
+1. Quote relative path LOCKED: category / model / sales / … / pdf (confirm with user before changing).
 1. Fixed output roots (no per-run timestamp folders): 48 `見積PDF` / 36 `見積PDF_36回` / 24 `見積PDF_24回` (+ TM `*_TM特例*` variants).
 2. Include-list (`included_models.json`) beats force-all for 48-mode; drives individual Combobox. 36 uses `installment_36_targets.json` only. Legacy exclude-list only if include missing.
 3. No ouchi (おうち割 SB光あり) + 5GB on phones. Exception: iPad/AndroidTab (and TM unrestricted individual may allow more).
@@ -382,6 +383,13 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-09-14 - Quote path leaf model folder (ver.1.4.13β)
 - Quote path: category / sales / SB光 / fee/IRS/plan/IPS… / **model** / filename.pdf (model folder is only the deepest folder before the PDF). Model folder uses compact name without spaces/underscores (same as PDF basename model token).
 - APP_VERSION -> 1.4.13β; both portable ZIPs; standard to N: + latest.json.
+
+
+### 2026-09-14 - Restore category/model path + temp 24-split (ver.1.4.14β)
+- **LOCKED** output tree: `category / model / sales / SB光… / … / file.pdf` (model folder directly under category; compact name without underscores).
+- Agents must confirm with the user before any future path-layout change.
+- Temporary iPhone 18 Pro/Max: `payment_24 = total // 24` (pure split of 機種代金総額).
+- APP_VERSION -> 1.4.14β; both portable ZIPs; standard to N: + latest.json.
 
 ## Release checklist
 1. APP_VERSION

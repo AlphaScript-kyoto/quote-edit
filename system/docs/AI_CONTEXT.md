@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.4.13β)
+# AI Context - Infinity Quote Batch App (ver.1.4.14β)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.4.md` (v1.3 / v1.1 are stubs)  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.4.13β"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.4.14β"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -75,6 +75,13 @@ AI / Cursor     -> AGENTS.md + this file + AGENT_CHANGE_HISTORY.md + .cursor/rul
 ```
 
 ---
+
+
+### Locked quote relative path
+
+`category / model / sales / [SB光] / [fee/IRS/plan/IPS…] / file.pdf`
+
+Agents must **not** move the model folder (leaf vs after-category, etc.) without explicit user confirmation in the same turn.
 
 ## Repository map (source of truth)
 
@@ -196,6 +203,7 @@ Include-list: `included_models.json` is the allow-list for 48-mode batch **and**
 
 | Ver | Notes |
 |-----|-------|
+| 1.4.14β | Restore category/model/sales path; temp devices payment_24=total/24.
 | 1.4.13β | Quote output: model folder only as deepest leaf before PDF. |
 | 1.4.12β | Include-picker: temporary devices first; collapsible category sections. |
 | 1.4.11β | Temporary iPhone 18 Pro / Pro Max overlay (48-only) via temporary_devices.json until official price PDF. |

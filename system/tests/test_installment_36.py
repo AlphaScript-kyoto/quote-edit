@@ -48,8 +48,8 @@ class Installment36PrototypeTest(unittest.TestCase):
         )
         self.assertFalse(
             is_installment_36_target(
-                model="iPhone 17(256GB)",
-                model_key="iphone17256gb",
+                model="iPhone 16 Pro(128GB)",
+                model_key="iphone16pro128gb",
                 category="iPhone",
                 targets=rules,
             )

@@ -1388,6 +1388,9 @@ def _quote_relative_path(
     del include_mnp_shinki_irs  # パスは quote の support 有無から決める
     parts: list[str] = [
         _safe_name(str(device.get("category") or "未分類")),
+        # LOCKED hierarchy: category → model → sales → … → pdf
+        # Do not move the model folder without explicit user confirmation.
+        _filename_model(device["model"]),
         _safe_name(sales_type_display_name(variant["sales_type"])),
     ]
     # ケータイはパケット1GBのみでおうち割分岐がないため SB光なし／ありフォルダを省略
@@ -1420,7 +1423,5 @@ def _quote_relative_path(
         if plan_token_folder:
             parts.append(_safe_name(plan_token_folder))
 
-    # 最下層だけ機種フォルダ（ファイル名と同じく空白なし表記）
-    parts.append(_filename_model(device["model"]))
     parts.append(_quote_filename(device, variant, quote))
     return Path(*parts)
