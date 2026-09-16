@@ -1,93 +1,82 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from quote_system.batch_service import load_device_master, load_included_model_keys
-from quote_system.config import DATA_DIR, load_json
-from quote_system.price_pdf_parser import find_device
-from quote_system.quote_service import build_quote
-from quote_system.temporary_devices import (
-    merge_temporary_devices,
-    temporary_devices_enabled,
-    temporary_model_keys,
+from quote_system.batch_service import latest_price_pdf, load_device_master
+from quote_system.price_pdf_parser import (
+    clean_model_name,
+    is_mm_route_restricted,
+    parse_price_pdf,
 )
 
+import desktop_app
 
-class TemporaryDevicesTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.plan_master = load_json(DATA_DIR / "plans.json")
-        cls.service_master = load_json(DATA_DIR / "services.json")
 
-    def test_temporary_overlay_enabled_and_keys(self) -> None:
-        self.assertTrue(temporary_devices_enabled())
-        keys = temporary_model_keys()
-        self.assertIn("iphone18pro256gb", keys)
-        self.assertIn("iphone18promax512gb", keys)
-        self.assertEqual(len(keys), 8)
+class PriceListPolicyTests(unittest.TestCase):
+    def test_mm_route_marker_detection(self) -> None:
+        self.assertTrue(
+            is_mm_route_restricted("Google Pixel 9 Pro(512GB) ※MM販路取扱不可")
+        )
+        self.assertTrue(
+            is_mm_route_restricted({"model": "AQUOS R9 pro ※mm販路取扱不可", "notes": ""})
+        )
+        self.assertFalse(is_mm_route_restricted("iPhone 17(256GB)"))
 
-    def test_merge_and_include_list_force(self) -> None:
-        base = {"schema_version": 1, "devices": []}
-        merged = merge_temporary_devices(base)
+    def test_clean_model_name_strips_list_annotations(self) -> None:
         self.assertEqual(
-            sum(1 for d in merged["devices"] if d["model_key"].startswith("iphone18")),
-            8,
+            clean_model_name("iPhone 18 Pro(256GB) 9/18発売"),
+            "iPhone 18 Pro(256GB)",
         )
-        included = load_included_model_keys(merged)
-        self.assertTrue(temporary_model_keys() <= included)
+        self.assertEqual(
+            clean_model_name("iPhone 18 Pro Max(1TB) 9/18発売"),
+            "iPhone 18 Pro Max(1TB)",
+        )
+        self.assertEqual(clean_model_name("iPhone 17(256GB)"), "iPhone 17(256GB)")
 
-    def test_build_quote_iphone18_pro_mnp(self) -> None:
-        master = load_device_master()
-        device = find_device(master, "iPhone 18 Pro(256GB)")
-        self.assertEqual(device["total"], 268560)
-        self.assertEqual(device["payment_48"]["MNP"]["1_12"], 2365)
-        self.assertEqual(device["payment_48"]["MNP"]["13_24"], 2365)
-        self.assertEqual(device["payment_48"]["MNP"]["25_48"], 8825)
-        self.assertEqual(device["payment_24"], 11190)
-        quote = build_quote(
-            {
-                "quote_id": "TMP-I18P-256-MNP",
-                "model": "iPhone 18 Pro(256GB)",
-                "sales_type": "MNP",
-                "plan_id": "biz_plus",
-                "data_plan": "20GB",
-                "ouchi_discount": False,
-                "ips_id": None,
-                "support_plan_id": None,
-                "initial_fee_mode": "special_3000",
-            },
-            master,
-            self.plan_master,
-            self.service_master,
+    def test_parse_skips_mm_route_devices(self) -> None:
+        pdf = latest_price_pdf()
+        if pdf is None or not pdf.exists():
+            self.skipTest("price PDF not present")
+        master = parse_price_pdf(pdf)
+        mm = [
+            device["model"]
+            for device in master["devices"]
+            if is_mm_route_restricted(device)
+        ]
+        self.assertEqual(mm, [])
+        self.assertFalse(
+            any("MM販路" in str(device.get("model") or "") for device in master["devices"])
         )
-        self.assertEqual(quote["device_total_tax_in"], 268560)
-        self.assertEqual(quote["model"], "iPhone 18 Pro(256GB)")
 
-    def test_pro_max_pure_24_split(self) -> None:
-        master = load_device_master()
-        device = find_device(master, "iPhone 18 Pro Max(1TB)")
-        self.assertEqual(device["category"], "iPhone")
-        self.assertEqual(device["payment_24"], 17580)  # 421920 / 24
-        quote24 = build_quote(
-            {
-                "quote_id": "TMP-I18PM-1TB-24",
-                "model": "iPhone 18 Pro Max(1TB)",
-                "sales_type": "\u6a5f\u7a2e\u5909\u66f4\u30fb\u79fb\u52d5\u6a5f\u7269\u54c1\u8ca9\u58f2",
-                "plan_id": "biz_plus",
-                "data_plan": "20GB",
-                "ouchi_discount": False,
-                "ips_id": None,
-                "support_plan_id": None,
-                "initial_fee_mode": "special_3000",
-                "installment_months": 24,
-            },
-            master,
-            self.plan_master,
-            self.service_master,
-        )
-        self.assertEqual(quote24["installment_months"], 24)
-        self.assertEqual(quote24["periods"][0]["device_payment"], 17580)
-        self.assertEqual(quote24["device_total_tax_in"], 421920)
+    def test_picker_sections_follow_pdf_order(self) -> None:
+        pdf = latest_price_pdf()
+        if pdf is None or not pdf.exists():
+            self.skipTest("price PDF not present")
+        master = parse_price_pdf(pdf)
+        on_sale = [
+            device
+            for device in master["devices"]
+            if device.get("status") == "販売中" and not is_mm_route_restricted(device)
+        ]
+        sections = desktop_app.QuoteApp._device_picker_sections(on_sale)
+        self.assertTrue(sections)
+        self.assertEqual(sections[0][0], "iPhone")
+        iphone_models = [device["model"] for device in sections[0][1]]
+        self.assertTrue(iphone_models)
+        self.assertIn("iPhone 18 Pro", iphone_models[0])
+        self.assertNotIn("発売", iphone_models[0])
+        self.assertTrue(all(not device.get("notes") for device in master["devices"][:20]))
+        # First iPhone block in the 2026.9.17 list is Pro capacities then Pro Max.
+        self.assertTrue(any("Pro Max" in model for model in iphone_models[:12]))
+        flattened = [device["model"] for _label, group, _open in sections for device in group]
+        expected = [device["model"] for device in on_sale]
+        self.assertEqual(flattened, expected)
+
+    def test_load_device_master_has_no_temporary_overlay(self) -> None:
+        master = load_device_master({"schema_version": 1, "devices": []})
+        self.assertFalse(master.get("temporary_devices"))
+        self.assertEqual(master.get("devices"), [])
 
 
 if __name__ == "__main__":

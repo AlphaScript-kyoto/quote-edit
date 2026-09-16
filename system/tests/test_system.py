@@ -1256,11 +1256,7 @@ class QuoteSystemTest(unittest.TestCase):
                 patch.object(bs, "EXCLUDED_MODELS_PATH", exc),
             ):
                 bs.save_included_model_keys([key])
-                from quote_system.temporary_devices import temporary_model_keys
-
-                loaded = bs.load_included_model_keys()
-                self.assertIn(key, loaded)
-                self.assertTrue(temporary_model_keys() <= loaded)
+                self.assertEqual(bs.load_included_model_keys(), {key})
                 on_sale = {
                     str(item["model_key"])
                     for item in self.device_master["devices"]
@@ -1272,8 +1268,7 @@ class QuoteSystemTest(unittest.TestCase):
                 included = bs.load_included_model_keys()
                 self.assertNotIn(key, included)
                 self.assertTrue(included)
-                self.assertTrue(temporary_model_keys() <= included)
-                self.assertLess(len(included - temporary_model_keys()), len(on_sale) or 1)
+                self.assertLess(len(included), len(on_sale))
 
     def test_running_mode_omits_ips_from_initial_total(self):
         request = deepcopy(self.request)

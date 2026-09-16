@@ -22,7 +22,13 @@ from .config import (
     save_json,
 )
 from .pdf_renderer import render_quote
-from .price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf, sales_type_display_name
+from .price_pdf_parser import (
+    SALES_COLUMNS,
+    find_device,
+    is_mm_route_restricted,
+    parse_price_pdf,
+    sales_type_display_name,
+)
 from .quote_service import (
     build_quote,
     allows_ouchi_discount_with_5gb,
@@ -32,7 +38,6 @@ from .quote_service import (
     is_plan_data_plan_allowed,
     is_sales_plan_allowed,
 )
-from .temporary_devices import merge_temporary_devices, temporary_model_keys
 
 STATE_PATH = DATA_DIR / "app_state.json"
 DEVICE_MASTER_PATH = DATA_DIR / "device_master.json"
@@ -132,13 +137,13 @@ def load_device_master(
     *,
     path: Path | None = None,
 ) -> dict[str, Any]:
-    """Load device master and merge temporary overlays (not persisted)."""
+    """Load device master from memory or disk (PDF import order preserved)."""
     if device_master is not None:
-        return merge_temporary_devices(device_master)
+        return device_master
     master_path = path or DEVICE_MASTER_PATH
     if master_path.exists():
-        return merge_temporary_devices(load_json(master_path))
-    return merge_temporary_devices({"schema_version": 1, "devices": []})
+        return load_json(master_path)
+    return {"schema_version": 1, "devices": []}
 
 
 def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
@@ -146,31 +151,25 @@ def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]
     return {
         str(device["model_key"])
         for device in master.get("devices", [])
-        if device.get("status") == "販売中"
+        if device.get("status") == "販売中" and not is_mm_route_restricted(device)
     }
 
 
 def load_included_model_keys(device_master: dict[str, Any] | None = None) -> set[str]:
-    """作成する機種。include ファイル優先。無ければ旧 exclude から、それも無ければ販売中すべて。
-
-    Temporary overlay models are always treated as included while enabled,
-    so field can generate them without editing included_models.json.
-    """
+    """作成する機種。include ファイル優先。無ければ旧 exclude から、それも無ければ販売中すべて。"""
     on_sale = _on_sale_model_keys(device_master)
-    temp_keys = temporary_model_keys() & on_sale
     if INCLUDED_MODELS_PATH.exists():
         keys = {
             str(key)
             for key in load_json(INCLUDED_MODELS_PATH).get("model_keys", [])
         }
-        keys |= temp_keys
         return keys & on_sale if on_sale else keys
     if EXCLUDED_MODELS_PATH.exists():
         excluded = {
             str(key)
             for key in load_json(EXCLUDED_MODELS_PATH).get("model_keys", [])
         }
-        return (on_sale - excluded) | temp_keys if on_sale else temp_keys
+        return on_sale - excluded if on_sale else set()
     return on_sale
 
 
@@ -398,19 +397,18 @@ def run_batch(
     if progress:
         progress(0, 1, "価格表PDFを読み取り、金額を検算しています…")
     parsed_master = parse_price_pdf(pdf_path)
-    # Persist PDF-only master; temporary overlays stay in-memory only.
     save_json(DEVICE_MASTER_PATH, parsed_master)
     new_master = load_device_master(parsed_master)
     changed_keys = changed_model_keys(old_master, new_master)
-    # Temporary devices are always "changed" so differential runs still create them.
-    changed_keys |= temporary_model_keys()
     first_run = state is None
     mode = "初回全件" if first_run else ("全件再作成" if force_all else "差分更新")
 
     included = load_included_model_keys(new_master)
     active_devices = [
         device for device in new_master["devices"]
-        if device["status"] == "販売中" and device["model_key"] in included
+        if device["status"] == "販売中"
+        and device["model_key"] in included
+        and not is_mm_route_restricted(device)
     ]
     if not active_devices:
         raise ValueError(

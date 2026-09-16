@@ -36,7 +36,7 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.4.14β** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- **ver.1.5** - constant: `system/quote_system/config.py` -> `APP_VERSION`
 - Window title: `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}`; TM `見積もり一括作成（TM兼任事業部用）  ver.{APP_VERSION}`
 
 ## Source of truth (edit these)
@@ -72,6 +72,8 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 8. **24回割賦:** button under 作成タイプ opens individual window (not a batch radio); uses price-list `payment_24`.
 9. iPad / データ通信 / AndroidTab: no MNP or 番号移行. Light / super_light / hyper_light: only `iPhone` and `Android`.
 10. **Startup update check** (`update_check.py`): **standard edition only**. Reads share `latest.json`; silent on failure; never auto-replaces the app.
+11. Skip devices marked `※MM販路取扱不可` (case-insensitive) in model/notes — not in picker, batch, or individual lists.
+12. Include-picker / individual model lists follow **price PDF appearance order** (category sections by first appearance; no capacity re-sort).
 
 ## Typical workflows
 

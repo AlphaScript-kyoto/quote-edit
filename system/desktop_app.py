@@ -527,6 +527,9 @@ class QuoteApp(tk.Tk):
         if device_master is None:
             return
         devices = [d for d in device_master["devices"] if d["status"] == "販売中"]
+        from quote_system.price_pdf_parser import is_mm_route_restricted
+
+        devices = [d for d in devices if not is_mm_route_restricted(d)]
         if not devices:
             messagebox.showerror("販売中機種がありません", "機種マスターを確認してください。")
             return
@@ -703,93 +706,27 @@ class QuoteApp(tk.Tk):
         ttk.Button(frame, text="保存", command=save).pack(anchor="w", pady=(12, 0), ipadx=20, ipady=4)
 
     @staticmethod
-    def _device_display_sort_key(device: dict) -> tuple:
-        """Sort by model family, then Pro before Pro Max, then capacity 256→512→1TB→2TB."""
-        import re
-
-        model = str(device.get("model") or "")
-        match = re.search(r"\(([^)]+)\)\s*$", model)
-        capacity = (match.group(1) if match else "").strip().lower().replace(" ", "")
-        base = model[: match.start()] if match else model
-        is_pro_max = "Pro Max" in base or "ProMax" in base.replace(" ", "")
-        family = (
-            base.replace(" Pro Max", " Pro")
-            .replace("Pro Max", "Pro")
-            .replace("ProMax", "Pro")
-        )
-        capacity_rank = {
-            "1gb": 1,
-            "5gb": 2,
-            "20gb": 3,
-            "50gb": 4,
-            "64gb": 5,
-            "128gb": 6,
-            "256gb": 7,
-            "512gb": 8,
-            "1tb": 9,
-            "2tb": 10,
-        }.get(capacity, 500)
-        return (family.lower(), 1 if is_pro_max else 0, capacity_rank, model.lower())
-
-    @staticmethod
     def _device_picker_sections(
         devices: list[dict],
     ) -> list[tuple[str, list[dict], bool]]:
-        """Return (section_label, devices, start_expanded) for the include picker.
+        """Group devices by category, keeping price-PDF appearance order.
 
-        Temporary overlay models come first. Other models are grouped by category.
+        Within each category the relative order from the PDF (device master list)
+        is preserved. Category sections follow first appearance in that list.
         """
-        from quote_system.temporary_devices import temporary_model_keys
-
-        temp_keys = temporary_model_keys()
-        temp_devices = [d for d in devices if str(d.get("model_key") or "") in temp_keys]
-        other_devices = [
-            d for d in devices if str(d.get("model_key") or "") not in temp_keys
-        ]
-        temp_devices.sort(key=QuoteApp._device_display_sort_key)
-
-        preferred = [
-            "iPhone",
-            "Android",
-            "iPad",
-            "AndroidTab",
-            "ケータイ",
-            "データ通信",
-            "キッズフォン",
-        ]
         by_category: dict[str, list[dict]] = {}
-        for device in other_devices:
+        ordered_categories: list[str] = []
+        for device in devices:
             category = str(device.get("category") or "").strip() or "その他"
-            by_category.setdefault(category, []).append(device)
-        for group in by_category.values():
-            group.sort(key=QuoteApp._device_display_sort_key)
-
-        ordered_categories = [c for c in preferred if c in by_category]
-        ordered_categories.extend(
-            sorted(c for c in by_category if c not in preferred)
-        )
+            if category not in by_category:
+                by_category[category] = []
+                ordered_categories.append(category)
+            by_category[category].append(device)
 
         sections: list[tuple[str, list[dict], bool]] = []
-        if temp_devices:
-            sections.append(("臨時追加（価格表PDF未反映）", temp_devices, True))
         for index, category in enumerate(ordered_categories):
-            # Open the first normal category when there is no temporary block.
-            start_open = (not temp_devices) and index == 0
-            sections.append((category, by_category[category], start_open))
+            sections.append((category, by_category[category], index == 0))
         return sections
-
-    @staticmethod
-    def _sort_devices_temp_first(devices: list[dict]) -> list[dict]:
-        """Put temporary overlay models first (then keep remaining order)."""
-        from quote_system.temporary_devices import temporary_model_keys
-
-        temp_keys = temporary_model_keys()
-        if not temp_keys:
-            return list(devices)
-        first = [d for d in devices if str(d.get("model_key") or "") in temp_keys]
-        rest = [d for d in devices if str(d.get("model_key") or "") not in temp_keys]
-        first.sort(key=QuoteApp._device_display_sort_key)
-        return first + rest
 
     @staticmethod
     def _set_picker_sections_expanded(
@@ -855,10 +792,12 @@ class QuoteApp(tk.Tk):
                 )
                 return
             device_master = load_device_master()
+            from quote_system.price_pdf_parser import is_mm_route_restricted
+
             with_24 = [
                 d
                 for d in device_master["devices"]
-                if d.get("payment_24") is not None
+                if d.get("payment_24") is not None and not is_mm_route_restricted(d)
             ]
             if included:
                 devices = [d for d in with_24 if d.get("model_key") in included]
@@ -872,24 +811,23 @@ class QuoteApp(tk.Tk):
                 mode_label = "特例個別見積（24回・TM兼任事業部用）"
         else:
             if not (DATA_DIR / "device_master.json").exists():
-                # Temporary overlays alone are enough for 48-mode individual.
-                from quote_system.temporary_devices import temporary_devices_enabled
-
-                if not temporary_devices_enabled():
-                    messagebox.showerror(
-                        "機種マスターがありません",
-                        "先に価格表PDFから一括作成を実行してください。",
-                    )
-                    return
+                messagebox.showerror(
+                    "機種マスターがありません",
+                    "先に価格表PDFから一括作成を実行してください。",
+                )
+                return
             device_master = load_device_master()
+            from quote_system.price_pdf_parser import is_mm_route_restricted
+
             devices = [
                 d for d in device_master["devices"]
-                if d["status"] == "販売中" and d.get("model_key") in included
+                if d["status"] == "販売中"
+                and d.get("model_key") in included
+                and not is_mm_route_restricted(d)
             ]
             mode_label = "個別見積作成（通常48回）"
             if IS_TM_SPECIAL:
                 mode_label = "特例個別見積（通常48回・TM兼任事業部用）"
-        devices = self._sort_devices_temp_first(devices)
         models = [d["model"] for d in devices]
         if not models:
             if months == 24:

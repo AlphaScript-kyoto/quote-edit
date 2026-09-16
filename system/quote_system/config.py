@@ -9,7 +9,7 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.4.14β"
+APP_VERSION = "1.5"
 APP_DISPLAY_NAME = "見積もり一括作成"
 
 # パッケージ版: standard（現場向け） / tm_special（TM兼任事業部用・個別制限解除）
@@ -162,7 +162,6 @@ def ensure_directories() -> None:
             "services.json",
             "company.json",
             "device_master.json",
-            "temporary_devices.json",
             "installment_36_targets.json",
         ):
             source = bundled_data / filename

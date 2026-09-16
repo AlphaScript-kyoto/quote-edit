@@ -33,6 +33,37 @@ def normalize_model_name(value: str) -> str:
     return re.sub(r"[\s()（）・_-]+", "", normalized)
 
 
+_MM_ROUTE_MARK = "mm販路取扱不可"
+
+
+def is_mm_route_restricted(device_or_text: Any) -> bool:
+    """True when the price list marks the model as MM-route unavailable."""
+    if isinstance(device_or_text, dict):
+        text = f"{device_or_text.get('model') or ''} {device_or_text.get('notes') or ''}"
+    else:
+        text = str(device_or_text or "")
+    normalized = unicodedata.normalize("NFKC", text).lower().replace(" ", "")
+    return _MM_ROUTE_MARK in normalized
+
+
+def clean_model_name(model: str) -> str:
+    """Keep the product name only — drop SoftBank list annotations in the 機種 cell.
+
+    The price PDF often puts launch notes etc. in the same cell as the model
+    (not only in 備考). Example: ``iPhone 18 Pro(256GB) 9/18発売`` →
+    ``iPhone 18 Pro(256GB)``.
+    """
+    text = unicodedata.normalize("NFKC", str(model or ""))
+    text = re.sub(r"\s+", " ", text.replace("\n", " ")).strip()
+    if not text:
+        return ""
+    capacity = re.search(r"^(.*\(\d+\s*(?:GB|TB)\))", text, flags=re.IGNORECASE)
+    if capacity:
+        return capacity.group(1).strip()
+    # No capacity token: drop ※… remarks only
+    return re.split(r"\s*※", text, maxsplit=1)[0].strip()
+
+
 def _numbers_from_cells(row: list[Any], start: int, count: int = 3) -> list[int | None]:
     text = " ".join(str(row[index] or "") for index in range(start, min(start + count, len(row))))
     tokens = re.findall(r"-|\d[\d,]*", text)
@@ -118,8 +149,15 @@ def parse_price_pdf(pdf_path: Path) -> dict[str, Any]:
                     if category and category != "カテゴリ":
                         current_category = category
 
-                    model = str(device_row[2] or "").replace("\n", " ").strip()
-                    if not model or model == "機種":
+                    raw_model = str(device_row[2] or "").replace("\n", " ").strip()
+                    if not raw_model or raw_model == "機種":
+                        continue
+                    # ※MM販路取扱不可 は見積対象外（価格表に載っていても拾わない）
+                    if is_mm_route_restricted(raw_model):
+                        continue
+                    # 備考列は使わない。機種セル末尾の発売日などの注記も落とす。
+                    model = clean_model_name(raw_model)
+                    if not model:
                         continue
 
                     route_payments = {
@@ -161,7 +199,7 @@ def parse_price_pdf(pdf_path: Path) -> dict[str, Any]:
                             "model_key": normalize_model_name(model),
                             "changed": _is_changed(device_row[0]),
                             "status": status,
-                            "notes": str(device_row[3] or "").replace("\n", " ").strip(),
+                            "notes": "",
                             "eligible": {
                                 "new_toku_support_plus": "●" in str(device_row[4] or ""),
                                 "replacement_support": "●" in str(device_row[5] or ""),

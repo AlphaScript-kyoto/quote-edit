@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.4.14β**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.5**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -390,6 +390,29 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Agents must confirm with the user before any future path-layout change.
 - Temporary iPhone 18 Pro/Max: `payment_24 = total // 24` (pure split of 機種代金総額).
 - APP_VERSION -> 1.4.14β; both portable ZIPs; standard to N: + latest.json.
+
+### 2026-09-14 - Backlog: skip ※MM販路取扱不可 devices (next patch OK)
+- User request (no rush; ship with the next unrelated patch): do **not** pick up devices marked `※mm販路取扱不可` / `※MM販路取扱不可`.
+- Today these appear in the **model name** from the price PDF (examples in local `device_master.json`: Pixel 9 Pro 512GB / XL / Fold, AQUOS R9 pro, LEITZ PHONE 3). `model_key` also absorbs the suffix.
+- Intended filter: case-insensitive substring match on model (and notes if present) at parse and/or include-list / batch target selection so they never enter quotes or the include picker.
+- Do not bump a dedicated release solely for this unless the user asks.
+
+### 2026-09-16 - Remove temporary iPhone 18 overlay; PDF order picker; skip MM-route
+- Official price PDF now includes iPhone 18 Pro / Pro Max → removed `temporary_devices.json` / `temporary_devices.py` overlay and all force-include / temp-first UI.
+- Include-picker (and lists built from master) keep **PDF appearance order** within category; category headers follow first appearance (no capacity/family re-sort).
+- Implemented backlog: skip `※MM販路取扱不可` at PDF parse and when selecting on-sale / batch / individual targets.
+- **No version bump / no field ZIP** in this change — wait for explicit user ship request.
+
+### 2026-09-16 - Ignore price-list 備考 / strip model-cell annotations
+- Do not read SoftBank price-list 備考 column into device master (`notes` always empty).
+- SoftBank often puts launch text in the **機種** cell (e.g. `iPhone 18 Pro(256GB) 9/18発売`). `clean_model_name()` keeps only through the capacity `(…GB/TB)` so picker + quote PDFs show `iPhone 18 Pro(256GB)` only.
+- MM-route skip still inspects the raw 機種 cell before cleaning.
+
+
+### 2026-09-16 - Formal release ver.1.5
+- APP_VERSION -> 1.5 (leave beta line).
+- Ships unreleased 2026-09-16 work: remove temporary iPhone 18 overlay; include-picker PDF order; skip ※MM販路取扱不可; ignore price-list 備考; strip model-cell annotations (e.g. 9/18発売).
+- Both portable ZIPs; standard to N: + latest.json.
 
 ## Release checklist
 1. APP_VERSION
