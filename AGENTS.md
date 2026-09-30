@@ -36,7 +36,7 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.5** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- **ver.1.6** - constant: `system/quote_system/config.py` -> `APP_VERSION`
 - Window title: `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}`; TM `見積もり一括作成（TM兼任事業部用）  ver.{APP_VERSION}`
 
 ## Source of truth (edit these)
@@ -74,6 +74,8 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 10. **Startup update check** (`update_check.py`): **standard edition only**. Reads share `latest.json`; silent on failure; never auto-replaces the app.
 11. Skip devices marked `※MM販路取扱不可` (case-insensitive) in model/notes — not in picker, batch, or individual lists.
 12. Include-picker / individual model lists follow **price PDF appearance order** (category sections by first appearance; no capacity re-sort).
+13. Super light (standard): 機種変更 = 50GB only; MNP/新規 = 5GB/20GB/50GB/無制限. 36回割賦 follows the same super/hyper rules as 48 (batch + individual).
+14. Editions: `standard` / `tm_special` / `agency` (代理店用: TM rules, department fixed to RT事業部, selector hidden). Rule checks use `IS_SPECIAL_EDITION`; wording uses `EDITION_LABEL`. Agency build: `system/build_portable_exe_agency.bat`; never in latest.json.
 
 ## Typical workflows
 

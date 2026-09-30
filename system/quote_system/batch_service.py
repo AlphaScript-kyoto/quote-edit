@@ -17,7 +17,8 @@ from .config import (
     QUOTE_OUTPUT_DIRNAME_24,
     QUOTE_OUTPUT_DIRNAME_36,
     UPDATE_DIR,
-    IS_TM_SPECIAL,
+    FORCED_DEPARTMENT,
+    IS_SPECIAL_EDITION,
     load_json,
     save_json,
 )
@@ -48,6 +49,25 @@ QUOTE_OUTPUT_ROOT = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME
 QUOTE_OUTPUT_ROOT_36 = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME_36
 QUOTE_OUTPUT_ROOT_24 = OUTPUT_DIR / QUOTE_OUTPUT_DIRNAME_24
 ProgressCallback = Callable[[int, int, str], None]
+
+
+def resolve_department(
+    department: str | None,
+    forced_department: str | None = FORCED_DEPARTMENT,
+) -> str | None:
+    if forced_department:
+        return forced_department
+    if department and department.strip():
+        return department.strip()
+    return None
+
+
+def _load_company(department: str | None) -> dict[str, Any]:
+    company = load_json(DATA_DIR / "company.json")
+    resolved = resolve_department(department)
+    if resolved:
+        company["department"] = resolved
+    return company
 
 
 def quote_output_root(installment_months: int = 48) -> Path:
@@ -288,7 +308,7 @@ def quote_variants(
             else:
                 support_options = ["auto"]
             for data_plan in plan["data_plans"]:
-                if not is_plan_data_plan_allowed(plan_id, data_plan):
+                if not is_plan_data_plan_allowed(plan_id, data_plan, sales_type=sales_type):
                     continue
                 if not is_device_data_plan_allowed(device, data_plan, sales_type):
                     continue
@@ -388,9 +408,7 @@ def run_batch(
 
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
-    company = load_json(DATA_DIR / "company.json")
-    if department and department.strip():
-        company["department"] = department.strip()
+    company = _load_company(department)
     old_master = load_device_master() if DEVICE_MASTER_PATH.exists() else None
     state = load_json(STATE_PATH) if STATE_PATH.exists() else None
 
@@ -507,9 +525,7 @@ def _run_batch_36(
     # 36回割賦は［作成する機種］の対象外。installment_36_targets.json のみで絞る。
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
-    company = load_json(DATA_DIR / "company.json")
-    if department and department.strip():
-        company["department"] = department.strip()
+    company = _load_company(department)
 
     device_master = {
         "schema_version": 1,
@@ -567,9 +583,7 @@ def generate_selected_models(
     device_master = load_device_master()
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
-    company = load_json(DATA_DIR / "company.json")
-    if department and department.strip():
-        company["department"] = department.strip()
+    company = _load_company(department)
 
     targets: list[dict[str, Any]] = []
     for model in models:
@@ -645,10 +659,8 @@ def resume_batch(
     device_master = load_device_master()
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
-    company = load_json(DATA_DIR / "company.json")
     department = payload.get("department")
-    if department and str(department).strip():
-        company["department"] = str(department).strip()
+    company = _load_company(str(department) if department else None)
 
     keys = [str(key) for key in payload.get("target_model_keys", [])]
     by_key = {str(device["model_key"]): device for device in device_master["devices"]}
@@ -912,7 +924,7 @@ def run_individual(
     )
 
     if unrestricted_individual is None:
-        unrestricted_individual = IS_TM_SPECIAL
+        unrestricted_individual = IS_SPECIAL_EDITION
     unrestricted = bool(unrestricted_individual)
 
     is_36 = int(installment_months) == 36
@@ -955,9 +967,7 @@ def run_individual(
 
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
-    company = load_json(DATA_DIR / "company.json")
-    if department and department.strip():
-        company["department"] = department.strip()
+    company = _load_company(department)
 
     if not is_36 and not is_24 and device["status"] != "販売中":
         raise ValueError(f"取扱終了機種です: {device['model']}")
@@ -992,7 +1002,9 @@ def run_individual(
     selected_data = [
         value for value in data_plans
         if value in plan["data_plans"]
-        and is_plan_data_plan_allowed(plan_id, value, unrestricted=unrestricted)
+        and is_plan_data_plan_allowed(
+            plan_id, value, unrestricted=unrestricted, sales_type=sales_type
+        )
         and is_device_data_plan_allowed(device, value, sales_type)
     ]
     if not selected_data:
@@ -1315,7 +1327,8 @@ def _plan_folder_name(
 
     - Bizパッケージ＋（標準・IRSなし）はフォルダ不要。IRSフォルダも付けないため
       スーパー／ハイパー（IRSあり配下）とパスがぶつからない。
-    - スーパー／ハイパー＋IRSありは容量で区別するためプラン名フォルダなし。
+    - スーパー／ハイパー＋IRSありは、機種変更では容量が重ならないためプラン名フォルダなし。
+      MNP／新規はスーパーも5GB／20GB／無制限を作るため、ハイパーと衝突しないようプラン名を付ける。
     - スーパー／ハイパー＋IRSなしは同階層のBizとファイル名がぶつかるためプラン名を付ける。
     - ライトは容量がハイパーと重なるためプラン名フォルダを付ける。
     """
@@ -1326,7 +1339,8 @@ def _plan_folder_name(
             return str(quote.get("plan_name") or plan_id)
         return None
     if _is_merged_special_discount(plan_id):
-        if has_support:
+        sales_type = str(variant.get("sales_type") or quote.get("sales_type") or "").strip()
+        if has_support and sales_type not in _MNP_SHINKI_SALES_TYPES:
             return None
         return str(quote.get("plan_name") or plan_id)
     return str(quote.get("plan_name") or plan_id)

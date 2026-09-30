@@ -13,10 +13,11 @@ if str(SYSTEM_DIR) not in sys.path:
 
 from quote_system.config import (
     APP_DISPLAY_NAME,
+    APP_EDITION,
     APP_VERSION,
+    EDITION_AGENCY,
     EDITION_STANDARD,
     EDITION_TM_SPECIAL,
-    IS_TM_SPECIAL,
     package_dir_name,
 )
 
@@ -25,6 +26,7 @@ DIST = ROOT / "portable"
 BUILD_NAME = "QuoteBatchApp"
 APP_NAME = APP_DISPLAY_NAME
 # 配布フォルダ名例: 見積もり一括作成ver1.3.3 / 見積もり一括作成_TM兼任事業部用ver1.4.6β
+# / 見積もり一括作成_代理店用ver1.6
 PACKAGE_DIR_NAME = package_dir_name()
 UPDATE_NAME = "機種代金一覧表"
 # 現場向け操作説明PDF（ファイル名にバージョンが入っても拾う）
@@ -42,10 +44,10 @@ def _write_utf8_bom(src: Path, dest: Path) -> None:
 
 def _write_edition_marker(stage: Path) -> None:
     """Freeze edition into the portable package (not LOCALAPPDATA)."""
-    edition = EDITION_TM_SPECIAL if IS_TM_SPECIAL else EDITION_STANDARD
+    edition = APP_EDITION
     # Prefer env if arrange was launched with an explicit edition
     env = str(os.environ.get("QUOTE_APP_EDITION") or "").strip().lower()
-    if env in {EDITION_STANDARD, EDITION_TM_SPECIAL}:
+    if env in {EDITION_STANDARD, EDITION_TM_SPECIAL, EDITION_AGENCY}:
         edition = env
     data_dir = stage / "system" / "data"
     data_dir.mkdir(parents=True, exist_ok=True)

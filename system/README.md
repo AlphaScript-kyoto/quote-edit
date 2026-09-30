@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| バージョン | **`quote_system.config.APP_VERSION` を正**（執筆時点 ver.1.5） |
+| バージョン | **`quote_system.config.APP_VERSION` を正**（執筆時点 ver.1.6） |
 | 現場向け操作 | ひとつ上の `README.txt` |
 | **引き継ぎ仕様書（日本語・詳細）** | [`docs/開発者向け仕様書_v1.4.md`](docs/開発者向け仕様書_v1.4.md) |
 | **AI向け仕様（英語）** | [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md)／[`AGENTS.md`](../AGENTS.md)／[`docs/AGENT_CHANGE_HISTORY.md`](docs/AGENT_CHANGE_HISTORY.md) |
@@ -64,7 +64,8 @@ python -m unittest tests.test_system tests.test_installment_36 tests.test_update
 - 価格表の新機種ブロック結合（例: Pixel 11）を分割して機種マスターへ反映。［作成する機種］を開くと最新PDFを再取込
 - 通常IPS：プラン別フォルダ（ゴールド24 等）／ファイル名は機種_容量のみ
 - ランニングIPS：保証終了後は「－」；36か月は 25～36 / 37～48 分割
-- スーパーライト：パケット50GBのみ
+- スーパーライト：機種変更はパケット50GBのみ／MNP・新規は5GB・20GB・50GB・無制限（番号移行は作成しない）
+- 36回割賦もスーパーライト・ハイパーライトは48回と同じルールで作成（個別作成も同じ）
 - PDF追加割引表示：弊社特別割引（内部名はスーパー／ハイパーライト割）
 - 作成対象機種（48回モード）：`data/included_models.json` があれば「全機種再生成」より優先。36回は `installment_36_targets.json`。おうち割ありでは5GBを作らない（iPad／AndroidTabは例外。同カテゴリの容量は1／5／50GBのみ）
 - 起動時更新確認（通常版のみ）：N: 共有 `latest.json` を読み、新版があれば通知（失敗時は無音、自動替換なし）。TM版は実行しない

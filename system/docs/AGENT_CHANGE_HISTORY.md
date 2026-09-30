@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.5**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.6**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -49,7 +49,7 @@ Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_wr
 5. Portrait A4; prefer one-page PDFs.
 6. No bulk regen of thousands of PDFs unless asked.
 7. Real phones/addresses must not be in git.
-8. Biz package super light: **50GB only** (standard; TM individual unlock may differ).
+8. Biz package super light: 機種変更 **50GB only**; MNP/新規 5GB/20GB/50GB/無制限 (since 1.6; TM/agency individual unlock may differ).
 9. Batch: super/hyper = IRS+discount set only. Individual: may omit IRS while keeping 弊社特別割引.
 10. Standard startup update check via share `latest.json`; update that file on every standard ship.
 
@@ -413,6 +413,20 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - APP_VERSION -> 1.5 (leave beta line).
 - Ships unreleased 2026-09-16 work: remove temporary iPhone 18 overlay; include-picker PDF order; skip ※MM販路取扱不可; ignore price-list 備考; strip model-cell annotations (e.g. 9/18発売).
 - Both portable ZIPs; standard to N: + latest.json.
+
+### 2026-09-30 - Agency edition (代理店用) scaffolding (not shipped yet)
+- New edition id `agency` (`EDITION_AGENCY`). Same rules as TM (`IS_SPECIAL_EDITION = IS_TM_SPECIAL or IS_AGENCY`): individual unlocks, special fee 4,500, no update check.
+- `FORCED_DEPARTMENT = "RT事業部"` for agency: department selector hidden in UI; `batch_service._load_company` / `resolve_department` force RT for batch, individual, resume.
+- Own title `（代理店用）`, package `見積もり一括作成_代理店用ver…`, LOCALAPPDATA `InfinityQuoteAppAgency`, outputs `見積PDF_代理店` / `_36回` / `_24回`.
+- Build: `system/build_portable_exe_agency.bat`. Never point latest.json at it. Tests: `tests/test_editions.py`.
+- UI labels use `EDITION_LABEL`; behavior checks renamed `IS_TM_SPECIAL` -> `IS_SPECIAL_EDITION` (desktop_app, update_check, batch_service).
+
+### 2026-09-30 - ver.1.6 (standard)
+- 36-installment: super/hyper light already enumerated by `quote_variants` in batch; the individual 36 window filtered plans with `all()` over every checked model, so a checked ケータイ hid super/hyper. Now `any()` (like capacities) and models that cannot use the plan/sales type are skipped at generation.
+- Super light capacity rule (user decision 2026-09-30): 機種変更 = 50GB only; MNP/新規 = 5GB/20GB/50GB/無制限 (番号移行 still no super/hyper). `is_plan_data_plan_allowed(..., sales_type=)`; missing sales_type = 50GB only.
+- Path collision fix (user confirmed): MNP/新規 super/hyper with IRS now get a plan-name folder (`Bizパッケージ＋スーパーライト` / `Bizパッケージ＋ハイパーライト`) under IRSあり. 機種変更 paths unchanged. Test `test_batch_variant_paths_do_not_collide`.
+- Variant counts: iPhone default with MNP/新規 IRS 50 -> 60; full pattern 1400 -> 1680 (with light 1988 -> 2268).
+- Known: TM/agency unrestricted individual can still make 機種変更 super 5GB/20GB/無制限 into the same folder as hyper (pre-existing; individual runs one plan at a time).
 
 ## Release checklist
 1. APP_VERSION

@@ -86,13 +86,22 @@ def is_device_plan_allowed(device: dict[str, Any], plan_id: str) -> bool:
     return category in _LIGHT_FAMILY_CATEGORIES
 
 
+_KISHU_HENKOU = "機種変更・移動機物品販売"
+_SUPER_LIGHT_NON_KISHU_CAPACITIES = frozenset({"5GB", "20GB", "50GB", "無制限"})
+
+
 def is_plan_data_plan_allowed(
     plan_id: str,
     data_plan: str,
     *,
     unrestricted: bool = False,
+    sales_type: str | None = None,
 ) -> bool:
-    """Return whether the tariff plan may offer the packet size."""
+    """Return whether the tariff plan may offer the packet size.
+
+    スーパーライトは機種変更では50GBのみ、それ以外の販売区分では5GB／20GB／50GB／無制限。
+    sales_type 未指定時は機種変更と同じ扱い（50GBのみ）。
+    """
     plan = str(plan_id).strip()
     capacity = str(data_plan).strip()
     # ライト／スーパーライト／ハイパーライトは1GB非対象（追加割引があるプラン）
@@ -108,8 +117,10 @@ def is_plan_data_plan_allowed(
         if allowed is not None:
             return capacity in allowed
         return True
-    # Bizパッケージ＋スーパーライトはパケット50GBのみ（現場ルール）
     if plan == "super_light":
+        sales = str(sales_type or "").strip()
+        if sales and sales != _KISHU_HENKOU:
+            return capacity in _SUPER_LIGHT_NON_KISHU_CAPACITIES
         return capacity == "50GB"
     # ライトは plans 上も1GB以外（5GB以上／無制限）
     if plan == "light":
@@ -133,8 +144,7 @@ def is_sales_plan_allowed(
         return True
     sales = str(sales_type or "").strip()
     plan = str(plan_id or "").strip()
-    kishu = "機種変更・移動機物品販売"
-    if plan == "light" and sales == kishu:
+    if plan == "light" and sales == _KISHU_HENKOU:
         return False
     if plan in {"super_light", "hyper_light"} and sales == "番号移行":
         return False
@@ -340,12 +350,14 @@ def build_quote(
         request["plan_id"],
         request["data_plan"],
         unrestricted=unrestricted_individual,
+        sales_type=sales_type,
     ):
         plan_key = str(request["plan_id"]).strip()
         capacity = str(request["data_plan"]).strip()
-        if plan_key == "super_light" and not unrestricted_individual:
+        if plan_key == "super_light" and not unrestricted_individual and capacity != "1GB":
             raise ValueError(
-                "Bizパッケージ＋スーパーライトはパケット50GBのみ作成します"
+                "Bizパッケージ＋スーパーライトは機種変更ではパケット50GBのみ作成します"
+                "（MNP・新規は5GB／20GB／50GB／無制限）"
             )
         if plan_key in {"light", "super_light", "hyper_light"} and capacity == "1GB":
             raise ValueError(

@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .config import APP_VERSION, DATA_DIR, EDITION_STANDARD, IS_TM_SPECIAL
+from .config import APP_VERSION, DATA_DIR, EDITION_STANDARD, IS_SPECIAL_EDITION
 
 # Field distribution folder (standard ZIP only; do not mix TM packages here).
 STANDARD_SHARE_DIR = Path(
@@ -134,7 +134,7 @@ def fetch_remote_latest(
     timeout_sec: float = DEFAULT_TIMEOUT_SEC,
 ) -> RemoteLatest | None:
     """Read latest.json with a hard timeout. Returns None on any failure."""
-    if IS_TM_SPECIAL:
+    if IS_SPECIAL_EDITION:
         return None
 
     path = share_dir / LATEST_JSON_NAME

@@ -1,6 +1,6 @@
 {
-  "version": "1.5",
-  "zip": "見積もり一括作成ver1.5.zip",
+  "version": "1.6",
+  "zip": "見積もり一括作成ver1.6.zip",
   "edition": "standard",
-  "notes": "正式版 ver.1.5：iPhone 18公式価格表対応、機種選択PDF順、MM販路除外、機種名注記除去。"
+  "notes": "ver.1.6：36回割賦でもスーパー／ハイパーライトを作成、MNP・新規のスーパーライトは5GB／20GB／50GB／無制限。"
 }

@@ -213,6 +213,70 @@ class Installment36PrototypeTest(unittest.TestCase):
         )
         self.assertTrue(any("新トクするサポート" in note for note in notes_48))
 
+    def test_36_super_hyper_follow_48_rules(self):
+        """36回でもスーパー／ハイパーは48回と同じルールで作成できる。"""
+        from quote_system.batch_service import quote_variants
+
+        master_36 = {
+            "devices": [
+                {"category": "iPhone", "model": "iPhone 16e(128GB)",
+                 "model_key": "iphone16e128gb", "payment_36_flat": 3308,
+                 "total": 3308 * 36},
+                {"category": "ケータイ", "model": "DIGNOケータイ4",
+                 "model_key": "dignoke-tai4", "payment_36_flat": 1500,
+                 "total": 1500 * 36},
+            ]
+        }
+        devices = {d["model"]: d for d in filter_36_target_devices(master_36)}
+        plans = load_json(DATA_DIR / "plans.json")
+        services = load_json(DATA_DIR / "services.json")
+
+        iphone_variants = list(
+            quote_variants(devices["iPhone 16e(128GB)"], plans, include_mnp_shinki_irs=True)
+        )
+        by_plan_sales = {(v["plan_id"], v["sales_type"]) for v in iphone_variants}
+        for plan_id in ("super_light", "hyper_light"):
+            for sales in ("機種変更・移動機物品販売", "MNP", "新規"):
+                self.assertIn((plan_id, sales), by_plan_sales)
+            self.assertNotIn((plan_id, "番号移行"), by_plan_sales)
+        feature_variants = list(
+            quote_variants(devices["DIGNOケータイ4"], plans, include_mnp_shinki_irs=True)
+        )
+        self.assertFalse(
+            any(v["plan_id"] in {"super_light", "hyper_light"} for v in feature_variants)
+        )
+
+        master = {"devices": list(devices.values())}
+        for plan_id, sales, capacity in (
+            ("super_light", "機種変更・移動機物品販売", "50GB"),
+            ("super_light", "MNP", "5GB"),
+            ("hyper_light", "新規", "無制限"),
+        ):
+            with self.subTest(plan_id=plan_id, sales=sales, capacity=capacity):
+                quote = build_quote(
+                    {
+                        "quote_id": "T-36-SL",
+                        "model": "iPhone 16e(128GB)",
+                        "sales_type": sales,
+                        "plan_id": plan_id,
+                        "data_plan": capacity,
+                        "installment_months": 36,
+                        "services": {
+                            "ips": {"type": "subscription"},
+                            "support_plan_id": "auto",
+                        },
+                        "universal_fee_tax_in": 4,
+                        "universal_fee_tax_ex": 4,
+                        "tax_rate": 0.10,
+                    },
+                    master,
+                    plans,
+                    services,
+                )
+                self.assertEqual(quote["installment_months"], 36)
+                self.assertEqual(quote["periods"][0]["key"], "1_36")
+                self.assertIsNotNone(quote["services"]["support"])
+
 
 if __name__ == "__main__":
     unittest.main()

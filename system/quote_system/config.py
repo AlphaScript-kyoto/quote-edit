@@ -9,13 +9,15 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.5"
+APP_VERSION = "1.6"
 APP_DISPLAY_NAME = "見積もり一括作成"
 
 # パッケージ版: standard（現場向け） / tm_special（TM兼任事業部用・個別制限解除）
+# / agency（代理店用：TM兼任用と同じ特例ルール＋部署はRT事業部固定）
 EDITION_STANDARD = "standard"
 EDITION_TM_SPECIAL = "tm_special"
-_VALID_EDITIONS = frozenset({EDITION_STANDARD, EDITION_TM_SPECIAL})
+EDITION_AGENCY = "agency"
+_VALID_EDITIONS = frozenset({EDITION_STANDARD, EDITION_TM_SPECIAL, EDITION_AGENCY})
 
 
 def _resolve_app_edition() -> str:
@@ -50,11 +52,24 @@ def _resolve_app_edition() -> str:
 
 APP_EDITION = _resolve_app_edition()
 IS_TM_SPECIAL = APP_EDITION == EDITION_TM_SPECIAL
+IS_AGENCY = APP_EDITION == EDITION_AGENCY
+# 特例ルール（個別の制限解除・特例初期費用4,500円・更新チェックなし）を使う版
+IS_SPECIAL_EDITION = IS_TM_SPECIAL or IS_AGENCY
+# 画面・パッケージ名に付ける版の名前（通常版は空）
+EDITION_LABEL = {
+    EDITION_TM_SPECIAL: "TM兼任事業部用",
+    EDITION_AGENCY: "代理店用",
+}.get(APP_EDITION, "")
+# 代理店用は見積書の部署を固定し、画面の部署選択を出さない
+FORCED_DEPARTMENT: str | None = "RT事業部" if IS_AGENCY else None
 
 FROZEN = bool(getattr(sys, "frozen", False))
 _USER_DATA_ROOT = Path(
     os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
-) / ("InfinityQuoteAppTM" if IS_TM_SPECIAL else "InfinityQuoteApp")
+) / {
+    EDITION_TM_SPECIAL: "InfinityQuoteAppTM",
+    EDITION_AGENCY: "InfinityQuoteAppAgency",
+}.get(APP_EDITION, "InfinityQuoteApp")
 
 if FROZEN:
     APP_ROOT = Path(sys.executable).resolve().parent
@@ -74,21 +89,25 @@ else:
 OUTPUT_DIR = APP_ROOT / "output"
 UPDATE_DIR = APP_ROOT / "機種代金一覧表"
 
-# TM特例パッケージは出力も分離（通常版の見積PDFと混線しない）
-QUOTE_OUTPUT_DIRNAME = "見積PDF_TM特例" if IS_TM_SPECIAL else "見積PDF"
-QUOTE_OUTPUT_DIRNAME_36 = "見積PDF_TM特例_36回" if IS_TM_SPECIAL else "見積PDF_36回"
-QUOTE_OUTPUT_DIRNAME_24 = "見積PDF_TM特例_24回" if IS_TM_SPECIAL else "見積PDF_24回"
+# 特例パッケージは出力も分離（通常版の見積PDFと混線しない）
+_OUTPUT_SUFFIX = {
+    EDITION_TM_SPECIAL: "_TM特例",
+    EDITION_AGENCY: "_代理店",
+}.get(APP_EDITION, "")
+QUOTE_OUTPUT_DIRNAME = f"見積PDF{_OUTPUT_SUFFIX}"
+QUOTE_OUTPUT_DIRNAME_36 = f"見積PDF{_OUTPUT_SUFFIX}_36回"
+QUOTE_OUTPUT_DIRNAME_24 = f"見積PDF{_OUTPUT_SUFFIX}_24回"
 
 
 def app_window_title() -> str:
-    if IS_TM_SPECIAL:
-        return f"{APP_DISPLAY_NAME}（TM兼任事業部用）  ver.{APP_VERSION}"
+    if EDITION_LABEL:
+        return f"{APP_DISPLAY_NAME}（{EDITION_LABEL}）  ver.{APP_VERSION}"
     return f"{APP_DISPLAY_NAME}  ver.{APP_VERSION}"
 
 
 def package_dir_name() -> str:
-    if IS_TM_SPECIAL:
-        return f"{APP_DISPLAY_NAME}_TM兼任事業部用ver{APP_VERSION}"
+    if EDITION_LABEL:
+        return f"{APP_DISPLAY_NAME}_{EDITION_LABEL}ver{APP_VERSION}"
     return f"{APP_DISPLAY_NAME}ver{APP_VERSION}"
 
 # 旧コード互換

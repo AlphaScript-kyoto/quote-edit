@@ -28,7 +28,9 @@ from quote_system.config import (
     APP_DISPLAY_NAME,
     APP_VERSION,
     DATA_DIR,
-    IS_TM_SPECIAL,
+    EDITION_LABEL,
+    FORCED_DEPARTMENT,
+    IS_SPECIAL_EDITION,
     QUOTE_OUTPUT_DIRNAME,
     QUOTE_OUTPUT_DIRNAME_24,
     QUOTE_OUTPUT_DIRNAME_36,
@@ -84,12 +86,14 @@ class QuoteApp(tk.Tk):
         self._is_running = False
         company = load_json(DATA_DIR / "company.json")
         self.departments = company.get("departments", [company.get("department", "TM事業本部")])
-        self.department_var = tk.StringVar(value=company.get("department", self.departments[0]))
+        self.department_var = tk.StringVar(
+            value=FORCED_DEPARTMENT or company.get("department", self.departments[0])
+        )
         self._build_ui()
         self._fit_window_to_content()
         self._on_installment_mode_changed()
         self._refresh_resume_button(log_if_available=True)
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             self.after(300, self._warn_tm_special_edition)
         else:
             # 通常版のみ：共有フォルダの latest.json を短時間チェック（失敗時は黙って起動）
@@ -97,8 +101,8 @@ class QuoteApp(tk.Tk):
 
     def _warn_tm_special_edition(self) -> None:
         messagebox.showwarning(
-            "TM兼任事業部用パッケージ",
-            "このアプリはTM兼任事業部向けの特例版です。\n\n"
+            f"{EDITION_LABEL}パッケージ",
+            f"このアプリは{EDITION_LABEL}の特例版です。\n\n"
             "・一括作成 … 通常版と同じ制限\n"
             "・個別作成 … ライト系の販売区分・容量・IRSの制限を解除\n\n"
             "標準ルール外の見積になるため、取扱いには注意してください。",
@@ -156,8 +160,8 @@ class QuoteApp(tk.Tk):
             side="left", anchor="w"
         )
         ver_label = f"ver.{APP_VERSION}"
-        if IS_TM_SPECIAL:
-            ver_label = f"TM兼任事業部用  {ver_label}"
+        if IS_SPECIAL_EDITION:
+            ver_label = f"{EDITION_LABEL}  {ver_label}"
         ttk.Label(
             header,
             text=ver_label,
@@ -208,10 +212,10 @@ class QuoteApp(tk.Tk):
             foreground="#555555",
             wraplength=700,
         ).pack(anchor="w", pady=(2, 0))
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             ttk.Label(
                 mode_frame,
-                text="※このパッケージはTM兼任事業部用です。一括は通常ルール／個別のみ制限解除。",
+                text=f"※このパッケージは{EDITION_LABEL}です。一括は通常ルール／個別のみ制限解除。",
                 foreground="#C00000",
                 wraplength=700,
             ).pack(anchor="w", pady=(4, 0))
@@ -238,21 +242,22 @@ class QuoteApp(tk.Tk):
             text="データ容量：ケータイは1GBのみ／iPad・AndroidTabは1・5・50GB／他は5GB以上。"
             "おうち割あり×5GBは通常作成しません（iPad・AndroidTabは例外で作成）。",
         ).pack(anchor="w", pady=(3, 0))
-        department_row = ttk.Frame(option_frame)
-        department_row.pack(fill="x", pady=(8, 3))
-        ttk.Label(department_row, text="見積書に表示する部署：").pack(side="left")
-        ttk.Combobox(
-            department_row,
-            textvariable=self.department_var,
-            values=self.departments,
-            state="normal",
-            width=28,
-        ).pack(side="left")
-        ttk.Label(
-            option_frame,
-            text="※選んだ部署が、見積もりの右上に表示されます（電話・住所も部署ごと同じになります）。",
-            wraplength=700,
-        ).pack(anchor="w", pady=(2, 0))
+        if not FORCED_DEPARTMENT:
+            department_row = ttk.Frame(option_frame)
+            department_row.pack(fill="x", pady=(8, 3))
+            ttk.Label(department_row, text="見積書に表示する部署：").pack(side="left")
+            ttk.Combobox(
+                department_row,
+                textvariable=self.department_var,
+                values=self.departments,
+                state="normal",
+                width=28,
+            ).pack(side="left")
+            ttk.Label(
+                option_frame,
+                text="※選んだ部署が、見積もりの右上に表示されます（電話・住所も部署ごと同じになります）。",
+                wraplength=700,
+            ).pack(anchor="w", pady=(2, 0))
         ttk.Checkbutton(
             option_frame,
             text="値段が変わっていない機種も、もう一度すべて作り直す",
@@ -782,8 +787,8 @@ class QuoteApp(tk.Tk):
                 "devices": devices,
             }
             mode_label = "個別見積作成（36回割賦）"
-            if IS_TM_SPECIAL:
-                mode_label = "特例個別見積（36回・TM兼任事業部用）"
+            if IS_SPECIAL_EDITION:
+                mode_label = f"特例個別見積（36回・{EDITION_LABEL}）"
         elif months == 24:
             if not (DATA_DIR / "device_master.json").exists():
                 messagebox.showerror(
@@ -807,8 +812,8 @@ class QuoteApp(tk.Tk):
             else:
                 devices = with_24
             mode_label = "個別見積作成（24回割賦）"
-            if IS_TM_SPECIAL:
-                mode_label = "特例個別見積（24回・TM兼任事業部用）"
+            if IS_SPECIAL_EDITION:
+                mode_label = f"特例個別見積（24回・{EDITION_LABEL}）"
         else:
             if not (DATA_DIR / "device_master.json").exists():
                 messagebox.showerror(
@@ -826,8 +831,8 @@ class QuoteApp(tk.Tk):
                 and not is_mm_route_restricted(d)
             ]
             mode_label = "個別見積作成（通常48回）"
-            if IS_TM_SPECIAL:
-                mode_label = "特例個別見積（通常48回・TM兼任事業部用）"
+            if IS_SPECIAL_EDITION:
+                mode_label = f"特例個別見積（通常48回・{EDITION_LABEL}）"
         models = [d["model"] for d in devices]
         if not models:
             if months == 24:
@@ -845,13 +850,13 @@ class QuoteApp(tk.Tk):
         win = tk.Toplevel(self)
         win.title(mode_label)
         if months == 36:
-            if IS_TM_SPECIAL:
+            if IS_SPECIAL_EDITION:
                 win.geometry("720x980")
                 win.minsize(660, 880)
             else:
                 win.geometry("720x900")
                 win.minsize(660, 800)
-        elif IS_TM_SPECIAL:
+        elif IS_SPECIAL_EDITION:
             # 特例は注意文・IRSラジオ・初期費用注記が増えるため高めにする
             win.geometry("700x920")
             win.minsize(640, 860)
@@ -876,7 +881,7 @@ class QuoteApp(tk.Tk):
             frame,
             text="選択した条件だけを作成します。",
         ).pack(anchor="w", pady=(2, 2))
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             ttk.Label(
                 frame,
                 text="※特例：標準の販売区分×プラン×容量×IRSセット制限を外しています（一括作成は通常ルールのまま）。",
@@ -943,7 +948,7 @@ class QuoteApp(tk.Tk):
         sales_var = tk.StringVar(value=sales_types[0])
         # TM特例個別: Biz → ライト → スーパー → ハイパー の順で見せる
         _tm_plan_order = ("biz_plus", "light", "super_light", "hyper_light")
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             all_plan_name_to_id: dict[str, str] = {}
             for plan_id in _tm_plan_order:
                 plan = plan_master["plans"].get(plan_id)
@@ -997,7 +1002,7 @@ class QuoteApp(tk.Tk):
         ouchi_yes_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(ouchi_box, text="SB光なし", variable=ouchi_none_var).pack(side="left", padx=8)
         ttk.Checkbutton(ouchi_box, text="SB光あり", variable=ouchi_yes_var).pack(side="left", padx=8)
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             ttk.Label(
                 ouchi_box,
                 text="※特例：5GBでもSB光あり（おうち割）を作成できます",
@@ -1029,7 +1034,7 @@ class QuoteApp(tk.Tk):
             text="※通常IPSは機種に合うゴールド／プラチナ等をすべて作成します。",
             wraplength=580,
         ).pack(anchor="w", pady=(4, 0))
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             # 特例: プラン自動割当なし。なし／XS／S の排他ラジオ
             support_radio_var = tk.StringVar(value="none")
             support_box = ttk.LabelFrame(service_box, text="安心サポート（どれか1つ）", padding=8)
@@ -1089,7 +1094,7 @@ class QuoteApp(tk.Tk):
         fee_standard_var = tk.BooleanVar(value=False)
         fee_special_label = (
             "事務手数料免除＋初期費用4,500円（標準）"
-            if IS_TM_SPECIAL
+            if IS_SPECIAL_EDITION
             else "事務手数料免除＋初期費用3,000円（標準）"
         )
         ttk.Checkbutton(
@@ -1098,7 +1103,7 @@ class QuoteApp(tk.Tk):
         ttk.Checkbutton(
             fee_box, text="事務手数料あり（税抜4,500円）", variable=fee_standard_var
         ).pack(anchor="w")
-        if IS_TM_SPECIAL:
+        if IS_SPECIAL_EDITION:
             ttk.Label(
                 fee_box,
                 text="※特例の標準は免除＋初期費用4,500円（税込4,950円）。通常版の3,000円とは異なります。",
@@ -1113,10 +1118,11 @@ class QuoteApp(tk.Tk):
             plan_name_to_id = {
                 name: plan_id
                 for name, plan_id in all_plan_name_to_id.items()
-                if is_sales_plan_allowed(sales, plan_id, unrestricted=IS_TM_SPECIAL)
+                if is_sales_plan_allowed(sales, plan_id, unrestricted=IS_SPECIAL_EDITION)
                 and (
                     not selected
-                    or all(
+                    # 複数機種選択時は「どれか1機種でも使えるプラン」を選べる（使えない機種は作成時にスキップ）
+                    or any(
                         is_device_plan_allowed(device, plan_id)
                         for device in selected
                     )
@@ -1181,7 +1187,10 @@ class QuoteApp(tk.Tk):
                 allowed = (
                     name in plan["data_plans"]
                     and is_plan_data_plan_allowed(
-                        plan_id, name, unrestricted=IS_TM_SPECIAL
+                        plan_id,
+                        name,
+                        unrestricted=IS_SPECIAL_EDITION,
+                        sales_type=sales_var.get(),
                     )
                     and any(
                         is_device_data_plan_allowed(device, name, sales_var.get())
@@ -1220,8 +1229,13 @@ class QuoteApp(tk.Tk):
                 ]
                 total_files = 0
                 output_dir = None
+                plan_id = plan_name_to_id[plan_var.get()]
                 for target in target_models:
                     device = find_device(device_master, target)
+                    if not is_device_plan_allowed(device, plan_id):
+                        continue
+                    if not is_device_sales_type_allowed(device, sales_var.get()):
+                        continue
                     # 機種ごとに使える容量だけ渡す（複数機種の混在選択に対応）
                     data_plans = [
                         name for name in selected_capacities
@@ -1232,7 +1246,7 @@ class QuoteApp(tk.Tk):
                     result = run_individual(
                         model=target,
                         sales_type=sales_var.get(),
-                        plan_id=plan_name_to_id[plan_var.get()],
+                        plan_id=plan_id,
                         data_plans=data_plans,
                         ouchi_options=[
                             option for option, enabled in (
@@ -1247,7 +1261,7 @@ class QuoteApp(tk.Tk):
                         department=self.department_var.get(),
                         initial_fee_modes=fee_modes,
                         installment_months=months,
-                        unrestricted_individual=IS_TM_SPECIAL,
+                        unrestricted_individual=IS_SPECIAL_EDITION,
                     )
                     total_files += result.generated_files
                     output_dir = result.output_dir

@@ -32,7 +32,7 @@ class UpdateCheckTest(unittest.TestCase):
             (share / "latest.json").write_text(
                 json.dumps(payload, ensure_ascii=False), encoding="utf-8"
             )
-            with patch.object(uc, "IS_TM_SPECIAL", False):
+            with patch.object(uc, "IS_SPECIAL_EDITION", False):
                 self.assertIsNone(uc.fetch_remote_latest(share_dir=share, timeout_sec=1.0))
 
     def test_check_for_update_finds_newer_standard(self):
@@ -49,7 +49,7 @@ class UpdateCheckTest(unittest.TestCase):
                 json.dumps(payload, ensure_ascii=False), encoding="utf-8"
             )
             with (
-                patch.object(uc, "IS_TM_SPECIAL", False),
+                patch.object(uc, "IS_SPECIAL_EDITION", False),
                 patch.object(uc, "STATE_PATH", state),
             ):
                 remote = uc.check_for_update(
@@ -71,7 +71,7 @@ class UpdateCheckTest(unittest.TestCase):
                 self.assertIsNone(again)
 
     def test_tm_special_skips_check(self):
-        with patch.object(uc, "IS_TM_SPECIAL", True):
+        with patch.object(uc, "IS_SPECIAL_EDITION", True):
             self.assertIsNone(uc.fetch_remote_latest(timeout_sec=0.5))
 
 
