@@ -277,6 +277,48 @@ class Installment36PrototypeTest(unittest.TestCase):
                 self.assertEqual(quote["periods"][0]["key"], "1_36")
                 self.assertIsNotNone(quote["services"]["support"])
 
+    def test_run_individual_36_super_hyper_pdfs(self):
+        """36回の個別作成でスーパー／ハイパーのPDFが実際に1ページで出る。"""
+        folder = UPDATE_DIR / "36回割賦"
+        if not list(folder.glob("*.pdf")):
+            self.skipTest("no 36 PDF in update folder")
+        import pdfplumber
+
+        from quote_system.installment_36 import import_installment_36_master
+
+        targets = filter_36_target_devices(import_installment_36_master())
+        iphone = next((d for d in targets if d.get("category") == "iPhone"), None)
+        if iphone is None:
+            self.skipTest("no iPhone in 36 targets")
+        cases = (
+            ("機種変更・移動機物品販売", "super_light", ["50GB"]),
+            ("MNP", "super_light", ["5GB", "20GB", "50GB", "無制限"]),
+            ("新規", "hyper_light", ["5GB", "20GB", "無制限"]),
+        )
+        for sales, plan_id, capacities in cases:
+            with self.subTest(sales=sales, plan_id=plan_id), TemporaryDirectory() as tmp:
+                out = Path(tmp)
+                with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT_36", out):
+                    result = run_individual(
+                        model=iphone["model"],
+                        sales_type=sales,
+                        plan_id=plan_id,
+                        data_plans=capacities,
+                        ouchi_options=[False],
+                        include_ips_subscription=True,
+                        support_plan_id="auto",
+                        installment_months=36,
+                        unrestricted_individual=False,
+                    )
+                pdfs = sorted(out.rglob("*.pdf"))
+                self.assertEqual(result.generated_files, len(capacities))
+                self.assertEqual(len(pdfs), len(capacities))
+                with pdfplumber.open(pdfs[0]) as doc:
+                    self.assertEqual(len(doc.pages), 1)
+                    text = doc.pages[0].extract_text() or ""
+                self.assertIn("36", text)
+                self.assertIn("弊社特別割引", text)
+
 
 if __name__ == "__main__":
     unittest.main()
