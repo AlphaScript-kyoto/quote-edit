@@ -16,6 +16,7 @@ from quote_system.installment_36 import (
     parse_installment_36_pdf,
 )
 from quote_system.pdf_renderer import _attention_notes, _device_payment_label
+from quote_system.price_pdf_parser import SALES_COLUMNS
 from quote_system.quote_service import build_quote
 
 
@@ -293,7 +294,8 @@ class Installment36PrototypeTest(unittest.TestCase):
                  "model_key": "iphone16e128gb", "payment_36_flat": 3308, "total": 119088},
             ]
         }
-        all_devices = i36.all_36_devices(master_36)
+        empty_48 = {"devices": []}
+        all_devices = i36.all_36_devices(master_36, empty_48)
         self.assertEqual(
             [d["model_key"] for d in all_devices], ["iphone17pro256gb", "iphone16e128gb"]
         )
@@ -302,6 +304,7 @@ class Installment36PrototypeTest(unittest.TestCase):
             with (
                 patch.object(i36, "INCLUDED_36_PATH", path),
                 patch.object(i36, "TARGETS_PATH", Path(tmp) / "no_targets.json"),
+                patch.object(i36, "DEVICE_MASTER_48_PATH", Path(tmp) / "no_master.json"),
             ):
                 # 未保存: 旧ルール既定値（16e は対象、17 Pro は対象外）
                 self.assertEqual(i36.load_included_36_keys(master_36), {"iphone16e128gb"})
@@ -313,6 +316,116 @@ class Installment36PrototypeTest(unittest.TestCase):
                 )
                 i36.save_included_36_keys([])
                 self.assertEqual(i36.selected_36_devices(master_36), [])
+
+    def test_36_only_devices_from_48_price_list_are_added(self):
+        """通常価格表で36回欄だけに金額がある機種（データ通信）を36回の一覧に足す。"""
+        from quote_system import installment_36 as i36
+
+        empty_48_payments = {
+            sales: {"1_12": None, "13_24": None, "25_48": None} for sales in SALES_COLUMNS
+        }
+        master_48 = {
+            "devices": [
+                {"category": "データ通信", "model": "Pocket WiFi 5G A503SH",
+                 "model_key": "pocketwifi5ga503sh", "status": "販売中",
+                 "payment_48": empty_48_payments, "payment_36": 1320, "total": 47520},
+                # 48回もある機種は足さない（36回PDF側で扱う）
+                {"category": "iPhone", "model": "iPhone 17(256GB)",
+                 "model_key": "iphone17256gb", "status": "販売中",
+                 "payment_48": {s: {"1_12": 3000, "13_24": 3000, "25_48": 3000}
+                                for s in SALES_COLUMNS},
+                 "payment_36": 4000, "total": 144000},
+                # 検算が合わない行は足さない
+                {"category": "データ通信", "model": "Broken", "model_key": "broken",
+                 "status": "販売中", "payment_48": empty_48_payments,
+                 "payment_36": 100, "total": 999},
+            ]
+        }
+        master_36 = {
+            "devices": [
+                {"category": "iPhone", "model": "iPhone 16e(128GB)",
+                 "model_key": "iphone16e128gb", "payment_36_flat": 3308, "total": 119088},
+            ]
+        }
+        devices = i36.all_36_devices(master_36, master_48)
+        self.assertEqual(
+            [d["model_key"] for d in devices], ["iphone16e128gb", "pocketwifi5ga503sh"]
+        )
+        wifi = devices[1]
+        self.assertEqual(wifi["category"], "データ通信")
+        self.assertEqual(wifi["payment_36_flat"], 1320)
+        self.assertEqual(wifi["installment_months"], 36)
+
+        plans = load_json(DATA_DIR / "plans.json")
+        services = load_json(DATA_DIR / "services.json")
+        quote = build_quote(
+            {
+                "quote_id": "T-36-DATA",
+                "model": wifi["model"],
+                "sales_type": "新規",
+                "plan_id": "biz_plus",
+                "data_plan": "20GB",
+                "installment_months": 36,
+                "services": {"ips": {"type": "subscription"}, "support_plan_id": "auto"},
+                "universal_fee_tax_in": 4,
+                "universal_fee_tax_ex": 4,
+                "tax_rate": 0.10,
+            },
+            {"devices": devices},
+            plans,
+            services,
+        )
+        self.assertEqual(quote["periods"][0]["key"], "1_36")
+        self.assertEqual(quote["periods"][0]["device_payment"], 1320)
+
+        from quote_system.batch_service import quote_variants
+
+        variants = list(quote_variants(wifi, plans, include_mnp_shinki_irs=True))
+        self.assertTrue(variants)
+        self.assertEqual({v["plan_id"] for v in variants}, {"biz_plus"})
+        self.assertFalse({"MNP", "番号移行"} & {v["sales_type"] for v in variants})
+
+    def test_run_individual_36_data_device_pdf_if_present(self):
+        """実データ: データ通信の機種で36回の個別PDFが1ページで出る。"""
+        folder = UPDATE_DIR / "36回割賦"
+        if not list(folder.glob("*.pdf")):
+            self.skipTest("no 36 PDF in update folder")
+        import pdfplumber
+
+        from quote_system.installment_36 import all_36_devices, import_installment_36_master
+
+        devices = all_36_devices(import_installment_36_master())
+        data_device = next((d for d in devices if d.get("category") == "データ通信"), None)
+        if data_device is None:
+            self.skipTest("no data-communication device in price lists")
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            included = Path(tmp) / "included_models_36.json"
+            included.write_text(
+                '{"model_keys": ["%s"]}' % data_device["model_key"], encoding="utf-8"
+            )
+            with (
+                patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT_36", out),
+                patch("quote_system.installment_36.INCLUDED_36_PATH", included),
+            ):
+                result = run_individual(
+                    model=data_device["model"],
+                    sales_type="新規",
+                    plan_id="biz_plus",
+                    data_plans=["20GB"],
+                    ouchi_options=[False],
+                    include_ips_subscription=True,
+                    support_plan_id="auto",
+                    installment_months=36,
+                    unrestricted_individual=False,
+                )
+            pdfs = sorted(out.rglob("*.pdf"))
+            self.assertEqual(result.generated_files, 1)
+            self.assertEqual(pdfs[0].parts[len(out.parts)], "データ通信")
+            with pdfplumber.open(pdfs[0]) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = doc.pages[0].extract_text() or ""
+            self.assertIn("36", text)
 
     def test_run_individual_36_super_hyper_pdfs(self):
         """36回の個別作成でスーパー／ハイパーのPDFが実際に1ページで出る。"""

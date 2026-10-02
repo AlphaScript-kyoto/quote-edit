@@ -433,6 +433,7 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - 36-mode model selection: picks from **all models read from the 36 PDF** with the same 作成する機種 window as 48 (category sections, PDF order). Saved to `data/included_models_36.json` (separate from 48). When absent, legacy `installment_36_targets.json` rules seed the initial checks, so first behavior matches the old JSON targets. 対象機種JSONを編集 button removed.
 - `installment_36.py`: `all_36_devices`, `load_included_36_keys`, `save_included_36_keys`, `selected_36_devices`; parse skips ※MM販路取扱不可 and applies `clean_model_name`; `PARSER_VERSION_36 = 2` invalidates old `device_master_36.json` cache.
 - Batch 36 / individual 36 use `selected_36_devices`. Fixed resume of a paused 36 batch (previously looked up models in the 48 master).
+- 36-only devices from the **48 price list** (データ通信 such as Pocket WiFi / Stick WiFi: `payment_36` set, all `payment_48` null) are appended to the 36 model list after the 36-PDF devices (`devices_36_only_from_48_master`; requires 販売中, not MM, and monthly×36 == total). They appear unchecked in the 36 picker until selected. Plan rules unchanged: Bizパッケージ＋ only (light family is iPhone/Android only), no MNP/番号移行.
 
 ## Release checklist
 1. APP_VERSION

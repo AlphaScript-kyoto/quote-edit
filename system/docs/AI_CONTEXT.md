@@ -177,7 +177,7 @@ price PDF
   -> output/<見積PDF|見積PDF_36回|見積PDF_24回|TM variants>/<tree>/<file>.pdf
 ```
 
-Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent).
+Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent). The 36 list also includes 36-only devices found in the 48 price list (データ通信 rows with `payment_36` but no 48 payments).
 
 ---
 

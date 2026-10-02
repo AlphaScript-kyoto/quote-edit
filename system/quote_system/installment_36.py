@@ -18,6 +18,8 @@ from .price_pdf_parser import (
 TARGETS_PATH = DATA_DIR / "installment_36_targets.json"
 INCLUDED_36_PATH = DATA_DIR / "included_models_36.json"
 DEVICE_MASTER_36_PATH = DATA_DIR / "device_master_36.json"
+# 通常（48回）の価格表から取り込んだ機種マスター。36回列だけに金額がある機種を補う
+DEVICE_MASTER_48_PATH = DATA_DIR / "device_master.json"
 UPDATE_36_DIR = UPDATE_DIR / "36回割賦"
 # キャッシュ互換を判定する版数（パース仕様を変えたら上げる）
 PARSER_VERSION_36 = 2
@@ -203,11 +205,72 @@ def _shape_36_device(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def all_36_devices(master_36: dict[str, Any]) -> list[dict[str, Any]]:
-    """36回PDFから読み取れた機種すべて（PDF掲載順・同名は先勝ち・MM販路不可は除外）。"""
+def _has_48_payment(device: dict[str, Any]) -> bool:
+    return any(
+        value is not None
+        for payments in (device.get("payment_48") or {}).values()
+        for value in (payments or {}).values()
+    )
+
+
+def devices_36_only_from_48_master(
+    device_master_48: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """通常の価格表で48回欄が空、36回欄だけに金額がある機種（例: データ通信）。"""
+    extra: list[dict[str, Any]] = []
+    for device in (device_master_48 or {}).get("devices") or []:
+        monthly = device.get("payment_36")
+        if monthly is None or _has_48_payment(device):
+            continue
+        if device.get("status") != "販売中" or is_mm_route_restricted(device):
+            continue
+        total = device.get("total")
+        if total is not None and int(monthly) * 36 != int(total):
+            continue
+        extra.append(
+            {
+                "category": device.get("category") or "",
+                "model": device["model"],
+                "model_key": device["model_key"],
+                "status": "販売中",
+                "payment_36_flat": int(monthly),
+                "installment_months": 36,
+                "total": int(total) if total is not None else int(monthly) * 36,
+                "source_page": device.get("source_page"),
+                "source": "price_list_48",
+                "eligible": device.get("eligible"),
+            }
+        )
+    return extra
+
+
+def _load_device_master_48() -> dict[str, Any] | None:
+    if not DEVICE_MASTER_48_PATH.exists():
+        return None
+    try:
+        payload = load_json(DEVICE_MASTER_48_PATH)
+    except Exception:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def all_36_devices(
+    master_36: dict[str, Any],
+    device_master_48: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """36回で選べる機種すべて（MM販路不可は除外・同名は先勝ち）。
+
+    36回PDFの機種（掲載順）のあとに、通常の価格表で36回欄だけに金額がある機種を足す。
+    device_master_48 未指定時は data/device_master.json を読む。
+    """
+    if device_master_48 is None:
+        device_master_48 = _load_device_master_48()
     devices: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for raw in master_36.get("devices") or []:
+    sources = list(master_36.get("devices") or []) + devices_36_only_from_48_master(
+        device_master_48
+    )
+    for raw in sources:
         key = str(raw.get("model_key") or "")
         if not key or key in seen or is_mm_route_restricted(raw):
             continue
