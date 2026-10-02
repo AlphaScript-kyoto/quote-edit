@@ -1,17 +1,26 @@
-"""36回割賦：対象リスト・PDF取込・マスター合成。"""
+"""36回割賦：PDF取込・作成する機種（チェック選択）・マスター合成。"""
 from __future__ import annotations
 
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .config import DATA_DIR, UPDATE_DIR, load_json, save_json
-from .price_pdf_parser import SALES_COLUMNS, normalize_model_name
+from .price_pdf_parser import (
+    SALES_COLUMNS,
+    clean_model_name,
+    is_mm_route_restricted,
+    normalize_model_name,
+)
 
+# 旧方式の対象ルール。included_models_36.json が無いときの初期選択にだけ使う。
 TARGETS_PATH = DATA_DIR / "installment_36_targets.json"
+INCLUDED_36_PATH = DATA_DIR / "included_models_36.json"
 DEVICE_MASTER_36_PATH = DATA_DIR / "device_master_36.json"
 UPDATE_36_DIR = UPDATE_DIR / "36回割賦"
+# キャッシュ互換を判定する版数（パース仕様を変えたら上げる）
+PARSER_VERSION_36 = 2
 
 TABLE_SETTINGS = {
     "vertical_strategy": "lines",
@@ -128,9 +137,12 @@ def parse_installment_36_pdf(pdf_path: Path) -> dict[str, Any]:
                 cat = str(row[1] or "").replace("\n", " ").strip()
                 if cat and cat not in {"カテゴリ", "変更"}:
                     category = cat
-                model = str(row[2] or "").replace("\n", " ").strip()
-                if not model or model == "機種":
+                raw_model = str(row[2] or "").replace("\n", " ").strip()
+                if not raw_model or raw_model == "機種":
                     continue
+                if is_mm_route_restricted(raw_model):
+                    continue
+                model = clean_model_name(raw_model)
                 monthly = _num(row[6])
                 total = _num(row[8] if len(row) > 8 else None)
                 if monthly is None:
@@ -157,6 +169,7 @@ def parse_installment_36_pdf(pdf_path: Path) -> dict[str, Any]:
 
     return {
         "schema_version": 1,
+        "parser_version": PARSER_VERSION_36,
         "installment_months": 36,
         "source_pdf": pdf_path.name,
         "imported_at": datetime.now().isoformat(timespec="seconds"),
@@ -166,45 +179,84 @@ def parse_installment_36_pdf(pdf_path: Path) -> dict[str, Any]:
     }
 
 
+def _shape_36_device(raw: dict[str, Any]) -> dict[str, Any]:
+    monthly = int(raw["payment_36_flat"])
+    # quote_variants は payment_48 の None チェックを通すため均等値を埋め込む
+    payment_48 = {
+        sales: {"1_12": monthly, "13_24": monthly, "25_48": monthly}
+        for sales in SALES_COLUMNS
+    }
+    return {
+        **raw,
+        "status": "販売中",
+        "installment_months": 36,
+        "payment_36_flat": monthly,
+        "payment_48": payment_48,
+        "payment_36": monthly,
+        "payment_24": None,
+        "eligible": raw.get("eligible")
+        or {
+            "new_toku_support_plus": False,
+            "replacement_support": False,
+            "mobile_device_sale": False,
+        },
+    }
+
+
+def all_36_devices(master_36: dict[str, Any]) -> list[dict[str, Any]]:
+    """36回PDFから読み取れた機種すべて（PDF掲載順・同名は先勝ち・MM販路不可は除外）。"""
+    devices: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in master_36.get("devices") or []:
+        key = str(raw.get("model_key") or "")
+        if not key or key in seen or is_mm_route_restricted(raw):
+            continue
+        seen.add(key)
+        devices.append(_shape_36_device(raw))
+    return devices
+
+
 def filter_36_target_devices(
     master_36: dict[str, Any],
     *,
     targets: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    """旧方式：installment_36_targets.json のルールに合う機種。"""
     rules = targets if targets is not None else load_installment_36_targets()
-    selected: list[dict[str, Any]] = []
-    for raw in master_36.get("devices") or []:
-        if not is_installment_36_target(
-            model=str(raw.get("model") or ""),
-            model_key=str(raw.get("model_key") or ""),
-            category=str(raw.get("category") or ""),
+    return [
+        device
+        for device in all_36_devices(master_36)
+        if is_installment_36_target(
+            model=str(device.get("model") or ""),
+            model_key=str(device.get("model_key") or ""),
+            category=str(device.get("category") or ""),
             targets=rules,
-        ):
-            continue
-        monthly = int(raw["payment_36_flat"])
-        # quote_variants は payment_48 の None チェックを通すため均等値を埋め込む
-        payment_48 = {
-            sales: {"1_12": monthly, "13_24": monthly, "25_48": monthly}
-            for sales in SALES_COLUMNS
-        }
-        selected.append(
-            {
-                **raw,
-                "status": "販売中",
-                "installment_months": 36,
-                "payment_36_flat": monthly,
-                "payment_48": payment_48,
-                "payment_36": monthly,
-                "payment_24": None,
-                "eligible": raw.get("eligible")
-                or {
-                    "new_toku_support_plus": False,
-                    "replacement_support": False,
-                    "mobile_device_sale": False,
-                },
-            }
         )
-    return selected
+    ]
+
+
+def load_included_36_keys(master_36: dict[str, Any]) -> set[str]:
+    """36回で作成する機種。保存が無ければ旧ルール（対象JSON）に合う機種を初期選択にする。"""
+    available = {str(d["model_key"]) for d in all_36_devices(master_36)}
+    if INCLUDED_36_PATH.exists():
+        keys = {
+            str(key) for key in load_json(INCLUDED_36_PATH).get("model_keys", [])
+        }
+        return keys & available
+    return {str(d["model_key"]) for d in filter_36_target_devices(master_36)}
+
+
+def save_included_36_keys(model_keys: Iterable[str]) -> None:
+    save_json(INCLUDED_36_PATH, {
+        "model_keys": sorted({str(key) for key in model_keys}),
+        "updated_at": datetime.now().isoformat(timespec="seconds"),
+    })
+
+
+def selected_36_devices(master_36: dict[str, Any]) -> list[dict[str, Any]]:
+    """作成する機種にチェックした36回機種（PDF掲載順）。"""
+    included = load_included_36_keys(master_36)
+    return [d for d in all_36_devices(master_36) if d["model_key"] in included]
 
 
 def import_installment_36_master(pdf_path: Path | None = None) -> dict[str, Any]:
@@ -226,6 +278,7 @@ def import_installment_36_master(pdf_path: Path | None = None) -> dict[str, Any]
         if (
             isinstance(cached, dict)
             and cached.get("source_hash") == source_hash
+            and cached.get("parser_version") == PARSER_VERSION_36
             and cached.get("devices")
         ):
             return cached

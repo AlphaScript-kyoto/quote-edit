@@ -940,7 +940,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertIn("IRSあり", standard_relative.parts)
         self.assertNotIn("初期費用3300円", str(standard_relative))
 
-        # 自動サポートのない Bizパッケージ＋ は IRSフォルダなし（スーパー／ハイパーのみIRS枠）
+        # Bizパッケージ＋（サポートなし）は IRSなし 配下（全販売区分でIRSあり／なしを分ける）
         biz_request = deepcopy(self.request)
         biz_request["plan_id"] = "biz_plus"
         biz_request["services"] = {"ips": {"type": "subscription"}, "support_plan_id": "auto"}
@@ -956,12 +956,12 @@ class QuoteSystemTest(unittest.TestCase):
             "SB光なし",
         )
         self.assertEqual(biz_relative.parts[1], "iPhone17(256GB)")
-        self.assertEqual(biz_relative.parts[4], "IPSサブスク")
-        self.assertNotIn("IRSなし", biz_relative.parts)
+        self.assertEqual(biz_relative.parts[4], "IRSなし")
+        self.assertEqual(biz_relative.parts[5], "IPSサブスク")
         self.assertNotIn("IRSあり", biz_relative.parts)
         self.assertNotIn("Bizパッケージ", str(biz_relative))
         self.assertNotIn("安心サポート", str(biz_relative))
-        # 通常IPSも SB光直下で、IRSあり側と同じIPS分岐名にする
+        # 通常IPSも IRSなし 配下で、IRSあり側と同じIPS分岐名にする
         biz_upfront_request = deepcopy(biz_request)
         biz_upfront_request["services"] = {
             "ips": {"type": "upfront", "plan_id": "ips_gold_24"},
@@ -982,8 +982,8 @@ class QuoteSystemTest(unittest.TestCase):
             "SB光なし",
         )
         self.assertEqual(
-            biz_upfront_relative.parts[4:6],
-            ("IPS一括表記", "ゴールド24"),
+            biz_upfront_relative.parts[4:7],
+            ("IRSなし", "IPS一括表記", "ゴールド24"),
         )
         biz_with_support_request = deepcopy(biz_request)
         biz_with_support_request["services"] = {
@@ -1004,9 +1004,9 @@ class QuoteSystemTest(unittest.TestCase):
             "SB光なし",
         )
         self.assertEqual(biz_with_support_relative.parts[1], "iPhone17(256GB)")
-        self.assertEqual(biz_with_support_relative.parts[4], "Bizパッケージ＋")
-        self.assertEqual(biz_with_support_relative.parts[5], "IPSサブスク")
-        self.assertNotIn("IRSあり", biz_with_support_relative.parts)
+        self.assertEqual(biz_with_support_relative.parts[4], "IRSあり")
+        self.assertEqual(biz_with_support_relative.parts[5], "Bizパッケージ＋")
+        self.assertEqual(biz_with_support_relative.parts[6], "IPSサブスク")
         self.assertNotIn("安心サポートあり", str(biz_with_support_relative))
 
         kishu_request = deepcopy(self.request)
@@ -1091,7 +1091,7 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(kishu_hyper_path.parts[4], "IRSあり")
         self.assertEqual(kishu_hyper_path.parts[5], "IPSサブスク")
         self.assertEqual(len(kishu_hyper_path.parts), 7)
-        # Bizパッケージ＋ は IRSフォルダなし（プランフォルダも付けない）
+        # 機種変更でも Bizパッケージ＋ は IRSなし 配下（プランフォルダは付けない）
         kishu_biz = deepcopy(self.request)
         kishu_biz.update({
             "sales_type": "機種変更・移動機物品販売",
@@ -1115,8 +1115,8 @@ class QuoteSystemTest(unittest.TestCase):
             "SB光なし",
         )
         self.assertEqual(kishu_biz_path.parts[1], "iPhone17(256GB)")
-        self.assertEqual(kishu_biz_path.parts[4], "IPSサブスク")
-        self.assertNotIn("IRSなし", kishu_biz_path.parts)
+        self.assertEqual(kishu_biz_path.parts[4], "IRSなし")
+        self.assertEqual(kishu_biz_path.parts[5], "IPSサブスク")
         self.assertNotIn("Bizパッケージ", str(kishu_biz_path))
         # 機種変更で IPS なしなど分岐があるときは IPS フォルダを付ける
         kishu_no_ips = deepcopy(kishu_hyper)

@@ -52,7 +52,7 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 
 ## Locked output tree (do not change casually)
 
-- Canonical relative path under each quote root: `{category}/{model}/{sales}/[SB光…]/[fee/IRS/plan/IPS…]/{file}.pdf`
+- Canonical relative path under each quote root: `{category}/{model}/{sales}/[SB光…]/[fee]/IRSあり|IRSなし/[plan]/IPS…/{file}.pdf` (IRS folder on every plan and sales type since 2026-10-02)
 - Model folder is **immediately under category** (not leaf-only).
 - Model folder name uses compact `_filename_model` (no spaces/underscores).
 - **Never** reshuffle this hierarchy without asking the user for explicit confirmation in that turn (even if they request a path change).
@@ -63,7 +63,7 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
    - 48: `output/見積PDF/` (TM: `見積PDF_TM特例/`)
    - 36: `output/見積PDF_36回/` (TM: `見積PDF_TM特例_36回/`)
    - 24: `output/見積PDF_24回/` (TM: `見積PDF_TM特例_24回/`) — individual only
-2. Included models (`included_models.json`) win over "regenerate all" and are the only models shown in the individual-quote dropdown (**48-mode**). Legacy `excluded_models.json` is used only when the include file is absent. **36-mode** uses `installment_36_targets.json` only.
+2. Included models (`included_models.json`) win over "regenerate all" and are the only models shown in the individual-quote dropdown (**48-mode**). Legacy `excluded_models.json` is used only when the include file is absent. **36-mode** has its own include-list `included_models_36.json` (picked from all models in the 36 PDF via the same 作成する機種 window); if missing, the legacy `installment_36_targets.json` rules seed the initial selection.
 3. Do **not** create ouchi-discount (SB光あり) quotes for **5GB** on phones (same effective offer as 20GB). Exception: **iPad / AndroidTab** allow 5GB+ouchi (no 20GB tier; packet set is 1/5/50GB only). **TM unrestricted individual** may also allow ouchi+5GB more broadly.
 4. Upfront IPS may produce two display modes: `lump` and `monthly_as_running` (UI picks one).
 5. Quote PDFs must remain **one page** under worst-case content (portrait A4).

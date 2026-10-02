@@ -43,7 +43,7 @@ Field Japanese `.txt` for ships: UTF-8 with BOM (`utf-8-sig`). Arrange uses `_wr
 
 1. Quote relative path LOCKED: category / model / sales / … / pdf (confirm with user before changing).
 1. Fixed output roots (no per-run timestamp folders): 48 `見積PDF` / 36 `見積PDF_36回` / 24 `見積PDF_24回` (+ TM `*_TM特例*` variants).
-2. Include-list (`included_models.json`) beats force-all for 48-mode; drives individual Combobox. 36 uses `installment_36_targets.json` only. Legacy exclude-list only if include missing.
+2. Include-list (`included_models.json`) beats force-all for 48-mode; drives individual Combobox. 36 uses `included_models_36.json` (since 2026-10-02; legacy `installment_36_targets.json` only seeds it). Legacy exclude-list only if include missing.
 3. No ouchi (おうち割 SB光あり) + 5GB on phones. Exception: iPad/AndroidTab (and TM unrestricted individual may allow more).
 4. Upfront IPS: UI picks `lump` or `monthly_as_running`.
 5. Portrait A4; prefer one-page PDFs.
@@ -427,6 +427,12 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Path collision fix (user confirmed): MNP/新規 super/hyper with IRS now get a plan-name folder (`Bizパッケージ＋スーパーライト` / `Bizパッケージ＋ハイパーライト`) under IRSあり. 機種変更 paths unchanged. Test `test_batch_variant_paths_do_not_collide`.
 - Variant counts: iPhone default with MNP/新規 IRS 50 -> 60; full pattern 1400 -> 1680 (with light 1988 -> 2268).
 - Known: TM/agency unrestricted individual can still make 機種変更 super 5GB/20GB/無制限 into the same folder as hyper (pre-existing; individual runs one plan at a time).
+
+### 2026-10-02 - IRS folder everywhere + 36-mode checkbox model picker (unreleased; version not bumped)
+- Path (user-confirmed): `IRSあり` / `IRSなし` folder is now added for **every plan and sales type** (previously only super/hyper). Biz+ without support -> `IRSなし/IPS…`; Biz+ with support (individual) -> `IRSあり/Bizパッケージ＋/IPS…`; light -> `IRSなし/Bizパッケージ＋ライト/…`. Category/model/sales/SB光 above are unchanged. Old PDFs at previous Biz paths are not deleted automatically.
+- 36-mode model selection: picks from **all models read from the 36 PDF** with the same 作成する機種 window as 48 (category sections, PDF order). Saved to `data/included_models_36.json` (separate from 48). When absent, legacy `installment_36_targets.json` rules seed the initial checks, so first behavior matches the old JSON targets. 対象機種JSONを編集 button removed.
+- `installment_36.py`: `all_36_devices`, `load_included_36_keys`, `save_included_36_keys`, `selected_36_devices`; parse skips ※MM販路取扱不可 and applies `clean_model_name`; `PARSER_VERSION_36 = 2` invalidates old `device_master_36.json` cache.
+- Batch 36 / individual 36 use `selected_36_devices`. Fixed resume of a paused 36 batch (previously looked up models in the 48 master).
 
 ## Release checklist
 1. APP_VERSION

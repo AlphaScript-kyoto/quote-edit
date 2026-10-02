@@ -495,13 +495,12 @@ def _run_batch_36(
     control: BatchControl | None = None,
 ) -> BatchResult:
     from .installment_36 import (
-        filter_36_target_devices,
         import_installment_36_master,
         latest_installment_36_pdf,
-        load_installment_36_targets,
+        selected_36_devices,
     )
 
-    del force_all  # 36回プロトタイプは毎回対象機種を全件（対象JSON＋PDF）
+    del force_all  # 36回は毎回、作成する機種にチェックした機種を全件作る
     pdf_path = latest_installment_36_pdf()
     if pdf_path is None:
         raise FileNotFoundError(
@@ -511,18 +510,14 @@ def _run_batch_36(
     if progress:
         progress(0, 1, "36回割賦の価格表を読み取り、対象機種を抽出しています…")
     master_36 = import_installment_36_master(pdf_path)
-    targets = filter_36_target_devices(master_36)
+    targets = selected_36_devices(master_36)
     if not targets:
-        rules = load_installment_36_targets()
         raise ValueError(
             "36回割賦の作成対象機種が0件です。"
-            f"PDF機種数={master_36.get('device_count')}。"
-            "system/data/installment_36_targets.json を確認してください。"
-            f"（categories={rules.get('match_categories')} "
-            f"contains={rules.get('match_model_key_contains')}）"
+            f"（36回PDFの機種数={master_36.get('device_count')}）"
+            "36回割賦を選んだ状態で［作成する機種］から対象をチェックしてください。"
         )
 
-    # 36回割賦は［作成する機種］の対象外。installment_36_targets.json のみで絞る。
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     company = _load_company(department)
@@ -653,10 +648,18 @@ def resume_batch(
     payload = load_json(CHECKPOINT_PATH)
     if str(payload.get("status")) != "paused":
         raise ValueError("再開可能な中断状態ではありません。")
-    if not DEVICE_MASTER_PATH.exists():
-        raise FileNotFoundError("機種マスターがありません。先に価格表PDFを取り込んでください。")
+    if int(payload.get("installment_months") or 48) == 36:
+        from .installment_36 import all_36_devices, import_installment_36_master
 
-    device_master = load_device_master()
+        device_master = {
+            "schema_version": 1,
+            "installment_months": 36,
+            "devices": all_36_devices(import_installment_36_master()),
+        }
+    else:
+        if not DEVICE_MASTER_PATH.exists():
+            raise FileNotFoundError("機種マスターがありません。先に価格表PDFを取り込んでください。")
+        device_master = load_device_master()
     plan_master = load_json(DATA_DIR / "plans.json")
     service_master = load_json(DATA_DIR / "services.json")
     department = payload.get("department")
@@ -916,11 +919,9 @@ def run_individual(
     unrestricted_individual: bool | None = None,
 ) -> IndividualResult:
     from .installment_36 import (
-        DEVICE_MASTER_36_PATH,
-        filter_36_target_devices,
         import_installment_36_master,
-        is_installment_36_target,
         latest_installment_36_pdf,
+        selected_36_devices,
     )
 
     if unrestricted_individual is None:
@@ -936,26 +937,19 @@ def run_individual(
                 "36回割賦の価格表がありません。"
                 "「機種代金一覧表\\36回割賦」にPDFを入れてください。"
             )
-        import_installment_36_master(pdf36)
-        master_36 = load_json(DEVICE_MASTER_36_PATH)
-        targets = filter_36_target_devices(master_36)
+        master_36 = import_installment_36_master(pdf36)
         device_master = {
             "schema_version": 1,
             "installment_months": 36,
-            "devices": targets,
+            "devices": selected_36_devices(master_36),
         }
         try:
             device = find_device(device_master, model)
         except KeyError as exc:
             raise ValueError(
-                f"36回割賦の対象外、または一覧にありません: {model}"
+                f"36回割賦の作成する機種に入っていません: {model}"
+                "（［作成する機種］でチェックしてください）"
             ) from exc
-        if not is_installment_36_target(
-            model=device["model"],
-            model_key=device["model_key"],
-            category=str(device.get("category") or ""),
-        ):
-            raise ValueError(f"36回割賦の対象外です: {model}")
     else:
         device_master = load_device_master()
         device = find_device(device_master, model)
@@ -1325,8 +1319,7 @@ def _plan_folder_name(
 ) -> str | None:
     """料金プラン用フォルダ名。
 
-    - Bizパッケージ＋（標準・IRSなし）はフォルダ不要。IRSフォルダも付けないため
-      スーパー／ハイパー（IRSあり配下）とパスがぶつからない。
+    - Bizパッケージ＋（標準・IRSなし）はIRSなし配下でプラン名フォルダ不要。
     - スーパー／ハイパー＋IRSありは、機種変更では容量が重ならないためプラン名フォルダなし。
       MNP／新規はスーパーも5GB／20GB／無制限を作るため、ハイパーと衝突しないようプラン名を付ける。
     - スーパー／ハイパー＋IRSなしは同階層のBizとファイル名がぶつかるためプラン名を付ける。
@@ -1415,11 +1408,9 @@ def _quote_relative_path(
     if fee_folder:
         parts.append(fee_folder)
 
-    # IRSあり／なしフォルダはスーパー／ハイパーだけ（Biz・ライトは付けない）
-    plan_id = str(variant.get("plan_id") or quote.get("plan_id") or "").strip()
+    # IRSあり／なしフォルダは全プラン・全販売区分で付ける
     has_support = bool((quote.get("services") or {}).get("support"))
-    if plan_id in _MERGED_SPECIAL_DISCOUNT_PLAN_IDS:
-        parts.append("IRSあり" if has_support else "IRSなし")
+    parts.append("IRSあり" if has_support else "IRSなし")
 
     plan_folder = _plan_folder_name(quote, variant)
     if plan_folder:

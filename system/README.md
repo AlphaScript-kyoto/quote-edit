@@ -67,7 +67,7 @@ python -m unittest tests.test_system tests.test_installment_36 tests.test_update
 - スーパーライト：機種変更はパケット50GBのみ／MNP・新規は5GB・20GB・50GB・無制限（番号移行は作成しない）
 - 36回割賦もスーパーライト・ハイパーライトは48回と同じルールで作成（個別作成も同じ）
 - PDF追加割引表示：弊社特別割引（内部名はスーパー／ハイパーライト割）
-- 作成対象機種（48回モード）：`data/included_models.json` があれば「全機種再生成」より優先。36回は `installment_36_targets.json`。おうち割ありでは5GBを作らない（iPad／AndroidTabは例外。同カテゴリの容量は1／5／50GBのみ）
+- 作成対象機種（48回モード）：`data/included_models.json` があれば「全機種再生成」より優先。36回は36回PDFの全機種から［作成する機種］でチェック（`data/included_models_36.json`。未保存時は旧 `installment_36_targets.json` のルールで初期選択）。おうち割ありでは5GBを作らない（iPad／AndroidTabは例外。同カテゴリの容量は1／5／50GBのみ）
 - 起動時更新確認（通常版のみ）：N: 共有 `latest.json` を読み、新版があれば通知（失敗時は無音、自動替換なし）。TM版は実行しない
 - 連絡先・FAX：`company.json`（開発は system/data、EXEは %LOCALAPPDATA%\\InfinityQuoteApp\\data）。実番号は Git に入れない
 - PDF原則1ページ

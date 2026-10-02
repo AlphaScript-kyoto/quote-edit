@@ -40,11 +40,12 @@ from quote_system.config import (
     save_json,
 )
 from quote_system.installment_36 import (
-    TARGETS_PATH,
     UPDATE_36_DIR,
-    filter_36_target_devices,
+    all_36_devices,
     import_installment_36_master,
-    load_installment_36_targets,
+    load_included_36_keys,
+    save_included_36_keys,
+    selected_36_devices,
 )
 from quote_system.price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf
 from quote_system.quote_service import (
@@ -187,7 +188,7 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w")
         ttk.Radiobutton(
             mode_frame,
-            text="36回割賦 … 機種代金一覧表\\36回割賦 のPDF（対象は installment_36_targets.json）",
+            text="36回割賦 … 機種代金一覧表\\36回割賦 のPDF（対象は［作成する機種］でチェック）",
             variable=self.installment_mode_var,
             value="36",
             command=self._on_installment_mode_changed,
@@ -333,12 +334,6 @@ class QuoteApp(tk.Tk):
             textvariable=self.exclude_status_var,
             foreground="#C00000",
         ).pack(side="left", padx=(12, 0))
-        # 36回モードのときだけ表示する（対象JSONを直接開いて編集）
-        self.edit_targets_button = ttk.Button(
-            exclude_row,
-            text="対象機種JSONを編集",
-            command=self._open_targets_json,
-        )
 
         action = ttk.Frame(root)
         action.pack(fill="x", pady=(2, 12))
@@ -392,20 +387,6 @@ class QuoteApp(tk.Tk):
         root.mkdir(parents=True, exist_ok=True)
         _open_path(root)
 
-    def _open_targets_json(self) -> None:
-        """36回割賦の対象機種JSONを既定のエディタで開く。"""
-        if not TARGETS_PATH.exists():
-            # 初回はシード内容を書き出してから開く
-            save_json(TARGETS_PATH, load_installment_36_targets())
-        try:
-            os.startfile(TARGETS_PATH)  # type: ignore[attr-defined]
-        except OSError:
-            import subprocess
-
-            subprocess.Popen(["notepad.exe", str(TARGETS_PATH)])
-        self._write_log(f"対象機種JSONを開きました：{TARGETS_PATH}")
-        self._write_log("編集して保存すると、次の作成（個別・一括）から反映されます。")
-
     def _on_installment_mode_changed(self) -> None:
         if self._installment_months() == 36:
             latest = latest_installment_36_pdf()
@@ -418,27 +399,12 @@ class QuoteApp(tk.Tk):
                     "「機種代金一覧表\\36回割賦」にPDFがありません。"
                     "PDFを入れてから作成してください。"
                 )
-            try:
-                rules = load_installment_36_targets()
-                self._write_log(
-                    "36回対象JSON："
-                    f"categories={rules.get('match_categories')} "
-                    f"contains={rules.get('match_model_key_contains')}"
-                )
-            except Exception as exc:
-                self._write_log(f"対象JSONの読込に失敗：{exc}")
             self.force_all_var.set(True)
-            # 36回割賦では［作成する機種］は使わない（対象は installment_36_targets.json）
-            self.exclude_button.configure(state="disabled")
-            self.exclude_status_var.set(
-                "※36回割賦では使いません（対象は installment_36_targets.json で管理）"
-            )
-            self.edit_targets_button.pack(side="left", padx=(12, 0), ipadx=8, ipady=2)
+            self._refresh_exclude_status()
             # モードに合わない個別見積ボタンは押せないようにする
             self.individual_button.configure(state="disabled")
             self.individual36_button.configure(state="normal")
         else:
-            self.edit_targets_button.pack_forget()
             self.exclude_button.configure(state="normal")
             self.individual_button.configure(state="normal")
             self.individual36_button.configure(state="disabled")
@@ -486,12 +452,40 @@ class QuoteApp(tk.Tk):
     def _open_info_page(self) -> None:
         webbrowser.open(INFO_HOME_URL)
 
+    def _load_master_36(self, *, show_error: bool = True) -> dict | None:
+        pdf36 = latest_installment_36_pdf()
+        if pdf36 is None:
+            if show_error:
+                messagebox.showerror(
+                    "36回割賦の価格表がありません",
+                    "「機種代金一覧表\\36回割賦」に36回用PDFを入れてください。",
+                )
+            return None
+        try:
+            return import_installment_36_master(pdf36)
+        except Exception as exc:
+            if show_error:
+                messagebox.showerror(
+                    "36回割賦の価格表の読取に失敗しました",
+                    f"{exc}\n36回用PDFを確認してください。",
+                )
+            return None
+
     def _refresh_exclude_status(self, included: set[str] | None = None) -> None:
-        keys = included if included is not None else load_included_model_keys()
-        if keys:
-            self.exclude_status_var.set(f"※いま {len(keys)} 機種を作成対象にしています")
+        if included is not None:
+            keys = included
+        elif self._installment_months() == 36:
+            master_36 = self._load_master_36(show_error=False)
+            keys = load_included_36_keys(master_36) if master_36 else set()
         else:
-            self.exclude_status_var.set("※作成対象が0件です（［作成する機種］で選んでください）")
+            keys = load_included_model_keys()
+        label = "36回割賦で" if self._installment_months() == 36 else ""
+        if keys:
+            self.exclude_status_var.set(f"※いま{label} {len(keys)} 機種を作成対象にしています")
+        else:
+            self.exclude_status_var.set(
+                f"※{label}作成対象が0件です（［作成する機種］で選んでください）"
+            )
 
     def _choose_pdf(self) -> None:
         selected = filedialog.askopenfilename(title="機種代金表PDFを選択", filetypes=[("PDF", "*.pdf")])
@@ -528,34 +522,47 @@ class QuoteApp(tk.Tk):
         return device_master
 
     def _open_exclude_window(self) -> None:
-        device_master = self._refresh_device_master_for_picker()
-        if device_master is None:
-            return
-        devices = [d for d in device_master["devices"] if d["status"] == "販売中"]
-        from quote_system.price_pdf_parser import is_mm_route_restricted
+        is_36 = self._installment_months() == 36
+        if is_36:
+            master_36 = self._load_master_36()
+            if master_36 is None:
+                return
+            devices = all_36_devices(master_36)
+            included = load_included_36_keys(master_36)
+            if not devices:
+                messagebox.showerror("機種がありません", "36回割賦の価格表PDFを確認してください。")
+                return
+        else:
+            device_master = self._refresh_device_master_for_picker()
+            if device_master is None:
+                return
+            devices = [d for d in device_master["devices"] if d["status"] == "販売中"]
+            from quote_system.price_pdf_parser import is_mm_route_restricted
 
-        devices = [d for d in devices if not is_mm_route_restricted(d)]
-        if not devices:
-            messagebox.showerror("販売中機種がありません", "機種マスターを確認してください。")
-            return
+            devices = [d for d in devices if not is_mm_route_restricted(d)]
+            if not devices:
+                messagebox.showerror("販売中機種がありません", "機種マスターを確認してください。")
+                return
+            included = load_included_model_keys(device_master)
 
+        title = "作成する機種（36回割賦）" if is_36 else "作成する機種"
         win = tk.Toplevel(self)
-        win.title("作成する機種")
+        win.title(title)
         win.geometry("560x620")
         win.minsize(500, 480)
         frame = ttk.Frame(win, padding=16)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="作成する機種", font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
+        ttk.Label(frame, text=title, font=("Yu Gothic UI", 16, "bold")).pack(anchor="w")
+        source_text = "36回割賦の価格表" if is_36 else "価格表"
         ttk.Label(
             frame,
             text="チェックした機種だけを一括作成・個別見積の一覧に出します。"
-            "新しく価格表に載った機種は、ここでチェックするまで作りません。"
+            f"新しく{source_text}に載った機種は、ここでチェックするまで作りません。"
             "カテゴリ見出しをクリックすると開閉できます。"
             "「すべて選択」「すべて解除」も使えます。",
             wraplength=500,
         ).pack(anchor="w", pady=(2, 8))
 
-        included = load_included_model_keys(device_master)
         toolbar = ttk.Frame(frame)
         toolbar.pack(fill="x", pady=(0, 6))
 
@@ -701,9 +708,13 @@ class QuoteApp(tk.Tk):
                     parent=win,
                 ):
                     return
-            save_included_model_keys(selected)
+            if is_36:
+                save_included_36_keys(selected)
+            else:
+                save_included_model_keys(selected)
             self._refresh_exclude_status(set(selected))
-            self._write_log(f"作成する機種を更新しました：{len(selected)}件")
+            mode_text = "（36回割賦）" if is_36 else ""
+            self._write_log(f"作成する機種{mode_text}を更新しました：{len(selected)}件")
             messagebox.showinfo("保存しました", f"{len(selected)}機種を作成対象にしました。", parent=win)
             _unbind_wheel()
             win.destroy()
@@ -773,12 +784,11 @@ class QuoteApp(tk.Tk):
                 if pdf36 is None:
                     raise FileNotFoundError("36回PDFなし")
                 master_36 = import_installment_36_master(pdf36)
-                # 36回割賦は除外機能の対象外。installment_36_targets.json のみで絞る。
-                devices = list(filter_36_target_devices(master_36))
+                devices = selected_36_devices(master_36)
             except Exception as exc:
                 messagebox.showerror(
                     "36回割賦を開けません",
-                    f"{exc}\n「機種代金一覧表\\36回割賦」と installment_36_targets.json を確認してください。",
+                    f"{exc}\n「機種代金一覧表\\36回割賦」のPDFを確認してください。",
                 )
                 return
             device_master = {
@@ -843,7 +853,7 @@ class QuoteApp(tk.Tk):
             else:
                 messagebox.showerror(
                     "選択できる機種がありません",
-                    "対象機種が0件です。作成する機種・対象JSON・価格表を確認してください。",
+                    "対象機種が0件です。［作成する機種］のチェックと価格表を確認してください。",
                 )
             return
 
@@ -889,7 +899,7 @@ class QuoteApp(tk.Tk):
                 foreground="#C00000",
             ).pack(anchor="w", pady=(0, 4))
         if months == 36:
-            note_text = "※対象機種は installment_36_targets.json で管理します（作成する機種の指定は使いません）。"
+            note_text = "※36回割賦の［作成する機種］でチェックした機種が一覧に出ます。"
         elif months == 24:
             note_text = (
                 f"※価格表の24回列がある機種のみ。出力は output\\{QUOTE_OUTPUT_DIRNAME_24} です。"

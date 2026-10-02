@@ -277,6 +277,43 @@ class Installment36PrototypeTest(unittest.TestCase):
                 self.assertEqual(quote["periods"][0]["key"], "1_36")
                 self.assertIsNotNone(quote["services"]["support"])
 
+    def test_36_model_selection_from_pdf_checkboxes(self):
+        """36回はPDFの全機種から選ぶ。未保存時は旧対象ルールで初期選択。"""
+        from quote_system import installment_36 as i36
+
+        master_36 = {
+            "devices": [
+                {"category": "iPhone", "model": "iPhone 17 Pro(256GB)",
+                 "model_key": "iphone17pro256gb", "payment_36_flat": 5000, "total": 180000},
+                {"category": "iPhone", "model": "iPhone 16e(128GB)",
+                 "model_key": "iphone16e128gb", "payment_36_flat": 3308, "total": 119088},
+                {"category": "Android", "model": "Restricted ※MM販路取扱不可",
+                 "model_key": "restricted", "payment_36_flat": 1000, "total": 36000},
+                {"category": "iPhone", "model": "iPhone 16e(128GB)",
+                 "model_key": "iphone16e128gb", "payment_36_flat": 3308, "total": 119088},
+            ]
+        }
+        all_devices = i36.all_36_devices(master_36)
+        self.assertEqual(
+            [d["model_key"] for d in all_devices], ["iphone17pro256gb", "iphone16e128gb"]
+        )
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "included_models_36.json"
+            with (
+                patch.object(i36, "INCLUDED_36_PATH", path),
+                patch.object(i36, "TARGETS_PATH", Path(tmp) / "no_targets.json"),
+            ):
+                # 未保存: 旧ルール既定値（16e は対象、17 Pro は対象外）
+                self.assertEqual(i36.load_included_36_keys(master_36), {"iphone16e128gb"})
+                i36.save_included_36_keys(["iphone17pro256gb", "unknown"])
+                self.assertEqual(i36.load_included_36_keys(master_36), {"iphone17pro256gb"})
+                self.assertEqual(
+                    [d["model"] for d in i36.selected_36_devices(master_36)],
+                    ["iPhone 17 Pro(256GB)"],
+                )
+                i36.save_included_36_keys([])
+                self.assertEqual(i36.selected_36_devices(master_36), [])
+
     def test_run_individual_36_super_hyper_pdfs(self):
         """36回の個別作成でスーパー／ハイパーのPDFが実際に1ページで出る。"""
         folder = UPDATE_DIR / "36回割賦"
@@ -297,8 +334,15 @@ class Installment36PrototypeTest(unittest.TestCase):
         )
         for sales, plan_id, capacities in cases:
             with self.subTest(sales=sales, plan_id=plan_id), TemporaryDirectory() as tmp:
-                out = Path(tmp)
-                with patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT_36", out):
+                out = Path(tmp) / "out"
+                included = Path(tmp) / "included_models_36.json"
+                included.write_text(
+                    '{"model_keys": ["%s"]}' % iphone["model_key"], encoding="utf-8"
+                )
+                with (
+                    patch("quote_system.batch_service.QUOTE_OUTPUT_ROOT_36", out),
+                    patch("quote_system.installment_36.INCLUDED_36_PATH", included),
+                ):
                     result = run_individual(
                         model=iphone["model"],
                         sales_type=sales,
