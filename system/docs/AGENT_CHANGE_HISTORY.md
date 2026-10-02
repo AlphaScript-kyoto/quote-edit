@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.6**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -440,6 +440,10 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Their discount comes from `plans.json` `common.tablet_data_package_discount_by_data_plan_tax_ex`: 1GB -500, 5GB -3500, 50GB -4000 (shown on the existing `Bizパッケージ＋ 特別割引` row; `biz_package_discount_tax_ex` = same value, additional 0). Communication = 980 + data_before + discount (+ ouchi).
 - Packets 1/5/50GB only now also apply to データ通信 (was iPad/AndroidTab only); ouchi+5GB allowed for all three (no 20GB tier). Ouchi amounts unchanged (common schedule).
 - データ通信 removed from all 48-mode lists: new `price_pdf_parser.is_48_quotable` (販売中, not MM, has any 48 amount) used by `_on_sale_model_keys`, 48 batch active devices, the 48 picker, 48 individual list and the start check. `has_48_payment` moved from installment_36 to price_pdf_parser.
+
+### 2026-10-02 - ver.1.7 (standard)
+- Ships the two unreleased 2026-10-02 entries above (IRS folder everywhere, 36 checkbox picker + データ通信 in 36, tablet/data pricing, データ通信 36-only).
+- `APP_VERSION = "1.7"`; field note `リリースノート_v1.7_現場向け.txt` (UTF-8 BOM); README.txt adds one line that データ通信 is 36-only. Standard ZIP `見積もり一括作成ver1.7.zip` on N: with `latest.json` -> 1.7. TM/agency ZIPs not built.
 
 ## Release checklist
 1. APP_VERSION
