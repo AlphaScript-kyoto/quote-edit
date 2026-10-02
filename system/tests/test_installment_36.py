@@ -364,7 +364,7 @@ class Installment36PrototypeTest(unittest.TestCase):
                 "model": wifi["model"],
                 "sales_type": "新規",
                 "plan_id": "biz_plus",
-                "data_plan": "20GB",
+                "data_plan": "5GB",
                 "installment_months": 36,
                 "services": {"ips": {"type": "subscription"}, "support_plan_id": "auto"},
                 "universal_fee_tax_in": 4,
@@ -377,6 +377,8 @@ class Installment36PrototypeTest(unittest.TestCase):
         )
         self.assertEqual(quote["periods"][0]["key"], "1_36")
         self.assertEqual(quote["periods"][0]["device_payment"], 1320)
+        self.assertEqual(quote["components"]["call_option_tax_ex"], 0)
+        self.assertEqual(quote["components"]["package_discount_tax_ex"], -3500)
 
         from quote_system.batch_service import quote_variants
 
@@ -412,7 +414,7 @@ class Installment36PrototypeTest(unittest.TestCase):
                     model=data_device["model"],
                     sales_type="新規",
                     plan_id="biz_plus",
-                    data_plans=["20GB"],
+                    data_plans=["50GB"],
                     ouchi_options=[False],
                     include_ips_subscription=True,
                     support_plan_id="auto",

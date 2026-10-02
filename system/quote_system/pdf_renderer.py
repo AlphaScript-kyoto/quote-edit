@@ -330,7 +330,13 @@ def render_quote(quote: dict[str, Any], company: dict[str, Any], output_path: Pa
     period_count = len(display_periods)
     plan_item_rows: list[list[Any]] = [
         ["基本プラン（音声）", "税抜"] + [yen(components["basic_voice_tax_ex"])] * period_count,
-        ["定額オプション＋", "税抜"] + [yen(components["call_option_tax_ex"])] * period_count,
+    ]
+    # iPad／AndroidTab／データ通信は定額オプション＋に加入できないため行ごと出さない
+    if components["call_option_tax_ex"]:
+        plan_item_rows.append(
+            ["定額オプション＋", "税抜"] + [yen(components["call_option_tax_ex"])] * period_count
+        )
+    plan_item_rows += [
         [f"データプラン {quote['data_plan']}（法人）", "税抜"]
         + [yen(components["data_before_tax_ex"])] * period_count,
         ["Bizパッケージ＋ 特別割引", "税抜"]

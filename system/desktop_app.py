@@ -47,7 +47,12 @@ from quote_system.installment_36 import (
     save_included_36_keys,
     selected_36_devices,
 )
-from quote_system.price_pdf_parser import SALES_COLUMNS, find_device, parse_price_pdf
+from quote_system.price_pdf_parser import (
+    SALES_COLUMNS,
+    find_device,
+    is_48_quotable,
+    parse_price_pdf,
+)
 from quote_system.quote_service import (
     is_device_data_plan_allowed,
     is_device_plan_allowed,
@@ -240,8 +245,8 @@ class QuoteApp(tk.Tk):
         ).pack(anchor="w")
         ttk.Label(
             option_frame,
-            text="データ容量：ケータイは1GBのみ／iPad・AndroidTabは1・5・50GB／他は5GB以上。"
-            "おうち割あり×5GBは通常作成しません（iPad・AndroidTabは例外で作成）。",
+            text="データ容量：ケータイは1GBのみ／iPad・AndroidTab・データ通信は1・5・50GB（定額オプションなし）／他は5GB以上。"
+            "おうち割あり×5GBは通常作成しません（iPad・AndroidTab・データ通信は例外で作成）。",
         ).pack(anchor="w", pady=(3, 0))
         if not FORCED_DEPARTMENT:
             department_row = ttk.Frame(option_frame)
@@ -517,7 +522,7 @@ class QuoteApp(tk.Tk):
         self.pdf_var.set(str(pdf))
         self._write_log(
             f"作成する機種一覧のため価格表を取り込みました：{pdf.name}"
-            f"（販売中 {sum(1 for d in device_master['devices'] if d['status']=='販売中')} 機種）"
+            f"（48回で作成できる機種 {sum(1 for d in device_master['devices'] if is_48_quotable(d))} 機種）"
         )
         return device_master
 
@@ -536,10 +541,7 @@ class QuoteApp(tk.Tk):
             device_master = self._refresh_device_master_for_picker()
             if device_master is None:
                 return
-            devices = [d for d in device_master["devices"] if d["status"] == "販売中"]
-            from quote_system.price_pdf_parser import is_mm_route_restricted
-
-            devices = [d for d in devices if not is_mm_route_restricted(d)]
+            devices = [d for d in device_master["devices"] if is_48_quotable(d)]
             if not devices:
                 messagebox.showerror("販売中機種がありません", "機種マスターを確認してください。")
                 return
@@ -832,13 +834,9 @@ class QuoteApp(tk.Tk):
                 )
                 return
             device_master = load_device_master()
-            from quote_system.price_pdf_parser import is_mm_route_restricted
-
             devices = [
                 d for d in device_master["devices"]
-                if d["status"] == "販売中"
-                and d.get("model_key") in included
-                and not is_mm_route_restricted(d)
+                if is_48_quotable(d) and d.get("model_key") in included
             ]
             mode_label = "個別見積作成（通常48回）"
             if IS_SPECIAL_EDITION:
@@ -1347,9 +1345,7 @@ class QuoteApp(tk.Tk):
         else:
             if (DATA_DIR / "device_master.json").exists():
                 master = load_device_master()
-                on_sale = [
-                    d for d in master.get("devices", []) if d.get("status") == "販売中"
-                ]
+                on_sale = [d for d in master.get("devices", []) if is_48_quotable(d)]
                 included = load_included_model_keys(master)
                 if on_sale and not included:
                     messagebox.showerror(

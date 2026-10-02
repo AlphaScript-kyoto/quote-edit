@@ -46,6 +46,27 @@ def is_mm_route_restricted(device_or_text: Any) -> bool:
     return _MM_ROUTE_MARK in normalized
 
 
+def has_48_payment(device: dict[str, Any]) -> bool:
+    """True when any sales type has a 48-installment amount."""
+    return any(
+        value is not None
+        for payments in (device.get("payment_48") or {}).values()
+        for value in (payments or {}).values()
+    )
+
+
+def is_48_quotable(device: dict[str, Any]) -> bool:
+    """48回割賦の機種一覧・一括・個別に出す機種（販売中・MM可・48回金額あり）。
+
+    データ通信など36回欄だけの機種は36回割賦モード側で扱う。
+    """
+    return (
+        device.get("status") == "販売中"
+        and not is_mm_route_restricted(device)
+        and has_48_payment(device)
+    )
+
+
 def clean_model_name(model: str) -> str:
     """Keep the product name only — drop SoftBank list annotations in the 機種 cell.
 

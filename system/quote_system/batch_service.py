@@ -26,7 +26,7 @@ from .pdf_renderer import render_quote
 from .price_pdf_parser import (
     SALES_COLUMNS,
     find_device,
-    is_mm_route_restricted,
+    is_48_quotable,
     parse_price_pdf,
     sales_type_display_name,
 )
@@ -171,7 +171,7 @@ def _on_sale_model_keys(device_master: dict[str, Any] | None = None) -> set[str]
     return {
         str(device["model_key"])
         for device in master.get("devices", [])
-        if device.get("status") == "販売中" and not is_mm_route_restricted(device)
+        if is_48_quotable(device)
     }
 
 
@@ -424,9 +424,7 @@ def run_batch(
     included = load_included_model_keys(new_master)
     active_devices = [
         device for device in new_master["devices"]
-        if device["status"] == "販売中"
-        and device["model_key"] in included
-        and not is_mm_route_restricted(device)
+        if is_48_quotable(device) and device["model_key"] in included
     ]
     if not active_devices:
         raise ValueError(

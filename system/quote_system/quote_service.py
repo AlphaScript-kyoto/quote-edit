@@ -9,9 +9,16 @@ from typing import Any
 from .price_pdf_parser import find_device
 
 
-# iPad／AndroidTab はパケット 1GB／5GB／50GB のみ（20GB・無制限なし）
-_TABLET_PACKET_CATEGORIES = frozenset({"iPad", "AndroidTab"})
+# iPad／AndroidTab／データ通信はパケット 1GB／5GB／50GB のみ（20GB・無制限なし）。
+# 定額オプション＋に加入できないため、割引額も専用表を使う。
+_TABLET_PACKET_CATEGORIES = frozenset({"iPad", "AndroidTab", "データ通信"})
 _TABLET_PACKET_PLANS = frozenset({"1GB", "5GB", "50GB"})
+_TABLET_DISCOUNT_KEY = "tablet_data_package_discount_by_data_plan_tax_ex"
+
+
+def is_tablet_data_device(device: dict[str, Any]) -> bool:
+    """iPad／AndroidTab／データ通信（定額オプションなし・専用割引）。"""
+    return str(device.get("category") or "").strip() in _TABLET_PACKET_CATEGORIES
 
 
 def is_device_data_plan_allowed(
@@ -23,7 +30,7 @@ def is_device_data_plan_allowed(
 
     機種変更では通常機種でもパケット1GBを許可する（5GB以上は従来どおり）。
     ケータイは引き続き1GBのみ。
-    iPad／AndroidTab は 1GB／5GB／50GB のみ（20GB提供なし）。
+    iPad／AndroidTab／データ通信は 1GB／5GB／50GB のみ（20GB提供なし）。
     """
     category = str(device.get("category", "")).strip()
     normalized_plan = str(data_plan).strip()
@@ -45,10 +52,9 @@ def allows_ouchi_discount_with_5gb(device: dict[str, Any]) -> bool:
     """おうち割あり×5GBを許可するか。
 
     通常は5GBと20GBが同額提示のため作らないが、
-    iPad／AndroidTab は20GB提供がなく5GBが独立するため許可する。
+    iPad／AndroidTab／データ通信は20GB提供がなく5GBが独立するため許可する。
     """
-    category = str(device.get("category") or "").strip()
-    return category in _TABLET_PACKET_CATEGORIES
+    return is_tablet_data_device(device)
 
 
 # iPad／データ通信／AndroidTab は回線のMNP・番号移行の対象外
@@ -388,15 +394,28 @@ def build_quote(
 
     tax_rate = float(request.get("tax_rate", 0.10))
     basic_voice = int(plan_master["common"]["basic_voice_tax_ex"])
-    call_option = int(plan_master["common"]["flat_call_option_tax_ex"])
-    package_discount = int(data_plan["package_discount_tax_ex"])
-    biz_data_plan = plan_master["plans"]["biz_plus"]["data_plans"].get(request["data_plan"])
-    if not biz_data_plan:
-        raise ValueError(f"Bizパッケージ＋の基準割引がありません: {request['data_plan']}")
-    biz_package_discount = int(biz_data_plan["package_discount_tax_ex"])
-    additional_discount = int(plan.get("additional_discount_tax_ex", 0))
-    if biz_package_discount + additional_discount != package_discount:
-        raise ValueError("Bizパッケージ＋割引と追加割引の内訳が合計割引に一致しません")
+    tablet_data = is_tablet_data_device(device)
+    if tablet_data:
+        # 定額オプション＋に加入できない。割引は専用表（ライト系はカテゴリ判定で既に除外）
+        call_option = 0
+        tablet_discounts = plan_master["common"].get(_TABLET_DISCOUNT_KEY, {})
+        if request["data_plan"] not in tablet_discounts:
+            raise ValueError(
+                f"タブレット・データ通信の割引額が未登録です: {request['data_plan']}"
+            )
+        package_discount = int(tablet_discounts[request["data_plan"]])
+        biz_package_discount = package_discount
+        additional_discount = 0
+    else:
+        call_option = int(plan_master["common"]["flat_call_option_tax_ex"])
+        package_discount = int(data_plan["package_discount_tax_ex"])
+        biz_data_plan = plan_master["plans"]["biz_plus"]["data_plans"].get(request["data_plan"])
+        if not biz_data_plan:
+            raise ValueError(f"Bizパッケージ＋の基準割引がありません: {request['data_plan']}")
+        biz_package_discount = int(biz_data_plan["package_discount_tax_ex"])
+        additional_discount = int(plan.get("additional_discount_tax_ex", 0))
+        if biz_package_discount + additional_discount != package_discount:
+            raise ValueError("Bizパッケージ＋割引と追加割引の内訳が合計割引に一致しません")
     ouchi_schedule = plan_master["common"].get("ouchi_discount_by_data_plan_tax_ex", {})
     if request.get("ouchi_discount_applied"):
         ouchi_discount = int(ouchi_schedule.get(request["data_plan"], 0))
@@ -428,7 +447,10 @@ def build_quote(
         + package_discount
         + ouchi_discount
     )
-    expected = basic_voice + int(data_plan["data_after_tax_ex"])
+    if tablet_data:
+        expected = basic_voice + int(data_plan["data_before_tax_ex"]) + package_discount
+    else:
+        expected = basic_voice + int(data_plan["data_after_tax_ex"])
     if communication_tax_ex != expected + ouchi_discount:
         raise ValueError("プラン料金の検算に失敗しました")
     communication_tax_in = math.floor(communication_tax_ex * (1 + tax_rate))

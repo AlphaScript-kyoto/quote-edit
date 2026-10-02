@@ -177,7 +177,7 @@ price PDF
   -> output/<見積PDF|見積PDF_36回|見積PDF_24回|TM variants>/<tree>/<file>.pdf
 ```
 
-Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent). The 36 list also includes 36-only devices found in the 48 price list (データ通信 rows with `payment_36` but no 48 payments).
+Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent). The 36 list also includes 36-only devices found in the 48 price list (データ通信 rows with `payment_36` but no 48 payments). 48-mode lists use `is_48_quotable` (must have a 48 amount), so データ通信 is 36-only. iPad / AndroidTab / データ通信: no 定額オプション＋, packets 1/5/50GB, discount from `common.tablet_data_package_discount_by_data_plan_tax_ex` (-500/-3500/-4000).
 
 ---
 

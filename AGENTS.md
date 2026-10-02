@@ -64,7 +64,7 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
    - 36: `output/見積PDF_36回/` (TM: `見積PDF_TM特例_36回/`)
    - 24: `output/見積PDF_24回/` (TM: `見積PDF_TM特例_24回/`) — individual only
 2. Included models (`included_models.json`) win over "regenerate all" and are the only models shown in the individual-quote dropdown (**48-mode**). Legacy `excluded_models.json` is used only when the include file is absent. **36-mode** has its own include-list `included_models_36.json` (picked from all models in the 36 PDF via the same 作成する機種 window); if missing, the legacy `installment_36_targets.json` rules seed the initial selection.
-3. Do **not** create ouchi-discount (SB光あり) quotes for **5GB** on phones (same effective offer as 20GB). Exception: **iPad / AndroidTab** allow 5GB+ouchi (no 20GB tier; packet set is 1/5/50GB only). **TM unrestricted individual** may also allow ouchi+5GB more broadly.
+3. Do **not** create ouchi-discount (SB光あり) quotes for **5GB** on phones (same effective offer as 20GB). Exception: **iPad / AndroidTab / データ通信** allow 5GB+ouchi (no 20GB tier; packet set is 1/5/50GB only). These categories have **no 定額オプション＋** (row omitted from PDF) and use `plans.json` `common.tablet_data_package_discount_by_data_plan_tax_ex` (1GB -500 / 5GB -3500 / 50GB -4000). データ通信 has no 48 price, so it is 36-mode only (48 lists use `is_48_quotable`). **TM unrestricted individual** may also allow ouchi+5GB more broadly.
 4. Upfront IPS may produce two display modes: `lump` and `monthly_as_running` (UI picks one).
 5. Quote PDFs must remain **one page** under worst-case content (portrait A4).
 6. Field docs stay simple; put architecture/history in `system/docs/`.

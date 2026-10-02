@@ -435,6 +435,12 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Batch 36 / individual 36 use `selected_36_devices`. Fixed resume of a paused 36 batch (previously looked up models in the 48 master).
 - 36-only devices from the **48 price list** (データ通信 such as Pocket WiFi / Stick WiFi: `payment_36` set, all `payment_48` null) are appended to the 36 model list after the 36-PDF devices (`devices_36_only_from_48_master`; requires 販売中, not MM, and monthly×36 == total). They appear unchecked in the 36 picker until selected. Plan rules unchanged: Bizパッケージ＋ only (light family is iPhone/Android only), no MNP/番号移行.
 
+### 2026-10-02 - Tablet / data-device pricing + データ通信 36-only (unreleased; version not bumped)
+- User rule: iPad / AndroidTab / データ通信 cannot join 定額オプション＋. `build_quote` sets `call_option_tax_ex = 0` for these categories (`is_tablet_data_device`) and the PDF omits the 定額オプション＋ row when it is 0.
+- Their discount comes from `plans.json` `common.tablet_data_package_discount_by_data_plan_tax_ex`: 1GB -500, 5GB -3500, 50GB -4000 (shown on the existing `Bizパッケージ＋ 特別割引` row; `biz_package_discount_tax_ex` = same value, additional 0). Communication = 980 + data_before + discount (+ ouchi).
+- Packets 1/5/50GB only now also apply to データ通信 (was iPad/AndroidTab only); ouchi+5GB allowed for all three (no 20GB tier). Ouchi amounts unchanged (common schedule).
+- データ通信 removed from all 48-mode lists: new `price_pdf_parser.is_48_quotable` (販売中, not MM, has any 48 amount) used by `_on_sale_model_keys`, 48 batch active devices, the 48 picker, 48 individual list and the start check. `has_48_payment` moved from installment_36 to price_pdf_parser.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

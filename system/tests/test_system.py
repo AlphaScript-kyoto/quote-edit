@@ -2037,6 +2037,84 @@ class QuoteSystemTest(unittest.TestCase):
         iphone = find_device(self.device_master, "iPhone 17 256GB")
         self.assertFalse(allows_ouchi_discount_with_5gb(iphone))
 
+    def test_tablet_data_pricing_without_call_option(self):
+        """iPad／AndroidTab／データ通信: 定額オプションなし、割引 1GB-500／5GB-3500／50GB-4000。"""
+        import pdfplumber
+        from tempfile import TemporaryDirectory
+
+        from quote_system.pdf_renderer import render_quote
+
+        ipad = next(
+            item
+            for item in self.device_master["devices"]
+            if item.get("category") == "iPad" and item.get("status") == "販売中"
+        )
+        expected = {"1GB": (1500, -500), "5GB": (5000, -3500), "50GB": (6500, -4000)}
+        for data_plan, (data_before, discount) in expected.items():
+            request = deepcopy(self.request)
+            request["model"] = ipad["model"]
+            request["sales_type"] = "新規"
+            request["plan_id"] = "biz_plus"
+            request["data_plan"] = data_plan
+            request["ouchi_discount_applied"] = False
+            quote = build_quote(
+                request, self.device_master, self.plan_master, self.service_master
+            )
+            components = quote["components"]
+            self.assertEqual(components["call_option_tax_ex"], 0)
+            self.assertEqual(components["package_discount_tax_ex"], discount)
+            self.assertEqual(components["biz_package_discount_tax_ex"], discount)
+            self.assertEqual(
+                components["communication_tax_ex"], 980 + data_before + discount
+            )
+
+        with TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "ipad.pdf"
+            render_quote(quote, load_json(DATA_DIR / "company.json"), pdf_path)
+            with pdfplumber.open(pdf_path) as doc:
+                self.assertEqual(len(doc.pages), 1)
+                text = doc.pages[0].extract_text() or ""
+            self.assertNotIn("定額オプション", text)
+            self.assertIn("4,000", text)
+
+        iphone_request = deepcopy(self.request)
+        iphone_quote = build_quote(
+            iphone_request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(iphone_quote["components"]["call_option_tax_ex"], 1800)
+
+        data_device = {"category": "データ通信", "model": "Stick WiFi"}
+        from quote_system.quote_service import is_device_data_plan_allowed
+
+        self.assertTrue(is_device_data_plan_allowed(data_device, "1GB", "新規"))
+        self.assertFalse(is_device_data_plan_allowed(data_device, "20GB", "新規"))
+        self.assertFalse(is_device_data_plan_allowed(data_device, "無制限", "新規"))
+
+    def test_48_lists_skip_devices_without_48_payment(self):
+        """36回欄だけの機種（データ通信）は48回の作成する機種・一括・個別に出さない。"""
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+
+        from quote_system.batch_service import load_included_model_keys
+        from quote_system.price_pdf_parser import SALES_COLUMNS, is_48_quotable
+
+        empty = {sales: {"1_12": None, "13_24": None, "25_48": None} for sales in SALES_COLUMNS}
+        data_device = {
+            "category": "データ通信", "model": "Stick WiFi", "model_key": "stickwifi",
+            "status": "販売中", "payment_48": empty, "payment_36": 180,
+        }
+        self.assertFalse(is_48_quotable(data_device))
+        iphone = find_device(self.device_master, "iPhone 17 256GB")
+        self.assertTrue(is_48_quotable(iphone))
+
+        master = {"devices": [iphone, data_device]}
+        with TemporaryDirectory() as tmp:
+            with (
+                patch("quote_system.batch_service.INCLUDED_MODELS_PATH", Path(tmp) / "a.json"),
+                patch("quote_system.batch_service.EXCLUDED_MODELS_PATH", Path(tmp) / "b.json"),
+            ):
+                self.assertEqual(load_included_model_keys(master), {iphone["model_key"]})
+
     def test_light_family_plans_only_for_iphone_android(self):
         """ライト／スーパー／ハイパーは iPhone・Android のみ（他カテゴリは一括・個別とも不可）。"""
         from quote_system.quote_service import is_device_plan_allowed

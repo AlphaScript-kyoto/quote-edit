@@ -10,6 +10,7 @@ from .config import DATA_DIR, UPDATE_DIR, load_json, save_json
 from .price_pdf_parser import (
     SALES_COLUMNS,
     clean_model_name,
+    has_48_payment,
     is_mm_route_restricted,
     normalize_model_name,
 )
@@ -205,14 +206,6 @@ def _shape_36_device(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _has_48_payment(device: dict[str, Any]) -> bool:
-    return any(
-        value is not None
-        for payments in (device.get("payment_48") or {}).values()
-        for value in (payments or {}).values()
-    )
-
-
 def devices_36_only_from_48_master(
     device_master_48: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
@@ -220,7 +213,7 @@ def devices_36_only_from_48_master(
     extra: list[dict[str, Any]] = []
     for device in (device_master_48 or {}).get("devices") or []:
         monthly = device.get("payment_36")
-        if monthly is None or _has_48_payment(device):
+        if monthly is None or has_48_payment(device):
             continue
         if device.get("status") != "販売中" or is_mm_route_restricted(device):
             continue

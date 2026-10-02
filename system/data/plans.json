@@ -15,6 +15,11 @@
     "universal_fee_tax_in": 4,
     "required_paid_warranty_service": "IPS",
     "required_contract": "基本プラン専用法人3年契約",
+    "tablet_data_package_discount_by_data_plan_tax_ex": {
+      "1GB": -500,
+      "5GB": -3500,
+      "50GB": -4000
+    },
     "ouchi_discount_by_data_plan_tax_ex": {
       "1GB": 0,
       "5GB": -500,
