@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.1**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -454,6 +454,9 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-10-05 - 24-only devices in the 24 individual list (unreleased; version not bumped)
 - Bug (since 1.7 `is_48_quotable`): the 24 individual dropdown filtered `payment_24` devices by the 48 include list, and devices with a 24 price but no 48 price (e.g. moto g37; 83 rows in 分割支払金一覧_2026.9.17) can no longer be checked there, so they never appeared.
 - User chose: 24 list = 48-checked models with a 24 price **plus** every 24-only model (no 48 amount). New `batch_service.individual_24_devices`; falls back to all 24 models when the result is empty. `run_individual(…, installment_months=24)` already accepted any model with `payment_24`.
+
+### 2026-10-05 - ver.1.7.1 (standard)
+- Ships the 24-only list fix above. `APP_VERSION = "1.7.1"` (update check compares numeric tuples, so 1.7.1 > 1.7). Field note `リリースノート_v1.7.1_現場向け.txt` (UTF-8 BOM). Standard ZIP `見積もり一括作成ver1.7.1.zip` on N: with `latest.json` -> 1.7.1. TM/agency ZIPs not built.
 
 ## Release checklist
 1. APP_VERSION

@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.7)
+# AI Context - Infinity Quote Batch App (ver.1.7.1)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.4.md` (v1.3 / v1.1 are stubs)  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7"`  
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7.1"`  
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -205,6 +205,7 @@ Include-list: `included_models.json` is the allow-list for 48-mode batch **and**
 |-----|-------|
 | 1.6 | 36-installment super/hyper light follow 48 rules (individual 36 picker no longer hides them when ケータイ is checked); super_light MNP/新規 = 5/20/50GB/無制限 (機種変更 stays 50GB); MNP/新規 super/hyper IRSあり get plan-name folder (collision fix); agency edition added (not shipped). |
 | 1.7 | `IRSあり`/`IRSなし` folder for every plan and sales type; 36-mode checkbox model picker (`included_models_36.json`); データ通信 (36-only rows of the 48 price list) quotable in 36 mode only; iPad/AndroidTab/データ通信 no 定額オプション＋, packets 1/5/50GB, discount -500/-3500/-4000. |
+| 1.7.1 | 24 individual list shows 24-only models (no 48 amount, e.g. moto g37) plus 48-checked models with a 24 price (`individual_24_devices`). |
 | 1.5 | Formal release: official iPhone 18 PDF; remove temp overlay; PDF-order picker; skip MM-route; strip model-cell annotations; ignore 備考.
 | 1.4.14β | Restore category/model/sales path; later 2026-09-16 removed temp overlay, PDF-order picker, skip MM-route. |
 | 1.4.13β | Quote output: model folder only as deepest leaf before PDF. |
