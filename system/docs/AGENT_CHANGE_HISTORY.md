@@ -441,9 +441,19 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Packets 1/5/50GB only now also apply to データ通信 (was iPad/AndroidTab only); ouchi+5GB allowed for all three (no 20GB tier). Ouchi amounts unchanged (common schedule).
 - データ通信 removed from all 48-mode lists: new `price_pdf_parser.is_48_quotable` (販売中, not MM, has any 48 amount) used by `_on_sale_model_keys`, 48 batch active devices, the 48 picker, 48 individual list and the start check. `has_48_payment` moved from installment_36 to price_pdf_parser.
 
+### 2026-10-02 - Experimental dark UI (not shipped, production UI untouched)
+- Trial window only: `system/ui_preview.py`, launcher `アプリ起動_試験UI.bat`. `desktop_app.py` and quote generation are unchanged. Normal launch stays `アプリ起動.bat`.
+- Subclasses `QuoteApp` and replaces `_build_ui` only (same BooleanVars, same `_start` / batch methods). Delete those two files plus `tests/test_ui_preview.py` to drop the experiment.
+- Main screen is a 3-step dark layout (file → conditions → run). Infrequent checkboxes live under 詳細設定. Model picker and individual-quote dialogs stay the current windows.
+- Not a version bump. Do not put this launcher in the field ZIP.
+
 ### 2026-10-02 - ver.1.7 (standard)
 - Ships the two unreleased 2026-10-02 entries above (IRS folder everywhere, 36 checkbox picker + データ通信 in 36, tablet/data pricing, データ通信 36-only).
 - `APP_VERSION = "1.7"`; field note `リリースノート_v1.7_現場向け.txt` (UTF-8 BOM); README.txt adds one line that データ通信 is 36-only. Standard ZIP `見積もり一括作成ver1.7.zip` on N: with `latest.json` -> 1.7. TM/agency ZIPs not built.
+
+### 2026-10-05 - 24-only devices in the 24 individual list (unreleased; version not bumped)
+- Bug (since 1.7 `is_48_quotable`): the 24 individual dropdown filtered `payment_24` devices by the 48 include list, and devices with a 24 price but no 48 price (e.g. moto g37; 83 rows in 分割支払金一覧_2026.9.17) can no longer be checked there, so they never appeared.
+- User chose: 24 list = 48-checked models with a 24 price **plus** every 24-only model (no 48 amount). New `batch_service.individual_24_devices`; falls back to all 24 models when the result is empty. `run_individual(…, installment_months=24)` already accepted any model with `payment_24`.
 
 ## Release checklist
 1. APP_VERSION

@@ -2115,6 +2115,48 @@ class QuoteSystemTest(unittest.TestCase):
             ):
                 self.assertEqual(load_included_model_keys(master), {iphone["model_key"]})
 
+    def test_individual_24_list_includes_24_only_devices(self):
+        """24回の個別一覧: 48回でチェックした機種＋24回だけの機種（moto g37 など）。"""
+        from quote_system.batch_service import individual_24_devices
+        from quote_system.price_pdf_parser import SALES_COLUMNS
+
+        empty = {sales: {"1_12": None, "13_24": None, "25_48": None} for sales in SALES_COLUMNS}
+        full = {sales: {"1_12": 1000, "13_24": 1000, "25_48": 1000} for sales in SALES_COLUMNS}
+        checked = {"model": "Checked", "model_key": "checked", "status": "販売中",
+                   "payment_48": full, "payment_24": 2000}
+        unchecked = {"model": "Unchecked", "model_key": "unchecked", "status": "販売中",
+                     "payment_48": full, "payment_24": 2000}
+        only_24 = {"model": "moto g37", "model_key": "motog37", "status": "販売中",
+                   "payment_48": empty, "payment_24": 916}
+        no_24 = {"model": "No24", "model_key": "no24", "status": "販売中",
+                 "payment_48": full, "payment_24": None}
+        master = {"devices": [checked, unchecked, only_24, no_24]}
+
+        keys = lambda devices: [d["model_key"] for d in devices]
+        self.assertEqual(
+            keys(individual_24_devices(master, {"checked", "no24"})), ["checked", "motog37"]
+        )
+        self.assertEqual(
+            keys(individual_24_devices(master, set())), ["checked", "unchecked", "motog37"]
+        )
+
+        real = load_json(DATA_DIR / "device_master.json")
+        moto = next((d for d in real["devices"] if d["model_key"] == "motog37"), None)
+        if moto is None:
+            return
+        self.assertIn("motog37", keys(individual_24_devices(real, {"iphone17256gb"})))
+        request = deepcopy(self.request)
+        request.update({
+            "model": moto["model"],
+            "sales_type": "新規",
+            "plan_id": "biz_plus",
+            "data_plan": "20GB",
+            "installment_months": 24,
+        })
+        quote = build_quote(request, real, self.plan_master, self.service_master)
+        self.assertEqual(quote["periods"][0]["key"], "1_24")
+        self.assertEqual(quote["periods"][0]["device_payment"], moto["payment_24"])
+
     def test_light_family_plans_only_for_iphone_android(self):
         """ライト／スーパー／ハイパーは iPhone・Android のみ（他カテゴリは一括・個別とも不可）。"""
         from quote_system.quote_service import is_device_plan_allowed

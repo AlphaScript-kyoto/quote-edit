@@ -26,7 +26,9 @@ from .pdf_renderer import render_quote
 from .price_pdf_parser import (
     SALES_COLUMNS,
     find_device,
+    has_48_payment,
     is_48_quotable,
+    is_mm_route_restricted,
     parse_price_pdf,
     sales_type_display_name,
 )
@@ -191,6 +193,30 @@ def load_included_model_keys(device_master: dict[str, Any] | None = None) -> set
         }
         return on_sale - excluded if on_sale else set()
     return on_sale
+
+
+def individual_24_devices(
+    device_master: dict[str, Any],
+    included: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """24回割賦の個別作成に出す機種（価格表の並び順）。
+
+    48回の［作成する機種］でチェックした機種＋48回の金額がない24回だけの機種。
+    該当が無いときは24回の金額がある機種をすべて出す。
+    """
+    with_24 = [
+        device
+        for device in device_master.get("devices", [])
+        if device.get("payment_24") is not None and not is_mm_route_restricted(device)
+    ]
+    if not included:
+        return with_24
+    devices = [
+        device
+        for device in with_24
+        if device.get("model_key") in included or not has_48_payment(device)
+    ]
+    return devices or with_24
 
 
 def save_included_model_keys(

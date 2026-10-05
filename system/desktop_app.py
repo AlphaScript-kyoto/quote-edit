@@ -14,6 +14,7 @@ from quote_system.batch_service import (
     BatchControl,
     checkpoint_exists,
     clear_checkpoint,
+    individual_24_devices,
     latest_installment_36_pdf,
     latest_price_pdf,
     load_device_master,
@@ -809,20 +810,7 @@ class QuoteApp(tk.Tk):
                 )
                 return
             device_master = load_device_master()
-            from quote_system.price_pdf_parser import is_mm_route_restricted
-
-            with_24 = [
-                d
-                for d in device_master["devices"]
-                if d.get("payment_24") is not None and not is_mm_route_restricted(d)
-            ]
-            if included:
-                devices = [d for d in with_24 if d.get("model_key") in included]
-                if not devices:
-                    # 作成する機種に24回対象が無い場合は、一覧にある24回機種をすべて出す
-                    devices = with_24
-            else:
-                devices = with_24
+            devices = individual_24_devices(device_master, included)
             mode_label = "個別見積作成（24回割賦）"
             if IS_SPECIAL_EDITION:
                 mode_label = f"特例個別見積（24回・{EDITION_LABEL}）"
