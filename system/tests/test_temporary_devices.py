@@ -7,6 +7,7 @@ from quote_system.batch_service import latest_price_pdf, load_device_master
 from quote_system.price_pdf_parser import (
     clean_model_name,
     is_mm_route_restricted,
+    normalize_model_name,
     parse_price_pdf,
 )
 
@@ -33,6 +34,16 @@ class PriceListPolicyTests(unittest.TestCase):
             "iPhone 18 Pro Max(1TB)",
         )
         self.assertEqual(clean_model_name("iPhone 17(256GB)"), "iPhone 17(256GB)")
+        # 容量直後の _NT は別機種（価格が違う）。落とすと通常版と重複する
+        nt = clean_model_name("13インチiPad Pro(M5)Wi-Fi+Cellular(1TB)_NT")
+        self.assertEqual(nt, "13インチiPad Pro(M5)Wi-Fi+Cellular(1TB)_NT")
+        self.assertEqual(
+            clean_model_name("13インチiPad Pro(M5)Wi-Fi+Cellular(1TB)_NT ※10/8発売"), nt
+        )
+        self.assertNotEqual(
+            normalize_model_name(nt),
+            normalize_model_name("13インチiPad Pro(M5)Wi-Fi+Cellular(1TB)"),
+        )
 
     def test_parse_skips_mm_route_devices(self) -> None:
         pdf = latest_price_pdf()

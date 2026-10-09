@@ -78,7 +78,10 @@ def clean_model_name(model: str) -> str:
     text = re.sub(r"\s+", " ", text.replace("\n", " ")).strip()
     if not text:
         return ""
-    capacity = re.search(r"^(.*\(\d+\s*(?:GB|TB)\))", text, flags=re.IGNORECASE)
+    # 容量直後の「_NT」などは別機種（例: iPad Pro(1TB) と (1TB)_NT は価格が違う）
+    capacity = re.search(
+        r"^(.*\(\d+\s*(?:GB|TB)\)(?:_[A-Za-z0-9]+)?)", text, flags=re.IGNORECASE
+    )
     if capacity:
         return capacity.group(1).strip()
     # No capacity token: drop ※… remarks only

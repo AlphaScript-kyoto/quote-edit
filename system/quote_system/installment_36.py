@@ -23,7 +23,7 @@ DEVICE_MASTER_36_PATH = DATA_DIR / "device_master_36.json"
 DEVICE_MASTER_48_PATH = DATA_DIR / "device_master.json"
 UPDATE_36_DIR = UPDATE_DIR / "36回割賦"
 # キャッシュ互換を判定する版数（パース仕様を変えたら上げる）
-PARSER_VERSION_36 = 2
+PARSER_VERSION_36 = 3
 
 TABLE_SETTINGS = {
     "vertical_strategy": "lines",
