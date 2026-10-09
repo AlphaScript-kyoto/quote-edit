@@ -9,7 +9,7 @@ from typing import Any
 
 
 # アプリ表示バージョン（ウィンドウタイトル等）。仕様書もこれに合わせて更新する。
-APP_VERSION = "1.7.1"
+APP_VERSION = "1.7.2"
 APP_DISPLAY_NAME = "見積もり一括作成"
 
 # パッケージ版: standard（現場向け） / tm_special（TM兼任事業部用・個別制限解除）
@@ -171,6 +171,9 @@ def merge_missing_company_fields(
     return changed
 
 
+BUNDLED_MASTER_FILES = frozenset({"plans.json", "services.json"})
+
+
 def ensure_directories() -> None:
     for directory in (DATA_DIR, INPUT_DIR, OUTPUT_DIR, LOG_DIR, UPDATE_DIR):
         directory.mkdir(parents=True, exist_ok=True)
@@ -186,6 +189,13 @@ def ensure_directories() -> None:
             source = bundled_data / filename
             target = DATA_DIR / filename
             if source.exists() and not target.exists():
+                shutil.copy2(source, target)
+            # 料金マスタはアプリと一緒に配る。古い版のコピーが残ると新しい割引表が無く失敗する
+            elif (
+                filename in BUNDLED_MASTER_FILES
+                and source.exists()
+                and source.read_bytes() != target.read_bytes()
+            ):
                 shutil.copy2(source, target)
             # company: 現場に残った空の FAX 等を同梱マスタで補完（開発と表記差が出る対策）
             if filename == "company.json" and source.exists() and target.exists():

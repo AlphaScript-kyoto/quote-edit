@@ -36,7 +36,7 @@ Full architecture notes on `.cursor` live in `system/docs/AI_CONTEXT.md` section
 
 ## Current version
 
-- **ver.1.7.1** - constant: `system/quote_system/config.py` -> `APP_VERSION`
+- **ver.1.7.2** - constant: `system/quote_system/config.py` -> `APP_VERSION`
 - Window title: `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}`; TM `見積もり一括作成（TM兼任事業部用）  ver.{APP_VERSION}`
 
 ## Source of truth (edit these)
@@ -79,7 +79,8 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 
 ## Typical workflows
 
-- Run tests: `cd system && python -m unittest tests.test_system tests.test_installment_36 tests.test_update_check -v`
+- Run tests: `cd system && python -m unittest tests.test_system tests.test_installment_36 tests.test_update_check tests.test_ui_preview -v`
+- UI: `desktop_app.run_app()` opens the classic `QuoteApp` or the trial `ui_preview.PreviewQuoteApp` (last choice in `DATA_DIR/ui_mode.json`); the header `UI切替` button closes one and reopens the other with the selections carried over (blocked while a batch runs).
 - Dev GUI: `アプリ起動.bat` or `python desktop_app.py` from `system/`
 - Portable EXE: `system/build_portable_exe.bat` (ASCII/CRLF bats; **no UTF-8 BOM**)
 - TM兼任事業部用 EXE: `system/build_portable_exe_tm.bat` (sets `QUOTE_APP_EDITION=tm_special`)

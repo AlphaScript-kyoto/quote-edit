@@ -14,6 +14,8 @@ from .price_pdf_parser import find_device
 _TABLET_PACKET_CATEGORIES = frozenset({"iPad", "AndroidTab", "データ通信"})
 _TABLET_PACKET_PLANS = frozenset({"1GB", "5GB", "50GB"})
 _TABLET_DISCOUNT_KEY = "tablet_data_package_discount_by_data_plan_tax_ex"
+# ケータイは定額オプション＋ありで、割引額だけスマホと異なる
+_FEATURE_PHONE_DISCOUNT_KEY = "feature_phone_package_discount_by_data_plan_tax_ex"
 
 
 def is_tablet_data_device(device: dict[str, Any]) -> bool:
@@ -395,6 +397,7 @@ def build_quote(
     tax_rate = float(request.get("tax_rate", 0.10))
     basic_voice = int(plan_master["common"]["basic_voice_tax_ex"])
     tablet_data = is_tablet_data_device(device)
+    feature_phone = str(device.get("category") or "").strip() == "ケータイ"
     if tablet_data:
         # 定額オプション＋に加入できない。割引は専用表（ライト系はカテゴリ判定で既に除外）
         call_option = 0
@@ -404,6 +407,14 @@ def build_quote(
                 f"タブレット・データ通信の割引額が未登録です: {request['data_plan']}"
             )
         package_discount = int(tablet_discounts[request["data_plan"]])
+        biz_package_discount = package_discount
+        additional_discount = 0
+    elif feature_phone:
+        call_option = int(plan_master["common"]["flat_call_option_tax_ex"])
+        phone_discounts = plan_master["common"].get(_FEATURE_PHONE_DISCOUNT_KEY, {})
+        if request["data_plan"] not in phone_discounts:
+            raise ValueError(f"ケータイの割引額が未登録です: {request['data_plan']}")
+        package_discount = int(phone_discounts[request["data_plan"]])
         biz_package_discount = package_discount
         additional_discount = 0
     else:
@@ -447,8 +458,10 @@ def build_quote(
         + package_discount
         + ouchi_discount
     )
-    if tablet_data:
-        expected = basic_voice + int(data_plan["data_before_tax_ex"]) + package_discount
+    if tablet_data or feature_phone:
+        expected = (
+            basic_voice + call_option + int(data_plan["data_before_tax_ex"]) + package_discount
+        )
     else:
         expected = basic_voice + int(data_plan["data_after_tax_ex"])
     if communication_tax_ex != expected + ouchi_discount:

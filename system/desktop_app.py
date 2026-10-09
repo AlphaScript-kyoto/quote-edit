@@ -72,8 +72,44 @@ from quote_system.update_check import (
 # 情報ボタン（右上「i」）で開く紹介ページ
 INFO_HOME_URL = "https://alphascript-kyoto.github.io/as-homepage/"
 
+# 画面の種類（いつもの画面／試験UI）。最後に使った方を次回の起動で開く
+UI_CLASSIC = "classic"
+UI_PREVIEW = "preview"
+UI_MODE_PATH = DATA_DIR / "ui_mode.json"
+# 切り替えても引き継ぐ画面の選択
+_SNAPSHOT_BOOL_VARS = (
+    "force_all_var",
+    "upfront_var",
+    "mnp_shinki_irs_var",
+    "no_ips_var",
+    "light_plan_var",
+    "standard_fee_var",
+)
+_SNAPSHOT_STR_VARS = ("upfront_mode_var", "department_var")
+
+
+def load_ui_mode() -> str:
+    try:
+        mode = str(load_json(UI_MODE_PATH).get("ui_mode") or "")
+    except (OSError, ValueError, AttributeError):
+        return UI_CLASSIC
+    return mode if mode in {UI_CLASSIC, UI_PREVIEW} else UI_CLASSIC
+
+
+def save_ui_mode(mode: str) -> None:
+    try:
+        save_json(UI_MODE_PATH, {"ui_mode": mode})
+    except OSError:
+        pass
+
+
 class QuoteApp(tk.Tk):
-    def __init__(self) -> None:
+    UI_MODE = UI_CLASSIC
+
+    def __init__(self, *, ui_snapshot: dict | None = None) -> None:
+        # 切替ボタンで閉じたときに、次に開く画面と引き継ぐ選択
+        self.switch_to: str | None = None
+        self.ui_snapshot: dict | None = None
         ensure_directories()
         super().__init__()
         # ウィンドウタイトルバー（マウスでつかんで移動する場所）にバージョンを表示
@@ -100,11 +136,72 @@ class QuoteApp(tk.Tk):
         self._fit_window_to_content()
         self._on_installment_mode_changed()
         self._refresh_resume_button(log_if_available=True)
+        if ui_snapshot is not None:
+            # 画面切替で開き直したときは、起動時の案内（更新確認など）を繰り返さない
+            self._apply_ui_snapshot(ui_snapshot)
+            return
         if IS_SPECIAL_EDITION:
             self.after(300, self._warn_tm_special_edition)
         else:
             # 通常版のみ：共有フォルダの latest.json を短時間チェック（失敗時は黙って起動）
             self.after(500, self._start_update_check)
+
+    def _take_ui_snapshot(self) -> dict:
+        snapshot: dict = {
+            "installment_mode": self.installment_mode_var.get(),
+            "pdf": self.pdf_var.get(),
+            "log": self.log.get("1.0", "end-1c"),
+        }
+        for name in _SNAPSHOT_BOOL_VARS:
+            snapshot[name] = bool(getattr(self, name).get())
+        for name in _SNAPSHOT_STR_VARS:
+            snapshot[name] = getattr(self, name).get()
+        return snapshot
+
+    def _apply_ui_snapshot(self, snapshot: dict) -> None:
+        mode = snapshot.get("installment_mode")
+        if mode and mode != self.installment_mode_var.get():
+            self.installment_mode_var.set(mode)
+            self._on_installment_mode_changed()
+        for name in _SNAPSHOT_BOOL_VARS:
+            if name in snapshot:
+                getattr(self, name).set(bool(snapshot[name]))
+        for name in _SNAPSHOT_STR_VARS:
+            if snapshot.get(name):
+                getattr(self, name).set(snapshot[name])
+        if snapshot.get("pdf"):
+            self.pdf_var.set(snapshot["pdf"])
+        log_text = str(snapshot.get("log") or "").strip()
+        if log_text:
+            self.log.config(state="normal")
+            self.log.delete("1.0", "end")
+            self.log.insert("end", log_text + "\n")
+            self.log.see("end")
+            self.log.config(state="disabled")
+        self._write_log("画面を切り替えました。選んでいた内容はそのまま引き継いでいます。")
+
+    def destroy(self) -> None:
+        # 画面切替で閉じた後に予約済みの処理（更新確認など）が走らないようにする
+        try:
+            for job in self.tk.splitlist(self.tk.call("after", "info")):
+                self.tk.call("after", "cancel", job)
+        except tk.TclError:
+            pass
+        super().destroy()
+
+    def _switch_ui(self) -> None:
+        if self._is_running:
+            messagebox.showinfo(
+                "画面の切替",
+                "見積もりの作成中は画面を切り替えられません。\n完了するか中断してから切り替えてください。",
+                parent=self,
+            )
+            return
+        target = UI_CLASSIC if self.UI_MODE == UI_PREVIEW else UI_PREVIEW
+        self.ui_snapshot = self._take_ui_snapshot()
+        self.switch_to = target
+        save_ui_mode(target)
+        self.destroy()
 
     def _warn_tm_special_edition(self) -> None:
         messagebox.showwarning(
@@ -175,6 +272,10 @@ class QuoteApp(tk.Tk):
             font=("Yu Gothic UI", 12),
         ).pack(side="left", anchor="s", padx=(10, 0), pady=(0, 4))
         self._build_info_button(header).pack(side="right", anchor="ne")
+        self.switch_ui_button = ttk.Button(
+            header, text="UI切替（試験UIへ）", command=self._switch_ui
+        )
+        self.switch_ui_button.pack(side="right", anchor="ne", padx=(0, 8))
         ttk.Label(
             root,
             text="価格表PDFを読み取り、見積もりを作成します。"
@@ -1467,5 +1568,28 @@ def _open_path(path: Path) -> None:
     os.startfile(path)  # type: ignore[attr-defined]
 
 
+def _create_app(mode: str, snapshot: dict | None) -> QuoteApp:
+    if mode == UI_PREVIEW:
+        try:
+            from ui_preview import PreviewQuoteApp
+        except ImportError:
+            save_ui_mode(UI_CLASSIC)
+        else:
+            return PreviewQuoteApp(ui_snapshot=snapshot)
+    return QuoteApp(ui_snapshot=snapshot)
+
+
+def run_app(mode: str | None = None) -> None:
+    """切替ボタンで閉じられたら、もう一方の画面で開き直す。"""
+    mode = mode or load_ui_mode()
+    snapshot: dict | None = None
+    while True:
+        app = _create_app(mode, snapshot)
+        app.mainloop()
+        if not app.switch_to:
+            return
+        mode, snapshot = app.switch_to, app.ui_snapshot
+
+
 if __name__ == "__main__":
-    QuoteApp().mainloop()
+    run_app()

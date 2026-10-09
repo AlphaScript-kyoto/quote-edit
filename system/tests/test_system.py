@@ -2090,6 +2090,75 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertFalse(is_device_data_plan_allowed(data_device, "20GB", "新規"))
         self.assertFalse(is_device_data_plan_allowed(data_device, "無制限", "新規"))
 
+    def test_feature_phone_discount_2300(self):
+        """ケータイ: 定額オプション＋あり、割引は -2,300円（スマホ1GBの -1,800円とは別）。"""
+        keitai = next(
+            (
+                item
+                for item in self.device_master["devices"]
+                if item.get("category") == "ケータイ" and item.get("status") == "販売中"
+            ),
+            None,
+        )
+        if keitai is None:
+            self.skipTest("no ケータイ device in master")
+        request = deepcopy(self.request)
+        request.update({
+            "model": keitai["model"],
+            "sales_type": "新規",
+            "plan_id": "biz_plus",
+            "data_plan": "1GB",
+            "ouchi_discount_applied": False,
+        })
+        quote = build_quote(request, self.device_master, self.plan_master, self.service_master)
+        components = quote["components"]
+        self.assertEqual(components["call_option_tax_ex"], 1800)
+        self.assertEqual(components["package_discount_tax_ex"], -2300)
+        self.assertEqual(components["biz_package_discount_tax_ex"], -2300)
+        self.assertEqual(components["communication_tax_ex"], 980 + 1800 + 1500 - 2300)
+
+        iphone_request = deepcopy(self.request)
+        iphone_request.update({
+            "sales_type": "機種変更・移動機物品販売",
+            "plan_id": "biz_plus",
+            "data_plan": "1GB",
+        })
+        iphone_quote = build_quote(
+            iphone_request, self.device_master, self.plan_master, self.service_master
+        )
+        self.assertEqual(iphone_quote["components"]["package_discount_tax_ex"], -1800)
+
+    def test_frozen_refreshes_bundled_rate_masters(self):
+        """EXE: plans／services は同梱の新しい内容で上書き、company 等は残す。"""
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+
+        from quote_system import config
+
+        with TemporaryDirectory() as tmp:
+            bundled = Path(tmp) / "bundle" / "data"
+            local = Path(tmp) / "local" / "data"
+            bundled.mkdir(parents=True)
+            local.mkdir(parents=True)
+            (bundled / "plans.json").write_text('{"v": 2}', encoding="utf-8")
+            (bundled / "services.json").write_text('{"v": 2}', encoding="utf-8")
+            (bundled / "device_master.json").write_text('{"v": 2}', encoding="utf-8")
+            (local / "plans.json").write_text('{"v": 1}', encoding="utf-8")
+            (local / "device_master.json").write_text('{"v": 1}', encoding="utf-8")
+            with (
+                patch.object(config, "FROZEN", True),
+                patch.object(config, "RESOURCE_ROOT", bundled.parent),
+                patch.object(config, "DATA_DIR", local),
+                patch.object(config, "INPUT_DIR", Path(tmp) / "input"),
+                patch.object(config, "OUTPUT_DIR", Path(tmp) / "output"),
+                patch.object(config, "LOG_DIR", Path(tmp) / "logs"),
+                patch.object(config, "UPDATE_DIR", Path(tmp) / "update"),
+            ):
+                config.ensure_directories()
+            self.assertEqual(load_json(local / "plans.json"), {"v": 2})
+            self.assertEqual(load_json(local / "services.json"), {"v": 2})
+            self.assertEqual(load_json(local / "device_master.json"), {"v": 1})
+
     def test_48_lists_skip_devices_without_48_payment(self):
         """36回欄だけの機種（データ通信）は48回の作成する機種・一括・個別に出さない。"""
         from tempfile import TemporaryDirectory

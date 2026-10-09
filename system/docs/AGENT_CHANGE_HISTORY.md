@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.1**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.2**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -457,6 +457,12 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 
 ### 2026-10-05 - ver.1.7.1 (standard)
 - Ships the 24-only list fix above. `APP_VERSION = "1.7.1"` (update check compares numeric tuples, so 1.7.1 > 1.7). Field note `リリースノート_v1.7.1_現場向け.txt` (UTF-8 BOM). Standard ZIP `見積もり一括作成ver1.7.1.zip` on N: with `latest.json` -> 1.7.1. TM/agency ZIPs not built.
+
+### 2026-10-09 - ver.1.7.2 (version bumped; ZIP NOT shipped yet — user is checking first)
+- ケータイ discount: user correction, 1GB package discount is **-2300** (was the phone -1800). `plans.json` `common.feature_phone_package_discount_by_data_plan_tax_ex`; 定額オプション＋ 1800 stays. Communication = 980 + 1800 + 1500 - 2300 = 1980.
+- **Bug found while doing this:** frozen `ensure_directories` copied `plans.json`/`services.json` to %LOCALAPPDATA% only when missing, so field PCs upgraded from ≤1.6 kept an old `plans.json` without `tablet_data_package_discount_by_data_plan_tax_ex` → iPad/AndroidTab/データ通信 quotes raise "割引額が未登録" in 1.7/1.7.1. Now `BUNDLED_MASTER_FILES` (plans, services) are overwritten from the bundle when bytes differ. company.json / device masters / prefs are untouched. The app never edits these two files.
+- UI switch: user-built trial dark UI `system/ui_preview.py` (+ `tests/test_ui_preview.py`, root `アプリ起動_試験UI.bat`) is now reachable from a header `UI切替` button on both UIs. `desktop_app.run_app(mode)` loops: `_create_app` builds `QuoteApp` or `PreviewQuoteApp`; `_switch_ui` (blocked while `_is_running`) snapshots vars (mode, PDF, toggles, department, log), saves `ui_mode.json` (gitignored; DATA_DIR → %LOCALAPPDATA% in EXE), destroys; the next window applies the snapshot and skips the startup update check / TM warning. `QuoteApp.destroy` cancels pending `after` jobs with plain Tcl `after cancel` (`after_cancel` breaks PillButton cleanup). The old "desktop_app must not mention ui_preview" test was replaced by a switch round-trip test.
+- Tests: the local `device_master.json` was re-imported on 2026-10-09 from `分割支払金一覧_2026.10.6②`; 4 iPhone-17 price-pinned tests in test_system fail against it but pass against the committed master (`work/_runtests_headmaster.py`).
 
 ## Release checklist
 1. APP_VERSION

@@ -35,3 +35,4 @@ system/data/company.json
 system/data/app_state.json
 system/data/excluded_models.json
 system/data/included_models.json
+system/data/ui_mode.json
