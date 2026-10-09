@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.2**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.3**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -468,7 +468,10 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-10-09 - Price audit (all installments × sales types) + iPad Pro `_NT` fix (not shipped yet)
 - User asked for a careful check that 機種代金 matches the price PDFs for every installment pattern and sales type. Audit script `system/work/_verify_prices.py` (output `_verify_prices.txt`): fresh parse vs cached masters, 48 header columns, an independent text-line reading of every priced row (48: last 15 tokens, 36: last 2) vs parsed values + arithmetic, 36 PDF vs the 48 PDF 36-column, duplicate model keys, then build + render every allowed quote (48 / 36 / 24 × MNP / 新規 / 番号移行 / 機種変更) and check the PDF 機種代金 row and one page.
 - **Bug found:** `clean_model_name` cut the name at the capacity `(1TB)` and dropped the `_NT` suffix, so 8 iPad Pro models (13/11インチ M5/M4 Wi-Fi+Cellular 1TB/2TB `_NT`, different prices) collided with the normal model key: 48 新規/機種変更 failed with 機種名が重複しています and 36 `all_36_devices` silently kept only the first. Fix: keep a `_[A-Za-z0-9]+` suffix directly after the capacity. `PARSER_VERSION_36 = 3` to re-parse cached 36 masters; the 48 master refreshes on the next picker open / batch run. The `_NT` models are new keys, so they are not in existing include lists until picked.
-- After the fix: problems=0 (48: 500, 36: 754, 24: 716 quotes + PDFs). The field 1.7.2 still has the `_NT` bug until the next release.
+- After the fix: problems=0 (48: 500, 36: 754, 24: 716 quotes + PDFs).
+
+### 2026-10-09 - ver.1.7.3 (standard; shipped)
+- Ships the `_NT` fix above. `APP_VERSION = "1.7.3"`. Field note `リリースノート_v1.7.3_現場向け.txt` (UTF-8 BOM). Standard ZIP `見積もり一括作成ver1.7.3.zip` on N: with `latest.json` -> 1.7.3 (`system/data/latest.example.json` synced). TM/agency ZIPs not built.
 
 ## Release checklist
 1. APP_VERSION
