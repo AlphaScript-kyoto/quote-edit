@@ -479,10 +479,11 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Batch and individual upfront enumeration selects only the two Duo plans; quote resolution automatically selects the Duo subscription and rejects a normal upfront plan for Duo.
 - `APP_VERSION = "1.7.4"`. Built standard and TM ZIPs. Standard `見積もり一括作成ver1.7.4.zip` copied to N: and `latest.json` / `system/data/latest.example.json` updated to 1.7.4. TM ZIP remains under `portable/` and is not referenced by `latest.json`.
 
-### 2026-10-14 - Usage CSV aggregation (unreleased; version not bumped)
+### 2026-10-14 - Usage CSV aggregation (shipped in rebuilt ver.1.7.4 standard + TM)
 - After batch/individual operations, record Windows user, PC, department, edition, creation type, installment months, generated PDF count, target model count, result, and app version.
 - Destination: `N:\01.ツールズ\見積もり作成ツール\開発者ツール\作成データ集計\YYYY-MM\<PC>_YYYY-MM.csv` (UTF-8 BOM for Excel).
 - Events are first stored as atomic local pending JSON files under `LOG_DIR/usage_pending/`; background sync runs on startup and after each event. Network/write failures are silent and never block quote generation. Event IDs prevent duplicate rows after retry.
+- Rebuilt both ver.1.7.4 packages with this feature. Standard ZIP and `latest.json` were overwritten on N:; TM ZIP was overwritten under `portable/` only.
 
 ## Release checklist
 1. APP_VERSION
