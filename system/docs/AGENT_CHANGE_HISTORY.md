@@ -473,6 +473,11 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-10-09 - ver.1.7.3 (standard; shipped)
 - Ships the `_NT` fix above. `APP_VERSION = "1.7.3"`. Field note `リリースノート_v1.7.3_現場向け.txt` (UTF-8 BOM). Standard ZIP `見積もり一括作成ver1.7.3.zip` on N: with `latest.json` -> 1.7.3 (`system/data/latest.example.json` synced). TM/agency ZIPs not built.
 
+### 2026-10-14 - iPhone Duo dedicated IPS (unreleased; version not bumped)
+- Future price-list models whose name matches `iPhone Duo` use dedicated IPS exclusively.
+- Upfront IPS variants: plan ①税込49,940円 / plan ②税込74,910円, both 24 months. Subscription IPS: 税込2,860円/month.
+- Batch and individual upfront enumeration selects only the two Duo plans; quote resolution automatically selects the Duo subscription and rejects a normal upfront plan for Duo.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match

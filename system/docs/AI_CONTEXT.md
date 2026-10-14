@@ -179,6 +179,8 @@ price PDF
 
 Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent). The 36 list also includes 36-only devices found in the 48 price list (データ通信 rows with `payment_36` but no 48 payments). 48-mode lists use `is_48_quotable` (must have a 48 amount), so データ通信 is 36-only. The 24 individual list (`individual_24_devices`) = 48-checked models with `payment_24` + every 24-only model (no 48 amount). iPad / AndroidTab / データ通信: no 定額オプション＋, packets 1/5/50GB, discount from `common.tablet_data_package_discount_by_data_plan_tax_ex` (-500/-3500/-4000).
 
+iPhone Duo IPS: detect future models by the `iPhone Duo` model name. Replace normal IPS choices with dedicated upfront plans ① ¥49,940 / ② ¥74,910 (tax-in, both 24 months) and dedicated subscription ¥2,860/month (tax-in).
+
 ---
 
 ## Agent change protocol

@@ -3,6 +3,7 @@ from pathlib import Path
 from copy import deepcopy
 
 from quote_system.batch_service import (
+    _upfront_ips_plan_ids,
     _ips_filename_token,
     _quote_filename,
     _quote_relative_path,
@@ -114,6 +115,55 @@ class QuoteSystemTest(unittest.TestCase):
         )
         self.assertEqual(quote["services"]["ips"]["plan_id"], "ips_gold_24")
         self.assertEqual(quote["services"]["support"]["plan_id"], "support_s")
+
+    def test_iphone_duo_uses_dedicated_ips_plans(self):
+        duo = deepcopy(find_device(self.device_master, self.request["model"]))
+        duo["model"] = "iPhone Duo(256GB)"
+        duo["model_key"] = "iphoneduo256gb"
+        master = {**self.device_master, "devices": [duo]}
+
+        subscription_request = deepcopy(self.request)
+        subscription_request["model"] = duo["model"]
+        quote = build_quote(
+            subscription_request, master, self.plan_master, self.service_master
+        )
+        self.assertEqual(
+            quote["services"]["ips"]["name"],
+            "Duo専用保証サブスクプラン",
+        )
+        self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 2860)
+        self.assertEqual(
+            _upfront_ips_plan_ids(duo),
+            ["iphone_duo_upfront_1", "iphone_duo_upfront_2"],
+        )
+
+        for plan_id, amount in (
+            ("iphone_duo_upfront_1", 49940),
+            ("iphone_duo_upfront_2", 74910),
+        ):
+            upfront_request = deepcopy(subscription_request)
+            upfront_request["services"]["ips"] = {
+                "type": "upfront",
+                "plan_id": plan_id,
+            }
+            upfront_quote = build_quote(
+                upfront_request, master, self.plan_master, self.service_master
+            )
+            self.assertEqual(
+                upfront_quote["services"]["ips"]["upfront_total_tax_in"],
+                amount,
+            )
+            self.assertEqual(upfront_quote["services"]["ips"]["period_months"], 24)
+
+        invalid_request = deepcopy(subscription_request)
+        invalid_request["services"]["ips"] = {
+            "type": "upfront",
+            "plan_id": "ips_gold_24",
+        }
+        with self.assertRaisesRegex(ValueError, "Duo専用"):
+            build_quote(
+                invalid_request, master, self.plan_master, self.service_master
+            )
 
     def test_revised_initial_fee(self):
         request = {**self.request, "initial_fee_mode": "standard"}

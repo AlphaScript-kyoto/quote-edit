@@ -95,6 +95,16 @@
         "theft_loss_support": "対象外",
         "loaner_support": "機種に応じた代替機（データカード対象外）"
       },
+      "iphone_duo_upfront_1": {
+        "name": "Duo専用保証プラン①",
+        "period_months": 24,
+        "upfront_total_tax_in": 49940
+      },
+      "iphone_duo_upfront_2": {
+        "name": "Duo専用保証プラン②",
+        "period_months": 24,
+        "upfront_total_tax_in": 74910
+      },
       "feature_phone_ips_24": {
         "serial_no": "IPSPLAN_00150",
         "name": "ガラケーIPS24",
@@ -126,6 +136,11 @@
   "ips_subscription": {
     "description": "契約開始から解約まで月額徴収。クレジットカードまたは口座振替。料金は税込表示。",
     "collection_fee_tax_in": 165,
+    "iphone_duo_plan": {
+      "name": "Duo専用保証サブスクプラン",
+      "monthly_fee_tax_in": 2860,
+      "monthly_fee_tax_ex": 2600
+    },
     "common_terms": {
       "eligibility": "本サービス加入時に当社または指定販売店で購入した正常な携帯電話機1台につき1契約。端末総額に応じてプランを選択。",
       "service_period": "入会日（開始日）から契約解除まで。",

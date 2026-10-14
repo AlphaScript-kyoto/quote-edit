@@ -170,7 +170,23 @@ class PeriodAmount:
     monthly_equivalent_display_tax_ex: int
 
 
-def _select_subscription_tier(service_master: dict[str, Any], device_total: int) -> dict[str, Any]:
+def is_iphone_duo(device: dict[str, Any]) -> bool:
+    """価格表上の容量表記などを許容して iPhone Duo を判定する。"""
+    model = str(device.get("model") or device.get("model_key") or "")
+    return re.search(r"\biphone\s*duo\b", model, flags=re.IGNORECASE) is not None
+
+
+def _select_subscription_tier(
+    service_master: dict[str, Any],
+    device_total: int,
+    *,
+    device: dict[str, Any],
+) -> dict[str, Any]:
+    if is_iphone_duo(device):
+        plan = service_master["ips_subscription"].get("iphone_duo_plan")
+        if not plan:
+            raise ValueError("iPhone Duo専用IPSサブスクプランが未登録です")
+        return plan
     for tier in service_master["ips_subscription"]["tiers"]:
         minimum = int(tier["device_total_min"])
         maximum = tier.get("device_total_max_exclusive")
@@ -184,6 +200,7 @@ def _resolve_services(
     service_master: dict[str, Any],
     device_total: int,
     plan_id: str,
+    device: dict[str, Any],
     *,
     allow_super_hyper_without_irs: bool = False,
     unrestricted_individual: bool = False,
@@ -194,6 +211,11 @@ def _resolve_services(
 
     if ips_selection and ips_selection.get("type") == "upfront":
         ips_plan_id = ips_selection.get("plan_id")
+        if is_iphone_duo(device) and ips_plan_id not in {
+            "iphone_duo_upfront_1",
+            "iphone_duo_upfront_2",
+        }:
+            raise ValueError("iPhone DuoにはDuo専用の通常IPSプランを指定してください")
         plan = service_master["ips_upfront"]["plans"].get(ips_plan_id)
         if not plan:
             raise ValueError(f"IPS一括プランが不正です: {ips_plan_id}")
@@ -208,7 +230,11 @@ def _resolve_services(
             "monthly_equivalent_tax_in": math.ceil(upfront_total / period_months),
         }
     elif ips_selection and ips_selection.get("type") == "subscription":
-        tier = _select_subscription_tier(service_master, device_total)
+        tier = _select_subscription_tier(
+            service_master,
+            device_total,
+            device=device,
+        )
         # 料金表は税込料金をそのまま表示（別途徴収手数料は上乗せしない）
         base_monthly = int(tier["monthly_fee_tax_in"])
         ips = {
@@ -473,6 +499,7 @@ def build_quote(
         service_master,
         int(device["total"]),
         request["plan_id"],
+        device,
         allow_super_hyper_without_irs=(
             allow_super_hyper_without_irs or unrestricted_individual
         ),

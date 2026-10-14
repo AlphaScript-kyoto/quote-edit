@@ -38,6 +38,7 @@ from .quote_service import (
     is_device_data_plan_allowed,
     is_device_plan_allowed,
     is_device_sales_type_allowed,
+    is_iphone_duo,
     is_plan_data_plan_allowed,
     is_sales_plan_allowed,
 )
@@ -241,6 +242,8 @@ def save_included_model_keys(
 
 def _upfront_ips_plan_ids(device: dict[str, Any]) -> list[str]:
     """機種カテゴリに応じた通常（一括）IPSプランID一覧。"""
+    if is_iphone_duo(device):
+        return ["iphone_duo_upfront_1", "iphone_duo_upfront_2"]
     category = str(device.get("category", ""))
     is_feature_phone = "ケータイ" in category or "kids" in category.lower()
     if is_feature_phone:
