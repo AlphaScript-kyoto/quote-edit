@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.3**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.4**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -473,10 +473,11 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-10-09 - ver.1.7.3 (standard; shipped)
 - Ships the `_NT` fix above. `APP_VERSION = "1.7.3"`. Field note `リリースノート_v1.7.3_現場向け.txt` (UTF-8 BOM). Standard ZIP `見積もり一括作成ver1.7.3.zip` on N: with `latest.json` -> 1.7.3 (`system/data/latest.example.json` synced). TM/agency ZIPs not built.
 
-### 2026-10-14 - iPhone Duo dedicated IPS (unreleased; version not bumped)
+### 2026-10-14 - ver.1.7.4 iPhone Duo dedicated IPS (standard + TM shipped)
 - Future price-list models whose name matches `iPhone Duo` use dedicated IPS exclusively.
 - Upfront IPS variants: plan ①税込49,940円 / plan ②税込74,910円, both 24 months. Subscription IPS: 税込2,860円/month.
 - Batch and individual upfront enumeration selects only the two Duo plans; quote resolution automatically selects the Duo subscription and rejects a normal upfront plan for Duo.
+- `APP_VERSION = "1.7.4"`. Built standard and TM ZIPs. Standard `見積もり一括作成ver1.7.4.zip` copied to N: and `latest.json` / `system/data/latest.example.json` updated to 1.7.4. TM ZIP remains under `portable/` and is not referenced by `latest.json`.
 
 ## Release checklist
 1. APP_VERSION
