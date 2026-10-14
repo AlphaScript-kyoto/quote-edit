@@ -484,6 +484,7 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Destination: `N:\01.ツールズ\見積もり作成ツール\開発者ツール\作成データ集計\YYYY-MM\<PC>_YYYY-MM.csv` (UTF-8 BOM for Excel).
 - Events are first stored as atomic local pending JSON files under `LOG_DIR/usage_pending/`; background sync runs on startup and after each event. Network/write failures are silent and never block quote generation. Event IDs prevent duplicate rows after retry.
 - Rebuilt both ver.1.7.4 packages with this feature. Standard ZIP and `latest.json` were overwritten on N:; TM ZIP was overwritten under `portable/` only.
+- Same-version follow-up: CSV now stores both Windows display name (Windows `GetUserNameExW`, e.g. full employee name) and account name. Display-name lookup needs no elevation and falls back to the account. Existing monthly CSVs are migrated by adding an empty display-name column. Standard/TM ver.1.7.4 packages rebuilt again; standard re-published to N:.
 
 ## Release checklist
 1. APP_VERSION

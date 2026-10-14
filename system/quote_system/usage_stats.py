@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import ctypes
 import getpass
 import json
 import os
@@ -22,7 +23,7 @@ USAGE_SHARE_ROOT = Path(
     "\u4f5c\u6210\u30c7\u30fc\u30bf\u96c6\u8a08"
 )
 PENDING_DIR = LOG_DIR / "usage_pending"
-CSV_HEADER = [
+LEGACY_CSV_HEADER = [
     "\u30a4\u30d9\u30f3\u30c8ID",
     "\u4f5c\u6210\u65e5\u6642",
     "Windows\u30e6\u30fc\u30b6\u30fc\u540d",
@@ -36,6 +37,11 @@ CSV_HEADER = [
     "\u7d50\u679c",
     "\u30a2\u30d7\u30ea\u30d0\u30fc\u30b8\u30e7\u30f3",
 ]
+CSV_HEADER = [
+    *LEGACY_CSV_HEADER[:3],
+    "Windows\u8868\u793a\u540d",
+    *LEGACY_CSV_HEADER[3:],
+]
 _sync_lock = threading.Lock()
 
 
@@ -45,6 +51,25 @@ def _windows_user_name() -> str:
     if domain and user and domain.casefold() != socket.gethostname().casefold():
         return f"{domain}\\{user}"
     return user
+
+
+def _windows_display_name(*, fallback: str = "") -> str:
+    """Read the Windows account display name without requiring elevation."""
+    if os.name != "nt":
+        return fallback
+    try:
+        get_user_name_ex = ctypes.windll.secur32.GetUserNameExW
+        size = ctypes.c_ulong(256)
+        buffer = ctypes.create_unicode_buffer(size.value)
+        if get_user_name_ex(3, buffer, ctypes.byref(size)):
+            return buffer.value.strip() or fallback
+        if size.value > len(buffer):
+            buffer = ctypes.create_unicode_buffer(size.value)
+            if get_user_name_ex(3, buffer, ctypes.byref(size)):
+                return buffer.value.strip() or fallback
+    except (AttributeError, OSError, ValueError):
+        pass
+    return fallback
 
 
 def _computer_name() -> str:
@@ -68,6 +93,7 @@ def _event_row(event: dict[str, Any]) -> list[str]:
             "event_id",
             "created_at",
             "windows_user",
+            "windows_display_name",
             "computer_name",
             "department",
             "edition",
@@ -90,11 +116,34 @@ def _existing_event_ids(csv_path: Path) -> set[str]:
         return {row[0] for row in rows if row}
 
 
+def _upgrade_legacy_csv(csv_path: Path) -> None:
+    if not csv_path.exists() or csv_path.stat().st_size == 0:
+        return
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.reader(handle))
+    if not rows or rows[0] == CSV_HEADER:
+        return
+    if rows[0] != LEGACY_CSV_HEADER:
+        raise ValueError(f"Unknown usage CSV schema: {csv_path}")
+    temp = csv_path.with_suffix(csv_path.suffix + ".tmp")
+    with temp.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(CSV_HEADER)
+        for row in rows[1:]:
+            legacy = dict(zip(LEGACY_CSV_HEADER, row))
+            writer.writerow([
+                legacy.get(column, "") if column != "Windows\u8868\u793a\u540d" else ""
+                for column in CSV_HEADER
+            ])
+    temp.replace(csv_path)
+
+
 def _append_to_share(event: dict[str, Any], share_root: Path) -> None:
     month = str(event["created_at"])[:7]
     month_dir = share_root / month
     month_dir.mkdir(parents=True, exist_ok=True)
     csv_path = month_dir / f"{_safe_filename(str(event['computer_name']))}_{month}.csv"
+    _upgrade_legacy_csv(csv_path)
     if str(event["event_id"]) in _existing_event_ids(csv_path):
         return
     needs_header = not csv_path.exists() or csv_path.stat().st_size == 0
@@ -138,10 +187,12 @@ def record_usage(
 ) -> None:
     """Persist an event locally first, then start asynchronous share sync."""
     now = datetime.now()
+    windows_user = _windows_user_name()
     event = {
         "event_id": uuid.uuid4().hex,
         "created_at": now.isoformat(timespec="seconds"),
-        "windows_user": _windows_user_name(),
+        "windows_user": windows_user,
+        "windows_display_name": _windows_display_name(fallback=windows_user),
         "computer_name": _computer_name(),
         "department": str(department or "").strip(),
         "edition": APP_EDITION,

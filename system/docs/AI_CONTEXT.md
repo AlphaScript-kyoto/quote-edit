@@ -181,7 +181,7 @@ Include-list: `included_models.json` is the allow-list for 48-mode batch **and**
 
 iPhone Duo IPS: detect future models by the `iPhone Duo` model name. Replace normal IPS choices with dedicated upfront plans ① ¥49,940 / ② ¥74,910 (tax-in, both 24 months) and dedicated subscription ¥2,860/month (tax-in).
 
-Usage aggregation: `quote_system/usage_stats.py` records completed/failed/paused batch and individual operations. Each event includes Windows user, computer, department, edition, creation type, installment months, PDF count, target model count, result, and app version. Pending events are stored under `LOG_DIR/usage_pending/` and asynchronously retried to `N:\01.ツールズ\見積もり作成ツール\開発者ツール\作成データ集計\YYYY-MM\<PC>_YYYY-MM.csv`. Network/statistics failures must never block quote generation.
+Usage aggregation: `quote_system/usage_stats.py` records completed/failed/paused batch and individual operations. Each event includes the Windows display name (via `GetUserNameExW(NameDisplay)`, account-name fallback), Windows account, computer, department, edition, creation type, installment months, PDF count, target model count, result, and app version. Pending events are stored under `LOG_DIR/usage_pending/` and asynchronously retried to `N:\01.ツールズ\見積もり作成ツール\開発者ツール\作成データ集計\YYYY-MM\<PC>_YYYY-MM.csv`. Existing pre-display-name CSVs are migrated in place. Network/statistics failures must never block quote generation.
 
 ---
 
