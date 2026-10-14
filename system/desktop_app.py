@@ -67,6 +67,7 @@ from quote_system.update_check import (
     mark_dismissed,
     open_update_location,
 )
+from quote_system.usage_stats import record_usage, start_usage_sync
 
 
 # 情報ボタン（右上「i」）で開く紹介ページ
@@ -111,6 +112,7 @@ class QuoteApp(tk.Tk):
         self.switch_to: str | None = None
         self.ui_snapshot: dict | None = None
         ensure_directories()
+        start_usage_sync()
         super().__init__()
         # ウィンドウタイトルバー（マウスでつかんで移動する場所）にバージョンを表示
         self.title(app_window_title())
@@ -1314,6 +1316,7 @@ class QuoteApp(tk.Tk):
             messagebox.showerror("個別見積作成エラー", detail, parent=win)
 
         def worker(target_models: list[str]) -> None:
+            total_files = 0
             try:
                 fee_modes = [
                     mode for mode, enabled in (
@@ -1324,7 +1327,6 @@ class QuoteApp(tk.Tk):
                 selected_capacities = [
                     name for name, var in capacity_vars.items() if var.get()
                 ]
-                total_files = 0
                 output_dir = None
                 plan_id = plan_name_to_id[plan_var.get()]
                 for target in target_models:
@@ -1367,8 +1369,23 @@ class QuoteApp(tk.Tk):
                         "作成できたPDFが0件です。機種・データ容量の選択を確認してください。"
                     )
             except Exception as exc:
+                record_usage(
+                    creation_type="個別",
+                    installment_months=months,
+                    generated_files=total_files,
+                    department=self.department_var.get(),
+                    target_models=len(target_models),
+                    result="失敗",
+                )
                 self.after(0, failed, str(exc))
                 return
+            record_usage(
+                creation_type="個別",
+                installment_months=months,
+                generated_files=total_files,
+                department=self.department_var.get(),
+                target_models=len(target_models),
+            )
             self.after(0, completed, total_files, output_dir)
 
         def start() -> None:
@@ -1488,8 +1505,23 @@ class QuoteApp(tk.Tk):
                 progress=lambda done, total, message: self.after(0, self._progress, done, total, message),
             )
         except Exception as exc:
+            record_usage(
+                creation_type="一括",
+                installment_months=installment_months,
+                generated_files=0,
+                department=self.department_var.get(),
+                result="失敗",
+            )
             self.after(0, self._failed, str(exc))
             return
+        record_usage(
+            creation_type="一括",
+            installment_months=installment_months,
+            generated_files=result.generated_files,
+            department=self.department_var.get(),
+            target_models=result.target_models,
+            result="中断" if result.paused else ("変更なし" if result.unchanged else "完了"),
+        )
         self.after(0, self._completed, result)
 
     def _resume_batch(self) -> None:
@@ -1512,8 +1544,23 @@ class QuoteApp(tk.Tk):
                 progress=lambda done, total, message: self.after(0, self._progress, done, total, message),
             )
         except Exception as exc:
+            record_usage(
+                creation_type="一括（再開）",
+                installment_months=self._installment_months(),
+                generated_files=0,
+                department=self.department_var.get(),
+                result="失敗",
+            )
             self.after(0, self._failed, str(exc))
             return
+        record_usage(
+            creation_type="一括（再開）",
+            installment_months=self._installment_months(),
+            generated_files=result.generated_files,
+            department=self.department_var.get(),
+            target_models=result.target_models,
+            result="中断" if result.paused else "完了",
+        )
         self.after(0, self._completed, result)
 
     def _progress(self, done: int, total: int, message: str) -> None:
