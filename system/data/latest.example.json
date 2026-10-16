@@ -1,6 +1,6 @@
 {
-  "version": "1.7.4",
-  "zip": "見積もり一括作成ver1.7.4.zip",
+  "version": "1.7.5",
+  "zip": "見積もり一括作成ver1.7.5.zip",
   "edition": "standard",
-  "notes": "ver.1.7.4：iPhone Duo専用保証に対応。見積作成数をWindows表示名・アカウント名・PC名などとともに社内CSVへ集計する機能を追加。"
+  "notes": "ver.1.7.5：iPhone Duo専用の通常型IPSに、水没対応プラン①49,940円・②84,590円（各税込・24か月）を追加。"
 }

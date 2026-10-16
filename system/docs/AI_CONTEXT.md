@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.7.4)
+# AI Context - Infinity Quote Batch App (ver.1.7.5)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.4.md` (v1.3 / v1.1 are stubs)  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7.4"`
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7.5"`
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -213,6 +213,7 @@ Usage aggregation: `quote_system/usage_stats.py` records completed/failed/paused
 | 1.7.2 | ケータイ 1GB discount -2300 (`common.feature_phone_package_discount_by_data_plan_tax_ex`, call option kept); frozen app refreshes `plans.json`/`services.json` from the bundle when they differ (`BUNDLED_MASTER_FILES`); header `UI切替` button switches classic `QuoteApp` <-> trial `ui_preview.PreviewQuoteApp` via `desktop_app.run_app` (selections carried, `ui_mode.json`). |
 | 1.7.3 | `clean_model_name` keeps a `_NT`-style suffix right after the capacity (iPad Pro 1TB/2TB `_NT` were colliding with the normal model key); `PARSER_VERSION_36 = 3`. Full price audit script `work/_verify_prices.py`. |
 | 1.7.4 | iPhone Duo models use dedicated IPS exclusively: upfront ① ¥49,940 / ② ¥74,910 (both 24 months), subscription ¥2,860/month. |
+| 1.7.5 | Added iPhone Duo water-damage upfront IPS ① ¥49,940 / ② ¥84,590 (both 24 months); Duo now has four upfront plans total. |
 | 1.5 | Formal release: official iPhone 18 PDF; remove temp overlay; PDF-order picker; skip MM-route; strip model-cell annotations; ignore 備考.
 | 1.4.14β | Restore category/model/sales path; later 2026-09-16 removed temp overlay, PDF-order picker, skip MM-route. |
 | 1.4.13β | Quote output: model folder only as deepest leaf before PDF. |
