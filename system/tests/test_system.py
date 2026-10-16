@@ -145,7 +145,7 @@ class QuoteSystemTest(unittest.TestCase):
         for plan_id, amount, name in (
             ("iphone_duo_upfront_1", 49940, "Duo専用保証プラン①"),
             ("iphone_duo_upfront_2", 74910, "Duo専用保証プラン②"),
-            ("iphone_duo_upfront_water_1", 49940, "IPS Duo専用プラン+水没①"),
+            ("iphone_duo_upfront_water_1", 59620, "IPS Duo専用プラン+水没①"),
             ("iphone_duo_upfront_water_2", 84590, "IPS Duo専用プラン+水没②"),
         ):
             upfront_request = deepcopy(subscription_request)

@@ -1,6 +1,6 @@
 {
-  "version": "1.7.5",
-  "zip": "見積もり一括作成ver1.7.5.zip",
+  "version": "1.7.6",
+  "zip": "見積もり一括作成ver1.7.6.zip",
   "edition": "standard",
-  "notes": "ver.1.7.5：iPhone Duo専用の通常型IPSに、水没対応プラン①49,940円・②84,590円（各税込・24か月）を追加。"
+  "notes": "ver.1.7.6：iPhone Duo専用の水没対応プラン①を、正しい税込59,620円へ訂正。"
 }
