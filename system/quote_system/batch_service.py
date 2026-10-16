@@ -33,6 +33,7 @@ from .price_pdf_parser import (
     sales_type_display_name,
 )
 from .quote_service import (
+    IPHONE_DUO_UPFRONT_PLAN_IDS,
     build_quote,
     allows_ouchi_discount_with_5gb,
     is_device_data_plan_allowed,
@@ -243,7 +244,7 @@ def save_included_model_keys(
 def _upfront_ips_plan_ids(device: dict[str, Any]) -> list[str]:
     """機種カテゴリに応じた通常（一括）IPSプランID一覧。"""
     if is_iphone_duo(device):
-        return ["iphone_duo_upfront_1", "iphone_duo_upfront_2"]
+        return list(IPHONE_DUO_UPFRONT_PLAN_IDS)
     category = str(device.get("category", ""))
     is_feature_phone = "ケータイ" in category or "kids" in category.lower()
     if is_feature_phone:

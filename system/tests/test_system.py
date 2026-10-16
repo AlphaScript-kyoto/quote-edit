@@ -134,12 +134,19 @@ class QuoteSystemTest(unittest.TestCase):
         self.assertEqual(quote["services"]["ips"]["monthly_charge_tax_in"], 2860)
         self.assertEqual(
             _upfront_ips_plan_ids(duo),
-            ["iphone_duo_upfront_1", "iphone_duo_upfront_2"],
+            [
+                "iphone_duo_upfront_1",
+                "iphone_duo_upfront_2",
+                "iphone_duo_upfront_water_1",
+                "iphone_duo_upfront_water_2",
+            ],
         )
 
-        for plan_id, amount in (
-            ("iphone_duo_upfront_1", 49940),
-            ("iphone_duo_upfront_2", 74910),
+        for plan_id, amount, name in (
+            ("iphone_duo_upfront_1", 49940, "Duo専用保証プラン①"),
+            ("iphone_duo_upfront_2", 74910, "Duo専用保証プラン②"),
+            ("iphone_duo_upfront_water_1", 49940, "IPS Duo専用プラン+水没①"),
+            ("iphone_duo_upfront_water_2", 84590, "IPS Duo専用プラン+水没②"),
         ):
             upfront_request = deepcopy(subscription_request)
             upfront_request["services"]["ips"] = {
@@ -153,6 +160,7 @@ class QuoteSystemTest(unittest.TestCase):
                 upfront_quote["services"]["ips"]["upfront_total_tax_in"],
                 amount,
             )
+            self.assertEqual(upfront_quote["services"]["ips"]["name"], name)
             self.assertEqual(upfront_quote["services"]["ips"]["period_months"], 24)
 
         invalid_request = deepcopy(subscription_request)

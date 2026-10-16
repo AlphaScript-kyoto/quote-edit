@@ -170,6 +170,14 @@ class PeriodAmount:
     monthly_equivalent_display_tax_ex: int
 
 
+IPHONE_DUO_UPFRONT_PLAN_IDS = (
+    "iphone_duo_upfront_1",
+    "iphone_duo_upfront_2",
+    "iphone_duo_upfront_water_1",
+    "iphone_duo_upfront_water_2",
+)
+
+
 def is_iphone_duo(device: dict[str, Any]) -> bool:
     """価格表上の容量表記などを許容して iPhone Duo を判定する。"""
     model = str(device.get("model") or device.get("model_key") or "")
@@ -211,10 +219,7 @@ def _resolve_services(
 
     if ips_selection and ips_selection.get("type") == "upfront":
         ips_plan_id = ips_selection.get("plan_id")
-        if is_iphone_duo(device) and ips_plan_id not in {
-            "iphone_duo_upfront_1",
-            "iphone_duo_upfront_2",
-        }:
+        if is_iphone_duo(device) and ips_plan_id not in IPHONE_DUO_UPFRONT_PLAN_IDS:
             raise ValueError("iPhone DuoにはDuo専用の通常IPSプランを指定してください")
         plan = service_master["ips_upfront"]["plans"].get(ips_plan_id)
         if not plan:

@@ -486,6 +486,10 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 - Rebuilt both ver.1.7.4 packages with this feature. Standard ZIP and `latest.json` were overwritten on N:; TM ZIP was overwritten under `portable/` only.
 - Same-version follow-up: CSV now stores both Windows display name (Windows `GetUserNameExW`, e.g. full employee name) and account name. Display-name lookup needs no elevation and falls back to the account. Existing monthly CSVs are migrated by adding an empty display-name column. Standard/TM ver.1.7.4 packages rebuilt again; standard re-published to N:.
 
+### 2026-10-16 - iPhone Duo water-damage upfront IPS (unreleased; version not bumped)
+- Added two more Duo-only upfront plans, both 24 months: `IPS Duo専用プラン+水没①` ¥49,940 tax-in and `IPS Duo専用プラン+水没②` ¥84,590 tax-in.
+- Duo upfront enumeration now creates four plans total (existing base ①/② plus water-damage ①/②) in batch and individual generation. Dedicated subscription remains unchanged.
+
 ## Release checklist
 1. APP_VERSION
 2. Titles match
