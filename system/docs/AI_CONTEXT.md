@@ -1,11 +1,11 @@
-# AI Context - Infinity Quote Batch App (ver.1.7.6)
+# AI Context - Infinity Quote Batch App (ver.1.7.7)
 
 **Purpose:** Machine-oriented specification for coding agents. Prefer this file + root `AGENTS.md` over guessing.
 
 **Human Japanese handoff:** `system/docs/開発者向け仕様書_v1.4.md` (v1.3 / v1.1 are stubs)  
 **Decision / change history (AI):** `system/docs/AGENT_CHANGE_HISTORY.md` — **read for prior tuning, defaults, PDF micro-layout, packaging encoding faults**  
 **Field ops (Japanese, short):** `README.txt`  
-**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7.6"`
+**App version constant:** `quote_system.config.APP_VERSION` -> currently `"1.7.7"`
 **Cursor IDE rules:** `.cursor/rules/` (see section below)
 
 ---
@@ -179,7 +179,7 @@ price PDF
 
 Include-list: `included_models.json` is the allow-list for 48-mode batch **and** the individual-quote Combobox. If missing, `excluded_models.json` is inverted. If neither exists, all on-sale models. 36-mode uses its own `included_models_36.json` (picked from all 36-PDF models in the same picker window; seeded from legacy `installment_36_targets.json` rules when absent). The 36 list also includes 36-only devices found in the 48 price list (データ通信 rows with `payment_36` but no 48 payments). 48-mode lists use `is_48_quotable` (must have a 48 amount), so データ通信 is 36-only. The 24 individual list (`individual_24_devices`) = 48-checked models with `payment_24` + every 24-only model (no 48 amount). iPad / AndroidTab / データ通信: no 定額オプション＋, packets 1/5/50GB, discount from `common.tablet_data_package_discount_by_data_plan_tax_ex` (-500/-3500/-4000).
 
-iPhone Duo IPS: detect future models by the `iPhone Duo` model name. Replace normal IPS choices with four dedicated upfront plans: base ① ¥49,940 / ② ¥74,910 and water-damage ① ¥59,620 / ② ¥84,590 (tax-in, all 24 months). Dedicated subscription remains ¥2,860/month (tax-in).
+iPhone Duo IPS: detect future models by the `iPhone Duo` model name. Replace normal IPS choices with exactly two dedicated upfront plans: base ① ¥49,940 and water-damage ① ¥59,620 (tax-in, both 24 months). Plan ② and water-damage ② were retired in 1.7.7 and must not be generated. Dedicated subscription remains ¥2,860/month (tax-in).
 
 Usage aggregation: `quote_system/usage_stats.py` records completed/failed/paused batch and individual operations. Each event includes the Windows display name (via `GetUserNameExW(NameDisplay)`, account-name fallback), Windows account, computer, department, edition, creation type, installment months, PDF count, target model count, result, and app version. Pending events are stored under `LOG_DIR/usage_pending/` and asynchronously retried to `N:\01.ツールズ\見積もり作成ツール\開発者ツール\作成データ集計\YYYY-MM\<PC>_YYYY-MM.csv`. Existing pre-display-name CSVs are migrated in place. Network/statistics failures must never block quote generation.
 
@@ -215,6 +215,7 @@ Usage aggregation: `quote_system/usage_stats.py` records completed/failed/paused
 | 1.7.4 | iPhone Duo models use dedicated IPS exclusively: upfront ① ¥49,940 / ② ¥74,910 (both 24 months), subscription ¥2,860/month. |
 | 1.7.5 | Added iPhone Duo water-damage upfront IPS ① ¥49,940 / ② ¥84,590 (both 24 months); Duo now has four upfront plans total. |
 | 1.7.6 | Corrected iPhone Duo water-damage upfront IPS ① from ¥49,940 to ¥59,620 tax-in. |
+| 1.7.7 | Removed retired iPhone Duo base plan ② and water-damage plan ② from masters and generation; only ① variants remain. |
 | 1.5 | Formal release: official iPhone 18 PDF; remove temp overlay; PDF-order picker; skip MM-route; strip model-cell annotations; ignore 備考.
 | 1.4.14β | Restore category/model/sales path; later 2026-09-16 removed temp overlay, PDF-order picker, skip MM-route. |
 | 1.4.13β | Quote output: model folder only as deepest leaf before PDF. |

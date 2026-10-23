@@ -172,9 +172,7 @@ class PeriodAmount:
 
 IPHONE_DUO_UPFRONT_PLAN_IDS = (
     "iphone_duo_upfront_1",
-    "iphone_duo_upfront_2",
     "iphone_duo_upfront_water_1",
-    "iphone_duo_upfront_water_2",
 )
 
 

@@ -100,21 +100,10 @@
         "period_months": 24,
         "upfront_total_tax_in": 49940
       },
-      "iphone_duo_upfront_2": {
-        "name": "Duo専用保証プラン②",
-        "period_months": 24,
-        "upfront_total_tax_in": 74910
-      },
       "iphone_duo_upfront_water_1": {
         "name": "IPS Duo専用プラン+水没①",
         "period_months": 24,
         "upfront_total_tax_in": 59620,
-        "water_support": "対応"
-      },
-      "iphone_duo_upfront_water_2": {
-        "name": "IPS Duo専用プラン+水没②",
-        "period_months": 24,
-        "upfront_total_tax_in": 84590,
         "water_support": "対応"
       },
       "feature_phone_ips_24": {

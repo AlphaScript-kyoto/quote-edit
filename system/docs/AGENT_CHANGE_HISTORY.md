@@ -13,7 +13,7 @@ Append a dated entry after user-visible changes.
 
 | Item | Value |
 |------|--------|
-| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.6**) |
+| App version | See `APP_VERSION` in `system/quote_system/config.py` (currently **1.7.7**) |
 | Display name | 見積もり一括作成 |
 | Window title | `app_window_title()` — standard `見積もり一括作成  ver.{APP_VERSION}` (TM: `…（TM兼任事業部用）  ver.…`) |
 | Editions | `standard` (field) / `tm_special` (TM兼任事業部・個別解除). Env `QUOTE_APP_EDITION` or bundled `app_edition.json` |
@@ -494,6 +494,11 @@ Terminology (user-defined, use consistently): IPS = 修理保証サービス (re
 ### 2026-10-16 - ver.1.7.6 Duo water-damage plan ① price correction (standard + TM shipped)
 - Corrected `IPS Duo専用プラン+水没①` from the erroneous ¥49,940 to **¥59,620 tax-in**. Base Duo plan ① remains ¥49,940.
 - `APP_VERSION = "1.7.6"`. Standard and TM ZIPs built; standard `見積もり一括作成ver1.7.6.zip` published to N: with `latest.json` updated. TM ZIP remains under `portable/`.
+
+### 2026-10-23 - ver.1.7.7 retire Duo plan ② variants (standard + TM shipped)
+- Removed `Duo専用保証プラン②` (¥74,910) and `IPS Duo専用プラン+水没②` (¥84,590) from `services.json`, the Duo allow-list, batch generation, and individual generation.
+- Duo upfront IPS now creates only base ① ¥49,940 and water-damage ① ¥59,620 (both tax-in, 24 months). Dedicated subscription remains unchanged.
+- `APP_VERSION = "1.7.7"`. Standard and TM ZIPs built; standard `見積もり一括作成ver1.7.7.zip` published to N: with `latest.json` updated. TM ZIP remains under `portable/`.
 
 ## Release checklist
 1. APP_VERSION
