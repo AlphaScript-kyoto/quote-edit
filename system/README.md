@@ -53,6 +53,22 @@ python -m pip install -r requirements.txt
 python -m unittest tests.test_system tests.test_installment_36 tests.test_update_check -v
 ```
 
+## Cloud Agent（Linux・メインPCが使えないとき）
+
+Windows の開発PCが手元にないときは、Cloud Agent 上でもテストと画面起動ができます。
+
+```bash
+cd system
+python3 -m unittest tests.test_system tests.test_installment_36 tests.test_update_check tests.test_ui_preview tests.test_temporary_devices tests.test_usage_stats tests.test_editions -v
+python3 desktop_app.py
+```
+
+- 初回の `company.json` が無いときは、`company.example.json` がコピーされます。電話・FAX は空、住所は仮の文言です。本番の連絡先は Git に入れず、Windows PC の `company.json` をこの場所へコピーしてください。
+- 機種代金一覧表の PDF は Git に入っていません。それを使うテストはスキップされます。
+- Linux には BIZ UD ゴシックが無いので、見積PDFのフォントは HeiseiKakuGo になります。
+
+同じ環境に、公式サイト `as-homepage`（`http://127.0.0.1:8000/`）と、半手動リスト収集 `create-list` もあります。
+
 ## 現在の仕様ハイライト（1.4.x）
 
 - 出力先固定（タイムスタンプフォルダなし）：48回 `output/見積PDF/`（TM: `見積PDF_TM特例/`）、36回 `output/見積PDF_36回/`（TM: `見積PDF_TM特例_36回/`）、24回個別 `output/見積PDF_24回/`（TM: `見積PDF_TM特例_24回/`）
