@@ -85,6 +85,18 @@ Treat as generated / do not hand-edit as source: `portable/`, `system/work/`, la
 - Portable EXE: `system/build_portable_exe.bat` (ASCII/CRLF bats; **no UTF-8 BOM**)
 - TM兼任事業部用 EXE: `system/build_portable_exe_tm.bat` (sets `QUOTE_APP_EDITION=tm_special`)
 
+## Cloud Agent (Linux)
+
+Use this when the Windows PC is unavailable. The Cloud Agent environment also contains `as-homepage` and `create-list`.
+
+- `python3` (3.12), `python3-tk`, and the three repos' `requirements.txt` are installed for the `ubuntu` user. Do not commit a venv.
+- If `system/data/company.json` is missing, setup copies `company.example.json`. Phones and FAX are empty, and the address is a placeholder, so sample PDFs must not be treated as field quotes. Do not commit `company.json`. Copy the real file from the Windows PC when the PDF must show real contacts.
+- Price-list PDFs are not in git. Tests that need one skip (`no 36 PDF in update folder`, `price PDF not present`).
+- `C:\Windows\Fonts\BIZ-UDGothic*.ttc` is absent, so PDFs use ReportLab's HeiseiKakuGo CID font. That is expected on Linux.
+- Tests: `cd system && python3 -m unittest tests.test_system tests.test_installment_36 tests.test_update_check tests.test_ui_preview tests.test_temporary_devices tests.test_usage_stats tests.test_editions -v`
+- GUI: `cd system && python3 desktop_app.py` on the cloud desktop (`DISPLAY` is already set).
+- `create-list` uses system Google Chrome via Playwright (`channel=chrome`). `as-homepage` is static; the environment serves it at `http://127.0.0.1:8000/`.
+
 ## Frozen vs source paths
 
 | | Standard EXE | TM EXE |
